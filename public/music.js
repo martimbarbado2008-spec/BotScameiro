@@ -14,20 +14,72 @@
       background: rgba(13, 22, 18, 0.95);
       border: 1px solid rgba(87, 242, 135, 0.3);
       box-shadow: 0 0 15px rgba(87, 242, 135, 0.1), 0 8px 32px rgba(0,0,0,0.5);
-      border-radius: 50px;
-      padding: 8px 16px;
+      border-radius: 50%;
+      width: 48px;
+      height: 48px;
+      padding: 0;
       display: flex;
       align-items: center;
-      gap: 12px;
+      justify-content: center;
       z-index: 9999;
       backdrop-filter: blur(10px);
-      transition: all 0.3s ease;
-      max-width: 260px;
+      transition: width 0.4s cubic-bezier(0.165, 0.84, 0.44, 1), border-radius 0.4s ease, padding 0.4s ease;
+      overflow: hidden;
     }
 
     .music-widget:hover {
+      width: 270px;
+      border-radius: 50px;
+      padding: 8px 16px;
       border-color: #57f287;
       box-shadow: 0 0 20px rgba(87, 242, 135, 0.2);
+    }
+
+    /* Ícone exibido quando colapsado */
+    .music-collapsed-icon {
+      font-size: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 48px;
+      height: 48px;
+      transition: opacity 0.3s ease, transform 0.3s ease, width 0.3s ease;
+      user-select: none;
+      cursor: pointer;
+    }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+
+    .music-collapsed-icon.spinning {
+      animation: spin 6s linear infinite;
+    }
+
+    .music-widget:hover .music-collapsed-icon {
+      opacity: 0;
+      transform: scale(0.5);
+      min-width: 0;
+      width: 0;
+      pointer-events: none;
+    }
+
+    /* Content/Controlos visíveis apenas no hover */
+    .music-controls-container {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+      width: 100%;
+      min-width: 230px;
+    }
+
+    .music-widget:hover .music-controls-container {
+      opacity: 1;
+      pointer-events: auto;
     }
 
     .music-btn {
@@ -99,15 +151,19 @@
   const widget = document.createElement("div");
   widget.className = "music-widget";
   widget.innerHTML = `
-    <button class="music-btn" id="musicPlayBtn">▶</button>
-    <div class="music-info">
-      <span class="music-title">Casino Lounge Lofi 📻</span>
-      <span class="music-status" id="musicStatus">Desativado</span>
+    <div class="music-collapsed-icon" id="musicCollapsedIcon">📻</div>
+    <div class="music-controls-container">
+      <button class="music-btn" id="musicPlayBtn">▶</button>
+      <div class="music-info">
+        <span class="music-title">Casino Lounge Lofi 📻</span>
+        <span class="music-status" id="musicStatus">Desativado</span>
+      </div>
+      <input type="range" class="volume-slider" id="musicVolume" min="0" max="1" step="0.05" value="${audio.volume}">
     </div>
-    <input type="range" class="volume-slider" id="musicVolume" min="0" max="1" step="0.05" value="${audio.volume}">
   `;
   document.body.appendChild(widget);
 
+  const collapsedIcon = widget.querySelector("#musicCollapsedIcon");
   const playBtn = widget.querySelector("#musicPlayBtn");
   const statusEl = widget.querySelector("#musicStatus");
   const volumeSlider = widget.querySelector("#musicVolume");
@@ -119,10 +175,12 @@
       playBtn.textContent = "⏸";
       statusEl.textContent = "A tocar 🎶";
       statusEl.style.color = "#57f287";
+      collapsedIcon.classList.add("spinning");
     } else {
       playBtn.textContent = "▶";
       statusEl.textContent = "Pausado";
       statusEl.style.color = "#9ca3af";
+      collapsedIcon.classList.remove("spinning");
     }
   }
 
@@ -144,6 +202,8 @@
   }
 
   playBtn.addEventListener("click", togglePlay);
+  // Clicar no ícone de rádio colapsado também liga/desliga o som diretamente
+  collapsedIcon.addEventListener("click", togglePlay);
   
   volumeSlider.addEventListener("input", (e) => {
     const vol = parseFloat(e.target.value);
