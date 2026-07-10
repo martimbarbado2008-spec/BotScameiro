@@ -31,6 +31,6 @@ module.exports = {
         .setURL(link)
     );
 
-    return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    return interaction.reply({ embeds: [embed], components: [row] });
   }
 };
