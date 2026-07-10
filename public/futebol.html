@@ -536,6 +536,12 @@
     <div class="arena-grid">
       <!-- Left Column: Matches list -->
       <div class="matches-panel">
+        <!-- Sportsbook Mode Tabs -->
+        <div style="display: flex; background: rgba(0,0,0,0.25); padding: 4px; border-radius: 12px; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.04);">
+          <button id="modeRealBtn" onclick="setSportsbookMode('real')" style="flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: var(--transition); background: rgba(87, 242, 135, 0.08); color: var(--mint); font-family: inherit;">🏟️ Futebol Real</button>
+          <button id="modeVirtualBtn" onclick="setSportsbookMode('virtual')" style="flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: var(--transition); background: transparent; color: var(--text-muted); font-family: inherit;">🤖 Liga Virtual (IA)</button>
+        </div>
+
         <div class="league-filter-row">
           <button class="filter-btn active" onclick="setLeagueFilter('all')">Todos os Jogos</button>
           <button class="filter-btn" onclick="setLeagueFilter('Liga Portugal')">🇵🇹 Liga Portugal</button>
@@ -574,9 +580,33 @@
     let matches = [];
     let bets = [];
     let activeFilter = 'all';
+    let activeMode = 'real'; // 'real' ou 'virtual'
 
     // Estado da seleção atual do boletim
     let selectedBet = null; // { matchId, choice, odds, matchName }
+
+    function setSportsbookMode(mode) {
+      activeMode = mode;
+      const realBtn = document.getElementById('modeRealBtn');
+      const virtualBtn = document.getElementById('modeVirtualBtn');
+
+      if (mode === 'real') {
+        realBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+        realBtn.style.color = 'var(--mint)';
+        virtualBtn.style.background = 'transparent';
+        virtualBtn.style.color = 'var(--text-muted)';
+      } else {
+        virtualBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+        virtualBtn.style.color = 'var(--mint)';
+        realBtn.style.background = 'transparent';
+        realBtn.style.color = 'var(--text-muted)';
+      }
+
+      // Limpar boletim de aposta se mudarmos de separador
+      selectedBet = null;
+      renderBetSlip();
+      renderMatches();
+    }
 
     async function loadSportsbook() {
       try {
@@ -630,12 +660,14 @@
       const container = document.getElementById('matchesListContainer');
       container.innerHTML = '';
 
-      const filtered = activeFilter === 'all' ? matches : matches.filter(m => m.league === activeFilter);
+      // Filtra por tipo (real vs virtual)
+      const modeMatches = matches.filter(m => activeMode === 'real' ? m.id.startsWith('r_') : m.id.startsWith('v_'));
+      const filtered = activeFilter === 'all' ? modeMatches : modeMatches.filter(m => m.league === activeFilter);
       // Ordenar por data de início
       filtered.sort((a,b) => a.startTime - b.startTime);
 
       if (filtered.length === 0) {
-        container.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); background:var(--panel-bg); border-radius:16px;">Nenhum jogo disponível de momento nesta liga.</div>';
+        container.innerHTML = `<div style="text-align:center; padding:30px; color:var(--text-muted); background:var(--panel-bg); border-radius:16px;">Nenhum jogo disponível de momento para ${activeMode === 'real' ? 'Futebol Real' : 'a Liga Virtual'}.</div>`;
         return;
       }
 
@@ -654,9 +686,18 @@
           timeStatus = `<span class="match-countdown live">⚽ EM DECORRER (LIVE)</span>`;
         } else {
           const diff = m.startTime - Date.now();
-          const mins = Math.floor(diff / 60000);
-          const secs = Math.floor((diff % 60000) / 1000);
-          timeStatus = `Começa em: <span class="match-countdown">${mins}m ${secs}s</span>`;
+          if (diff > 60 * 60 * 1000) {
+            // Mais de 1 hora: mostra a data e hora formatados
+            const startDate = new Date(m.startTime);
+            const dateStr = startDate.toLocaleDateString('pt-PT', { day: '2-digit', month: '2-digit' });
+            const timeStr = startDate.toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' });
+            timeStatus = `Início: <span class="match-countdown">${dateStr} às ${timeStr}</span>`;
+          } else {
+            // Menos de 1 hora: contagem decrescente normal
+            const mins = Math.floor(diff / 60000);
+            const secs = Math.floor((diff % 60000) / 1000);
+            timeStatus = `Começa em: <span class="match-countdown">${mins}m ${secs}s</span>`;
+          }
         }
 
         // Seleções ativas no boletim
