@@ -37,7 +37,7 @@ function normalizeTeam(name) {
 // =========================================================================
 
 async function fetchRealMatches(guildId) {
-  const apiKey = process.env.THE_ODDS_API_KEY;
+  const apiKey = process.env.THE_ODDS_API_KEY || process.env.API_FOOTBALL_KEY;
   if (!apiKey) return false;
 
   // Evitar sobrecarregar a API (máximo 1 pedido a cada 30 minutos)
@@ -370,7 +370,7 @@ function startFootballWatcher(client) {
 
     client.guilds.cache.forEach(async (guild) => {
       try {
-        const hasRealApi = !!process.env.THE_ODDS_API_KEY;
+        const hasRealApi = !!(process.env.THE_ODDS_API_KEY || process.env.API_FOOTBALL_KEY);
 
         if (hasRealApi) {
           // Busca jogos reais
@@ -390,10 +390,28 @@ function startFootballWatcher(client) {
   }, 60000);
 }
 
+async function generateMatchesForGuild(guildId) {
+  try {
+    const hasRealApi = !!(process.env.THE_ODDS_API_KEY || process.env.API_FOOTBALL_KEY);
+    if (hasRealApi) {
+      await fetchRealMatches(guildId);
+    }
+  } catch (err) {
+    console.error("Erro ao pré-gerar jogos reais:", err.message);
+  }
+
+  try {
+    generateVirtualMatches(guildId);
+  } catch (err) {
+    console.error("Erro ao pré-gerar jogos virtuais:", err.message);
+  }
+}
+
 module.exports = {
   startFootballWatcher,
   generateVirtualMatches,
   resolveVirtualMatches,
   fetchRealMatches,
-  resolveRealMatches
+  resolveRealMatches,
+  generateMatchesForGuild
 };
