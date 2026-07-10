@@ -781,6 +781,118 @@ app.post('/api/crypto/trade', async (req, res) => {
   }
 });
 
+app.get('/api/football/matches', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId } = session;
+    const footballEngine = require('./footballEngine');
+    
+    // Assegura que há jogos gerados
+    footballEngine.generateMatchesForGuild(guildId);
+    
+    const matches = db.getFootballMatches(guildId);
+    return res.json(matches);
+  } catch (err) {
+    console.error('Erro em /api/football/matches:', err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.get('/api/football/bets', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const bets = db.getFootballBets(guildId).filter(b => b.userId === userId);
+    
+    const matches = db.getFootballMatches(guildId);
+    const results = bets.map(b => {
+      const match = matches.find(m => m.id === b.matchId);
+      return {
+        ...b,
+        homeTeam: match ? match.homeTeam : 'Desconhecido',
+        awayTeam: match ? match.awayTeam : 'Desconhecido',
+        league: match ? match.league : 'Desconhecido',
+        matchStartTime: match ? match.startTime : 0
+      };
+    });
+
+    return res.json(results);
+  } catch (err) {
+    console.error('Erro em /api/football/bets:', err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/football/bet', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { matchId, choice, amount } = req.body;
+
+    if (!matchId || !['1', 'X', '2'].includes(choice) || typeof amount !== 'number' || amount < 10) {
+      return res.status(400).json({ error: 'Parâmetros de aposta inválidos.' });
+    }
+
+    const matches = db.getFootballMatches(guildId);
+    const match = matches.find(m => m.id === matchId);
+
+    if (!match) {
+      return res.status(404).json({ error: 'Jogo não encontrado.' });
+    }
+
+    if (match.status !== 'pending') {
+      return res.status(400).json({ error: 'Este jogo já terminou ou não está disponível para apostas.' });
+    }
+
+    if (Date.now() >= match.startTime) {
+      return res.status(400).json({ error: 'Este jogo já começou! Não podes colocar mais apostas.' });
+    }
+
+    const user = db.getUser(guildId, userId);
+    if (user.balance < amount) {
+      return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+    }
+
+    // Calcular as odds corretas
+    let odds = match.odds.home;
+    if (choice === 'X') odds = match.odds.draw;
+    if (choice === '2') odds = match.odds.away;
+
+    // Subtrair saldo
+    user.balance -= amount;
+    db.saveUser(guildId, userId, user);
+
+    const bets = db.getFootballBets(guildId);
+    const betId = 'b_' + Math.random().toString(36).substr(2, 9);
+    
+    const newBet = {
+      id: betId,
+      userId,
+      matchId,
+      choice,
+      amount,
+      odds,
+      status: 'pending',
+      payout: 0,
+      timestamp: Date.now()
+    };
+
+    bets.unshift(newBet);
+    db.saveFootballBets(guildId, bets);
+
+    return res.json({ success: true, balance: user.balance, bet: newBet });
+  } catch (err) {
+    console.error('Erro em /api/football/bet:', err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
 app.post('/api/jobs/start', async (req, res) => {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Não autorizado.' });

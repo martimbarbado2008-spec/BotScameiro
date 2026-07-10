@@ -12,6 +12,8 @@ let guilds = {};
 let tournaments = {};
 let lotteries = {};
 let cryptoPrices = {};
+let footballMatches = {};
+let footballBets = {};
 
 // Função para descarregar os dados da nuvem assim que o bot liga
 async function initDatabase() {
@@ -22,6 +24,8 @@ async function initDatabase() {
     tournaments = (await redis.get("casino:tournaments")) || {};
     lotteries = (await redis.get("casino:lotteries")) || {};
     cryptoPrices = (await redis.get("casino:crypto")) || { BTC: 50000, ETH: 3000, SOL: 150, DOGE: 0.1 };
+    footballMatches = (await redis.get("casino:football:matches")) || {};
+    footballBets = (await redis.get("casino:football:bets")) || {};
     console.log("Dados carregados com sucesso da Nuvem!");
   } catch (err) {
     console.error("Erro ao carregar dados do Redis:", err);
@@ -40,6 +44,8 @@ function persist() {
       await redis.set("casino:tournaments", tournaments);
       await redis.set("casino:lotteries", lotteries);
       await redis.set("casino:crypto", cryptoPrices);
+      await redis.set("casino:football:matches", footballMatches);
+      await redis.set("casino:football:bets", footballBets);
       console.log("Dados salvos na Nuvem com sucesso!");
     } catch (err) {
       console.error("Erro ao persistir dados no Redis Remoto:", err);
@@ -436,6 +442,26 @@ function sellCrypto(guildId, userId, coin, amount, price) {
   return { balance: u.balance, holdings: u.crypto[coin] };
 }
 
+function getFootballMatches(guildId) {
+  if (!footballMatches[guildId]) footballMatches[guildId] = [];
+  return footballMatches[guildId];
+}
+
+function saveFootballMatches(guildId, matches) {
+  footballMatches[guildId] = matches;
+  persist();
+}
+
+function getFootballBets(guildId) {
+  if (!footballBets[guildId]) footballBets[guildId] = [];
+  return footballBets[guildId];
+}
+
+function saveFootballBets(guildId, bets) {
+  footballBets[guildId] = bets;
+  persist();
+}
+
 module.exports = {
   getUser, saveUser, addBalance, addBank, tickBankInterest, setCooldown, getCooldown,
   recordResult, pushHistory, getHistory, getLeaderboard, resetUser, resetAllUsers,
@@ -444,5 +470,6 @@ module.exports = {
   startTournament, getTournament, isTournamentActive, addTournamentScore,
   getTournamentLeaderboard, endTournament, getAllGuildIdsWithTournamentSupport, saveTournament,
   getLottery, saveLottery, buyLotteryTickets, drawLottery,
-  getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild
+  getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild,
+  getFootballMatches, saveFootballMatches, getFootballBets, saveFootballBets
 };
