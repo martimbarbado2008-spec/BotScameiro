@@ -760,7 +760,7 @@
 
   <!-- Context Menu do Chat -->
   <div id="chatContextMenu" style="display:none; position:fixed; background:#0c1c14; border:1px solid var(--mint); border-radius:8px; box-shadow:var(--shadow); z-index:20000; min-width:160px; padding:6px 0;">
-    <button onclick="challengeUserFromMenu()" style="width:100%; text-align:left; background:transparent; border:none; color:#fff; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; gap:8px;">
+    <button id="btnChallengeContextMenu" onclick="challengeUserFromMenu()" style="width:100%; text-align:left; background:transparent; border:none; color:#fff; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; gap:8px; transition:opacity 0.2s ease;">
       ⚔️ Desafiar para Duelo
     </button>
   </div>
@@ -1487,10 +1487,23 @@
     let menuTargetUsername = null;
 
     function handleAvatarContextMenu(e, userId, username) {
-      if (userId === 'system' || userId === appData.userId) return;
       e.preventDefault();
       
       const menu = document.getElementById('chatContextMenu');
+      const challengeBtn = document.getElementById('btnChallengeContextMenu');
+      
+      if (userId === 'system' || userId === appData.userId) {
+        challengeBtn.disabled = true;
+        challengeBtn.style.opacity = '0.4';
+        challengeBtn.style.cursor = 'not-allowed';
+        challengeBtn.title = 'Não te podes desafiar a ti próprio ou ao sistema.';
+      } else {
+        challengeBtn.disabled = false;
+        challengeBtn.style.opacity = '1';
+        challengeBtn.style.cursor = 'pointer';
+        challengeBtn.title = '';
+      }
+
       menu.style.left = e.clientX + 'px';
       menu.style.top = e.clientY + 'px';
       menu.style.display = 'block';
