@@ -581,6 +581,10 @@
           <div class="lbl">Banco</div>
           <div class="val" id="bankBalance">...</div>
         </div>
+        <div class="hud-card">
+          <div class="lbl">Investido</div>
+          <div class="val" id="investedBalance">...</div>
+        </div>
       </div>
     </header>
 
@@ -662,14 +666,16 @@
 
         <!-- Painel de Crypto -->
         <div class="panel">
-          <h2 class="panel-title"><span class="emoji">📈</span> Investimentos Crypto Fictícios</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 18px;">
+            <h2 class="panel-title" style="margin-bottom: 0; border: none; padding: 0;"><span class="emoji">📈</span> Investimentos Crypto Fictícios</h2>
+            <a href="/investir.html" class="btn-play" style="text-decoration: none; display: inline-block;">Negociar Crypto 📈</a>
+          </div>
           <table class="crypto-table">
             <thead>
               <tr>
                 <th>Moeda</th>
                 <th>Preço</th>
                 <th>A Minha Carteira</th>
-                <th>Ações</th>
               </tr>
             </thead>
             <tbody id="cryptoTableBody">
@@ -716,18 +722,7 @@
     </div>
   </div>
 
-  <!-- Modal Trade Crypto -->
-  <div class="modal" id="tradeModal">
-    <div class="modal-content">
-      <div class="modal-title" id="modalTitle">Negociar Crypto</div>
-      <p id="modalDesc" style="font-size:12px; color:var(--text-muted); margin-bottom:12px;"></p>
-      <input type="number" step="0.0001" class="modal-input" id="tradeAmount" placeholder="Quantidade (ex: 0.1)">
-      <div class="modal-buttons">
-        <button class="btn-modal cancel" onclick="closeModal()">Cancelar</button>
-        <button class="btn-modal confirm" id="btnModalConfirm" onclick="submitTrade()">Confirmar</button>
-      </div>
-    </div>
-  </div>
+
 
   <script>
     let appData = null;
@@ -773,6 +768,16 @@
       document.getElementById('walletBalance').textContent = fmt(appData.balance);
       document.getElementById('bankBalance').textContent = fmt(appData.bank);
 
+      // Calcular valor total investido em crypto
+      const coinsList = ['BTC', 'ETH', 'SOL', 'DOGE'];
+      let totalInvestedVal = 0;
+      coinsList.forEach(c => {
+        const price = appData.cryptoPrices[c] || 0;
+        const holdings = appData.cryptoHoldings[c] || 0;
+        totalInvestedVal += holdings * price;
+      });
+      document.getElementById('investedBalance').textContent = fmt(totalInvestedVal);
+
       // Estatísticas
       const wins = appData.stats.wins || 0;
       const losses = appData.stats.losses || 0;
@@ -817,12 +822,6 @@
           <td>
             <div>${holdings.toFixed(4)} ${coin}</div>
             <div style="font-size:10px; color:var(--text-muted);">${fmt(value)}</div>
-          </td>
-          <td>
-            <div class="btn-trade-group">
-              <button class="btn-trade buy" onclick="openTradeModal('${coin}', 'buy')">C</button>
-              <button class="btn-trade sell" onclick="openTradeModal('${coin}', 'sell')">V</button>
-            </div>
           </td>
         `;
         cryptoTableBody.appendChild(tr);
@@ -982,66 +981,7 @@
       }
     }
 
-    function openTradeModal(coin, action) {
-      selectedCoin = coin;
-      tradeAction = action;
-      
-      const modal = document.getElementById('tradeModal');
-      const title = document.getElementById('modalTitle');
-      const desc = document.getElementById('modalDesc');
-      const amountInput = document.getElementById('tradeAmount');
-      
-      amountInput.value = '';
-      modal.style.display = 'flex';
-      
-      const price = appData.cryptoPrices[coin];
-      const holdings = appData.cryptoHoldings[coin] || 0;
 
-      if (action === 'buy') {
-        title.textContent = `Comprar ${coin}`;
-        desc.textContent = `Preço atual: ${fmt(price)}. Saldo disponível: ${fmt(appData.balance)}.`;
-      } else {
-        title.textContent = `Vender ${coin}`;
-        desc.textContent = `Preço atual: ${fmt(price)}. Tens em carteira: ${holdings.toFixed(4)} ${coin}.`;
-      }
-    }
-
-    function closeModal() {
-      document.getElementById('tradeModal').style.display = 'none';
-    }
-
-    async function submitTrade() {
-      const amount = parseFloat(document.getElementById('tradeAmount').value);
-      if (isNaN(amount) || amount <= 0) {
-        alert('Por favor introduz uma quantidade válida.');
-        return;
-      }
-
-      try {
-        const res = await fetch('/api/crypto/trade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: tradeAction, coin: selectedCoin, amount })
-        });
-        const data = await res.json();
-        if (!res.ok) {
-          alert(data.error || 'Erro ao efetuar transação.');
-          return;
-        }
-        closeModal();
-        alert('Transação efetuada com sucesso!');
-        loadDashboard();
-      } catch (err) {
-        alert('Erro de rede.');
-      }
-    }
-
-    window.onclick = function(event) {
-      const modal = document.getElementById('tradeModal');
-      if (event.target == modal) {
-        closeModal();
-      }
-    }
 
     loadDashboard();
   </script>
