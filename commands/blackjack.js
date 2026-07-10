@@ -49,7 +49,9 @@ module.exports = {
         return interaction.reply({ content: 'O servidor web do casino ainda não está configurado (falta WEB_BASE_URL no .env).', ephemeral: true });
       }
 
-      const link = `${baseUrl.replace(/\/$/, '')}/blackjack.html`;
+      const token = require('../utils/webTokens').createToken(guildId, userId);
+      const redirect = '/blackjack.html';
+      const link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}&redirect=${encodeURIComponent(redirect)}`;
 
       const embed = baseEmbed('🃏 Blackjack Online Multiplayer', COLORS.gold)
         .setDescription('Clica no botão abaixo para te sentares à mesa de **Blackjack Online**!\nPodes jogar em tempo real, apostar e interagir no chat com todos os outros membros conectados à mesa!')

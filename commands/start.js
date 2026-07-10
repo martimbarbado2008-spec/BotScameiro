@@ -13,7 +13,9 @@ module.exports = {
       return interaction.reply({ content: 'O servidor web do casino ainda não está configurado (falta WEB_BASE_URL no .env). Avisa o dono do servidor.', ephemeral: true });
     }
 
-    const dashboardLink = `${baseUrl.replace(/\/$/, '')}/dashboard.html`;
+    const token = require('../utils/webTokens').createToken(interaction.guildId, interaction.user.id);
+    const redirect = '/dashboard.html';
+    const dashboardLink = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}&redirect=${encodeURIComponent(redirect)}`;
     const guideLink = `${baseUrl.replace(/\/$/, '')}/guia.html`;
 
     const embed = baseEmbed('🎰 Casino Arena — Central de Comandos', COLORS.gold)
