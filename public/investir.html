@@ -807,6 +807,9 @@
         }
 
         showToast(`Operação de ${activeCoin} iniciada! 🚀`);
+        if (typeof window.playSFX === 'function') {
+          window.playSFX('trade');
+        }
         
         appData.balance = result.balance;
         appData.contracts = appData.contracts || [];
@@ -1030,8 +1033,14 @@
               const isWon = c.status === 'won';
               if (isWon) {
                 showToast(`💰 Lucro! Ganhaste +${c.payout} 🪙 no contrato ${c.coin}!`);
+                if (typeof window.playSFX === 'function') {
+                  window.playSFX('win');
+                }
               } else {
                 showToast(`❌ Contrato ${c.coin} expirado sem retorno.`, true);
+                if (typeof window.playSFX === 'function') {
+                  window.playSFX('lose');
+                }
               }
               
               renderOrderDesk();

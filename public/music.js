@@ -1,4 +1,78 @@
 (function() {
+  // --- Web Audio API SFX Synthesizer ---
+  let audioCtx = null;
+  function initAudioCtx() {
+    if (!audioCtx) {
+      audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    }
+    if (audioCtx.state === 'suspended') {
+      audioCtx.resume();
+    }
+  }
+
+  window.playSFX = function(type) {
+    try {
+      initAudioCtx();
+      if (!audioCtx) return;
+
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+
+      const now = audioCtx.currentTime;
+
+      if (type === 'click') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(800, now);
+        osc.frequency.exponentialRampToValueAtTime(100, now + 0.05);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.05);
+        osc.start(now);
+        osc.stop(now + 0.05);
+      } else if (type === 'win') {
+        const notes = [523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const t = now + idx * 0.08;
+          const oscNode = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          oscNode.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscNode.type = 'triangle';
+          oscNode.frequency.setValueAtTime(freq, t);
+          gainNode.gain.setValueAtTime(0.12, t);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+          oscNode.start(t);
+          oscNode.stop(t + 0.3);
+        });
+      } else if (type === 'lose') {
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(250, now);
+        osc.frequency.linearRampToValueAtTime(70, now + 0.4);
+        gain.gain.setValueAtTime(0.12, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.4);
+        osc.start(now);
+        osc.stop(now + 0.45);
+      } else if (type === 'spin') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(450, now);
+        gain.gain.setValueAtTime(0.06, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.03);
+        osc.start(now);
+        osc.stop(now + 0.04);
+      } else if (type === 'trade') {
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(880, now);
+        gain.gain.setValueAtTime(0.08, now);
+        gain.gain.linearRampToValueAtTime(0, now + 0.12);
+        osc.start(now);
+        osc.stop(now + 0.13);
+      }
+    } catch (e) {
+      console.warn("SFX error:", e);
+    }
+  };
+
   // Criar elemento de áudio
   const audio = new Audio("https://www.soundhelix.com/examples/mp3/SoundHelix-Song-8.mp3");
   audio.loop = true;

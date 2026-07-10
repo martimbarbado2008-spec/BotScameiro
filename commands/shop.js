@@ -3,10 +3,16 @@ const db = require('../utils/database');
 const { baseEmbed, fmt, COLORS } = require('../utils/embeds');
 
 const ITEMS = [
-  { id: 'vip1', name: 'VIP Bronze', price: 5000, desc: '+10% em todos os prémios', vipLevel: 1 },
-  { id: 'vip2', name: 'VIP Prata', price: 20000, desc: '+20% em todos os prémios e cooldowns reduzidos', vipLevel: 2 },
-  { id: 'vip3', name: 'VIP Ouro', price: 75000, desc: '+35% em todos os prémios, cooldowns mínimos e cargo exclusivo', vipLevel: 3 },
-  { id: 'frame_gold', name: 'Moldura dourada', price: 3000, desc: 'Cosmético para o teu perfil de casino' }
+  { id: 'vip1', name: '👑 VIP Bronze', price: 5000, desc: '+10% de ganhos em jogos', vipLevel: 1 },
+  { id: 'vip2', name: '👑 VIP Prata', price: 20000, desc: '+20% de ganhos em jogos e menos cooldowns', vipLevel: 2 },
+  { id: 'vip3', name: '👑 VIP Ouro', price: 75000, desc: '+35% de ganhos em jogos e cooldowns mínimos', vipLevel: 3 },
+  { id: 'frame_gold', name: '🖼️ Moldura Dourada', price: 3000, desc: 'Borda dourada brilhante para o teu avatar' },
+  { id: 'frame_neon', name: '🖼️ Moldura Neon', price: 5000, desc: 'Borda neon verde com efeito pulsar' },
+  { id: 'frame_ruby', name: '🖼️ Moldura Rubi', price: 7500, desc: 'Borda rubi avermelhada brilhante' },
+  { id: 'frame_rainbow', name: '🖼️ Moldura RGB', price: 15000, desc: 'Borda arco-íris rotativa animada' },
+  { id: 'bg_matrix', name: '🌌 Fundo Matrix', price: 10000, desc: 'Fundo animado estilo chuva de códigos da Matrix' },
+  { id: 'bg_casino', name: '🌌 Fundo Las Vegas', price: 15000, desc: 'Fundo animado neon de casino vintage' },
+  { id: 'bg_space', name: '🌌 Fundo Espacial', price: 20000, desc: 'Fundo animado de nebulosa espacial realista' }
 ];
 
 module.exports = {

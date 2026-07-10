@@ -540,6 +540,190 @@
     #unauthScreen h2 { font-size: 22px; color: var(--ruby); margin-bottom: 10px; }
     #unauthScreen p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
     #unauthScreen code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: var(--gold); }
+
+    /* ========================================== */
+    /* 💬 SIDEBAR LIVE CHAT                       */
+    /* ========================================== */
+    .chat-toggle-btn {
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background: rgba(13, 22, 18, 0.95);
+      border: 1px solid rgba(87, 242, 135, 0.3);
+      box-shadow: 0 0 15px rgba(87, 242, 135, 0.1), 0 8px 32px rgba(0,0,0,0.5);
+      color: #fff;
+      padding: 10px 18px;
+      border-radius: 50px;
+      cursor: pointer;
+      z-index: 9998;
+      font-weight: 800;
+      font-size: 13px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      backdrop-filter: blur(10px);
+      transition: all 0.3s ease;
+      font-family: inherit;
+    }
+
+    .chat-toggle-btn:hover {
+      border-color: var(--mint);
+      box-shadow: 0 0 20px rgba(87, 242, 135, 0.2);
+      transform: translateY(-2px);
+    }
+
+    .chat-sidebar {
+      position: fixed;
+      top: 0;
+      right: -340px;
+      width: 320px;
+      height: 100vh;
+      background: rgba(13, 22, 18, 0.98);
+      border-left: 1px solid rgba(87, 242, 135, 0.2);
+      box-shadow: -10px 0 30px rgba(0,0,0,0.6);
+      z-index: 10000;
+      backdrop-filter: blur(20px);
+      display: flex;
+      flex-direction: column;
+      transition: right 0.4s cubic-bezier(0.165, 0.84, 0.44, 1);
+    }
+
+    .chat-sidebar.open {
+      right: 0;
+    }
+
+    .chat-header {
+      padding: 16px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .chat-header h3 {
+      font-size: 15px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      margin: 0;
+    }
+
+    .chat-header h3 span {
+      background: var(--mint);
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      box-shadow: 0 0 8px var(--mint);
+      animation: pulse-glow 1.5s infinite alternate;
+    }
+
+    @keyframes pulse-glow {
+      from { transform: scale(0.8); opacity: 0.5; }
+      to { transform: scale(1.2); opacity: 1; }
+    }
+
+    .chat-close-btn {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      cursor: pointer;
+      font-size: 18px;
+    }
+
+    .chat-close-btn:hover {
+      color: #fff;
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .chat-message-bubble {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      text-align: left;
+    }
+
+    .chat-message-bubble img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: rgba(255,255,255,0.05);
+      object-fit: cover;
+    }
+
+    .chat-msg-content {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      padding: 8px 12px;
+      border-radius: 12px;
+      border-top-left-radius: 2px;
+      max-width: 220px;
+    }
+
+    .chat-msg-user {
+      font-size: 10px;
+      font-weight: 800;
+      color: var(--mint);
+      margin-bottom: 2px;
+    }
+
+    .chat-msg-text {
+      font-size: 12px;
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .chat-footer {
+      padding: 16px;
+      border-top: 1px solid rgba(255,255,255,0.05);
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 8px;
+      padding: 8px 12px;
+      color: #fff;
+      font-size: 13px;
+      outline: none;
+    }
+
+    .chat-input:focus {
+      border-color: var(--mint);
+    }
+
+    .chat-send-btn {
+      background: var(--mint);
+      border: none;
+      color: #050e08;
+      border-radius: 8px;
+      width: 34px;
+      height: 34px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: bold;
+    }
+
+    @keyframes rainbow-glow {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
   </style>
 </head>
 <body>
@@ -553,6 +737,26 @@
 
   <!-- Interface Principal -->
   <div id="dashboardApp" style="display: none; width:100%; max-width:1100px;">
+  
+  <!-- Botão flutuante para abrir o chat -->
+  <button class="chat-toggle-btn" id="chatToggle" onclick="toggleChat(true)">
+    <span>💬</span> Chat do Casino
+  </button>
+
+  <!-- Sidebar Lateral do Chat -->
+  <div class="chat-sidebar" id="chatSidebar">
+    <div class="chat-header">
+      <h3><span></span> Chat do Casino (Live)</h3>
+      <button class="chat-close-btn" onclick="toggleChat(false)">✕</button>
+    </div>
+    <div class="chat-messages" id="chatMessages">
+      <div style="font-size:11px; color:var(--text-muted); text-align:center; margin-top:20px;">A conectar ao chat...</div>
+    </div>
+    <div class="chat-footer">
+      <input type="text" class="chat-input" id="chatInput" placeholder="Digita uma mensagem..." onkeydown="handleChatKey(event)">
+      <button class="chat-send-btn" onclick="sendChatMessage()">➔</button>
+    </div>
+  </div>
     <header>
       <div class="profile-section">
         <div class="avatar-wrapper">
@@ -870,9 +1074,16 @@
           row.style.background = 'transparent';
           row.style.transform = 'translateX(0)';
         };
+        
+        let medal = '';
+        if (idx === 0) medal = '🥇 ';
+        else if (idx === 1) medal = '🥈 ';
+        else if (idx === 2) medal = '🥉 ';
+        else medal = `<span style="color:var(--text-muted); font-size:10px; width:16px; display:inline-block;">#${idx+1}</span> `;
+
         row.innerHTML = `
           <div class="leaderboard-left">
-            <span class="rank-num">#${index + 1}</span>
+            <span style="font-family:'Outfit'; font-weight:700;">${medal}</span>
             <img class="lead-avatar" src="${user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png'}">
             <div>
               <div class="lead-name">${user.username}</div>
@@ -912,16 +1123,32 @@
         const owned = appData.inventory.includes(item.id);
         const card = document.createElement('div');
         card.className = `shop-card ${owned ? 'owned' : ''}`;
+        
+        let buttonHTML = '';
+        if (!owned) {
+          buttonHTML = `<button class="btn-buy-item" onclick="buyItem('${item.id}')">Comprar</button>`;
+        } else {
+          if (item.id.startsWith('frame_') || item.id.startsWith('bg_')) {
+            const isFrame = item.id.startsWith('frame_');
+            const equipped = isFrame ? (appData.equippedFrame === item.id) : (appData.equippedBg === item.id);
+            if (equipped) {
+              buttonHTML = `<button class="btn-buy-item" style="background:var(--mint); color:#000; border-color:var(--mint);" onclick="equipItem('${isFrame ? 'frame' : 'bg'}', 'none')">Equipado 🟩</button>`;
+            } else {
+              buttonHTML = `<button class="btn-buy-item" style="border-color:var(--mint); color:var(--mint); background:transparent;" onclick="equipItem('${isFrame ? 'frame' : 'bg'}', '${item.id}')">Equipar</button>`;
+            }
+          } else {
+            buttonHTML = `<button class="btn-buy-item" disabled>Ativo</button>`;
+          }
+        }
+
         card.innerHTML = `
           <div>
             <h4>${item.name}</h4>
             <p class="desc">${item.desc}</p>
           </div>
           <div class="shop-price-buy">
-            <span class="price">${fmt(item.price)}</span>
-            <button class="btn-buy-item" ${owned ? 'disabled' : ''} onclick="buyItem('${item.id}')">
-              ${owned ? 'Comprado' : 'Comprar'}
-            </button>
+            <span class="price">${owned ? 'Adquirido' : fmt(item.price)}</span>
+            ${buttonHTML}
           </div>
         `;
         shopGrid.appendChild(card);
@@ -1102,6 +1329,122 @@
         dropdown.style.display = 'none';
       }
     });
+
+    // --- Equipar Cosméticos ---
+    async function equipItem(type, itemId) {
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+      try {
+        const res = await fetch('/api/profile/equip', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ type, itemId })
+        });
+        if (res.ok) {
+          const result = await res.json();
+          appData.equippedFrame = result.equippedFrame;
+          appData.equippedBg = result.equippedBg;
+          renderDashboard();
+        }
+      } catch (err) {
+        console.error("Erro ao equipar item:", err);
+      }
+    }
+
+    // --- Sistema de Chat Live via SSE ---
+    let chatSse = null;
+
+    function toggleChat(open) {
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+      const sidebar = document.getElementById('chatSidebar');
+      if (open) {
+        sidebar.classList.add('open');
+        initChatStream();
+      } else {
+        sidebar.classList.remove('open');
+      }
+    }
+
+    function initChatStream() {
+      if (chatSse) return;
+
+      chatSse = new EventSource('/api/chat/stream');
+
+      chatSse.addEventListener('history', (e) => {
+        const history = JSON.parse(e.data);
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = '';
+        history.forEach(appendMessage);
+        scrollToBottom();
+      });
+
+      chatSse.addEventListener('message', (e) => {
+        const msg = JSON.parse(e.data);
+        appendMessage(msg);
+        scrollToBottom();
+        if (typeof window.playSFX === 'function') window.playSFX('click');
+      });
+
+      chatSse.onerror = () => {
+        console.warn("SSE disconnected, trying to reconnect...");
+        chatSse.close();
+        chatSse = null;
+        setTimeout(initChatStream, 3000);
+      };
+    }
+
+    function appendMessage(msg) {
+      const container = document.getElementById('chatMessages');
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-message-bubble';
+      
+      const avatarUrl = msg.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+      bubble.innerHTML = `
+        <img src="${avatarUrl}" alt="Avatar">
+        <div class="chat-msg-content">
+          <div class="chat-msg-user">${msg.username}</div>
+          <div class="chat-msg-text">${escapeHTML(msg.message)}</div>
+        </div>
+      `;
+      container.appendChild(bubble);
+    }
+
+    function scrollToBottom() {
+      const container = document.getElementById('chatMessages');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleChatKey(e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+
+      input.value = '';
+      
+      try {
+        const res = await fetch('/api/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+        if (res.ok) {
+          if (typeof window.playSFX === 'function') window.playSFX('trade');
+        }
+      } catch (err) {
+        console.error("Erro ao enviar mensagem:", err);
+      }
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, 
+        tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
+      );
+    }
 
     loadDashboard();
   </script>

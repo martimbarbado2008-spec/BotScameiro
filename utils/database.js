@@ -79,7 +79,9 @@ function defaultUser() {
     lastRobbedAt: 0,
     lastInterestAt: Date.now(),
     jackpotStreak: 0,
-    crypto: { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 }
+    crypto: { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
+    equippedFrame: null,
+    equippedBg: null
   };
 }
 

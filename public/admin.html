@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Painel de Administração ⚙️ — Casino Arena</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <style>
     :root {
       --bg: #090e0c;
@@ -347,8 +348,43 @@
     <!-- Empty edit selection state -->
     <div class="panel" id="emptyPanel" style="display: flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 20px;">
       <span style="font-size:48px; margin-bottom:15px;">👥</span>
+    <!-- Empty edit selection state -->
+    <div class="panel" id="emptyPanel" style="display: flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 20px;">
+      <span style="font-size:48px; margin-bottom:15px;">👥</span>
       <h3>Nenhum Jogador Selecionado</h3>
       <p style="font-size:13px; color:var(--text-muted); margin-top:8px;">Seleciona um membro na lista da esquerda para editar os seus saldos, VIP e cooldowns.</p>
+    </div>
+
+    <!-- New Panel: Admin Stats & Charts -->
+    <div class="panel" style="grid-column: span 2; margin-top: 10px;">
+      <h2 class="panel-title">📊 Estatísticas Globais da Economia</h2>
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:30px; margin-top:20px;">
+        <div style="display:flex; flex-direction:column; gap:16px; justify-content:center; text-align:left;">
+          <div style="background:rgba(255,255,255,0.02); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+            <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Moedas Totais da Economia</div>
+            <div style="font-size:26px; font-weight:800; color:var(--gold); font-family:'Share Tech Mono';" id="statTotalCoins">0 🪙</div>
+          </div>
+          <div style="background:rgba(255,255,255,0.02); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+            <div style="font-size:12px; color:var(--text-muted); text-transform:uppercase; font-weight:700;">Moedas Depositadas no Banco</div>
+            <div style="font-size:26px; font-weight:800; color:var(--mint); font-family:'Share Tech Mono';" id="statBankCoins">0 🪙</div>
+          </div>
+          <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div style="background:rgba(255,255,255,0.02); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); text-align:center;">
+              <div style="font-size:10px; color:var(--text-muted); font-weight:700;">Membros Ativos</div>
+              <div style="font-size:20px; font-weight:800; color:#fff;" id="statTotalPlayers">0</div>
+            </div>
+            <div style="background:rgba(255,255,255,0.02); padding:16px; border-radius:12px; border:1px solid rgba(255,255,255,0.05); text-align:center;">
+              <div style="font-size:10px; color:var(--text-muted); font-weight:700;">Nível Médio</div>
+              <div style="font-size:20px; font-weight:800; color:#fff;" id="statAvgLevel">1.0</div>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex; justify-content:center; align-items:center; background:rgba(0,0,0,0.2); padding:20px; border-radius:12px; border:1px solid rgba(255,255,255,0.05);">
+          <div style="width:100%; max-width:280px; height:220px; position:relative;">
+            <canvas id="vipDistributionChart"></canvas>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -484,7 +520,82 @@
       }
     }
 
-    loadUsers();
+    let statsChart = null;
+
+    async function loadStats() {
+      try {
+        const res = await fetch('/api/admin/stats');
+        if (!res.ok) return;
+        const stats = await res.json();
+
+        document.getElementById('statTotalCoins').textContent = Math.round(stats.totalCirculatingCoins).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('statBankCoins').textContent = Math.round(stats.totalBankCoins).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('statTotalPlayers').textContent = stats.totalPlayers;
+        document.getElementById('statAvgLevel').textContent = stats.avgLevel;
+
+        const ctx = document.getElementById('vipDistributionChart').getContext('2d');
+        
+        if (statsChart) {
+          statsChart.destroy();
+        }
+
+        statsChart = new Chart(ctx, {
+          type: 'doughnut',
+          data: {
+            labels: ['Sem VIP', 'VIP Bronze', 'VIP Prata', 'VIP Ouro', 'VIP Diamante'],
+            datasets: [{
+              data: [
+                stats.vipCounts.vip0,
+                stats.vipCounts.vip1,
+                stats.vipCounts.vip2,
+                stats.vipCounts.vip3,
+                stats.vipCounts.vip4
+              ],
+              backgroundColor: [
+                'rgba(255, 255, 255, 0.1)',
+                'rgba(205, 127, 50, 0.6)',
+                'rgba(192, 192, 192, 0.6)',
+                'rgba(250, 202, 43, 0.6)',
+                'rgba(87, 242, 135, 0.6)'
+              ],
+              borderColor: [
+                'rgba(255, 255, 255, 0.2)',
+                '#cd7f32',
+                '#c0c0c0',
+                '#faca2b',
+                '#57f287'
+              ],
+              borderWidth: 1
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                position: 'right',
+                labels: {
+                  color: '#9ca3af',
+                  font: {
+                    family: 'Outfit',
+                    size: 9
+                  }
+                }
+              }
+            }
+          }
+        });
+      } catch (err) {
+        console.error("Erro ao carregar estatísticas:", err);
+      }
+    }
+
+    async function initAdminPanel() {
+      await loadUsers();
+      await loadStats();
+    }
+
+    initAdminPanel();
   </script>
   <script src="/music.js"></script>
   <script src="/interactive-bg.js"></script>

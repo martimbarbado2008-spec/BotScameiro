@@ -380,8 +380,26 @@
         const wheelEl = document.getElementById('wheel');
         wheelEl.style.transform = `rotate(${totalRotDeg}deg)`;
 
+        // Simular cliques da roleta a abrandar de forma realista
+        let currentDelay = 60;
+        const totalDuration = 5600;
+        let elapsed = 0;
+        function playWheelTick() {
+          if (elapsed >= totalDuration) return;
+          if (typeof window.playSFX === 'function') {
+            window.playSFX('spin');
+          }
+          elapsed += currentDelay;
+          currentDelay = currentDelay * 1.06;
+          setTimeout(playWheelTick, currentDelay);
+        }
+        playWheelTick();
+
         // Aguardar animação de rotação (6 segundos configurado no CSS)
         setTimeout(() => {
+          if (typeof window.playSFX === 'function') {
+            window.playSFX('win');
+          }
           // Mostrar modal de vitória
           document.getElementById('winEmoji').textContent = sectors[targetIndex].label.includes('🪙') ? '💰' : '⚡';
           document.getElementById('winTitle').textContent = `Ganhaste na Roda!`;

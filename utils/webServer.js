@@ -2,6 +2,8 @@ const express = require('express');
 const db = require('./database');
 const webTokens = require('./webTokens');
  
+const chatHistory = [];
+const chatClients = new Set();
 const DIRTY_COUNT = 14;
 const TOTAL_TILES = 16;
 const TIME_LIMIT_SECONDS = 20;
@@ -722,6 +724,8 @@ app.get('/api/dashboard/data', async (req, res) => {
       cryptoPrices: prices,
       cryptoHoldings: user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
       contracts: user.contracts || [],
+      equippedFrame: user.equippedFrame || null,
+      equippedBg: user.equippedBg || null,
       allAchievements: ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name, desc: a.desc })),
       shopItems: ITEMS,
       cooldowns: {
@@ -1347,6 +1351,157 @@ app.post('/api/admin/user/clear-cooldowns', checkAdmin, async (req, res) => {
   } catch (err) {
     console.error('Erro em /api/admin/user/clear-cooldowns:', err);
     res.status(500).json({ error: 'Erro ao limpar cooldowns.' });
+  }
+});
+
+app.get('/api/admin/stats', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const usersData = db.getUsersData ? db.getUsersData() : require('./database').getUsersData?.() || {};
+
+    const guildKeys = Object.keys(usersData).filter(k => k.startsWith(`${guildId}:`));
+
+    let totalCirculatingCoins = 0;
+    let totalBankCoins = 0;
+    let totalLevelSum = 0;
+    const vipCounts = { vip0: 0, vip1: 0, vip2: 0, vip3: 0, vip4: 0 };
+
+    guildKeys.forEach(k => {
+      const u = usersData[k];
+      totalCirculatingCoins += (u.balance || 0) + (u.bank || 0);
+      totalBankCoins += (u.bank || 0);
+      totalLevelSum += (u.level || 1);
+      
+      const vipLvl = u.vipLevel || 0;
+      if (vipLvl === 0) vipCounts.vip0++;
+      else if (vipLvl === 1) vipCounts.vip1++;
+      else if (vipLvl === 2) vipCounts.vip2++;
+      else if (vipLvl === 3) vipCounts.vip3++;
+      else if (vipLvl >= 4) vipCounts.vip4++;
+    });
+
+    const totalPlayers = guildKeys.length;
+    const avgLevel = totalPlayers > 0 ? (totalLevelSum / totalPlayers).toFixed(1) : 1;
+
+    return res.json({
+      totalCirculatingCoins,
+      totalBankCoins,
+      totalPlayers,
+      avgLevel,
+      vipCounts
+    });
+  } catch (err) {
+    console.error('Erro em /api/admin/stats:', err);
+    res.status(500).json({ error: 'Erro ao gerar estatísticas.' });
+  }
+});
+
+app.post('/api/profile/equip', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { type, itemId } = req.body;
+
+    if (!['frame', 'bg'].includes(type)) {
+      return res.status(400).json({ error: 'Tipo inválido.' });
+    }
+
+    const user = db.getUser(guildId, userId);
+
+    if (itemId && itemId !== 'none' && !user.inventory.includes(itemId)) {
+      return res.status(400).json({ error: 'Não possuis este cosmético.' });
+    }
+
+    const equipVal = (itemId === 'none' || !itemId) ? null : itemId;
+
+    if (type === 'frame') {
+      user.equippedFrame = equipVal;
+    } else if (type === 'bg') {
+      user.equippedBg = equipVal;
+    }
+
+    db.saveUser(guildId, userId, user);
+    return res.json({ success: true, equippedFrame: user.equippedFrame, equippedBg: user.equippedBg });
+  } catch (err) {
+    console.error('Erro em /api/profile/equip:', err);
+    res.status(500).json({ error: 'Erro ao equipar cosmético.' });
+  }
+});
+
+app.get('/api/chat/stream', async (req, res) => {
+  const session = getSession(req);
+  if (!session) {
+    return res.status(401).send('Não autorizado.');
+  }
+
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+
+  // Enviar histórico inicial
+  res.write(`event: history\ndata: ${JSON.stringify(chatHistory)}\n\n`);
+
+  chatClients.add(res);
+
+  req.on('close', () => {
+    chatClients.delete(res);
+  });
+});
+
+app.post('/api/chat/send', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { message } = req.body;
+
+    if (!message || typeof message !== 'string' || message.trim() === '') {
+      return res.status(400).json({ error: 'Mensagem vazia.' });
+    }
+
+    const cleanMessage = message.trim().slice(0, 150);
+
+    let username = 'Utilizador';
+    let avatar = null;
+
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+      if (uObj) {
+        username = uObj.username;
+        avatar = uObj.displayAvatarURL({ size: 64 }) || uObj.defaultAvatarURL;
+      }
+    }
+
+    const chatEntry = {
+      id: Date.now() + Math.random().toString(),
+      userId,
+      username,
+      avatar,
+      message: cleanMessage,
+      timestamp: Date.now()
+    };
+
+    chatHistory.push(chatEntry);
+    if (chatHistory.length > 50) chatHistory.shift();
+
+    const ssePayload = `event: message\ndata: ${JSON.stringify(chatEntry)}\n\n`;
+    chatClients.forEach(client => {
+      try {
+        client.write(ssePayload);
+      } catch (err) {
+        chatClients.delete(client);
+      }
+    });
+
+    return res.json({ success: true, entry: chatEntry });
+  } catch (err) {
+    console.error('Erro ao enviar mensagem de chat:', err);
+    res.status(500).json({ error: 'Erro no servidor.' });
   }
 });
  
