@@ -39,7 +39,7 @@ module.exports = {
     if (baseUrl) {
       // Cria token seguro de login para quem executa o comando
       const token = webTokens.createToken(guildId, userId);
-      const link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}&redirect=${encodeURIComponent('/dashboard.html')}`;
+      const link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}&redirect=${encodeURIComponent('/leaderboard.html')}`;
 
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()

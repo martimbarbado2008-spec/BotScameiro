@@ -592,6 +592,45 @@ app.get('/api/members/search', async (req, res) => {
   }
 });
 
+app.get('/api/leaderboard/data', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) {
+      return res.status(401).json({ error: 'Não autorizado. Faz login de novo.' });
+    }
+
+    const { guildId } = session;
+    const rawLeaderboard = db.getLeaderboard(guildId, 100); // obter top 100
+    const leaderboard = await Promise.all(
+      rawLeaderboard.map(async (entry, index) => {
+        let uName = `Jogador #${index + 1}`;
+        let uAvatar = null;
+        if (discordClient) {
+          const uObj = discordClient.users.cache.get(entry.userId) || await discordClient.users.fetch(entry.userId).catch(() => null);
+          if (uObj) {
+            uName = uObj.username;
+            uAvatar = uObj.displayAvatarURL({ size: 64 }) || uObj.defaultAvatarURL;
+          }
+        }
+        return {
+          userId: entry.userId,
+          username: uName,
+          avatar: uAvatar,
+          balance: entry.balance,
+          bank: entry.bank,
+          level: entry.level,
+          xp: entry.xp
+        };
+      })
+    );
+
+    return res.json(leaderboard);
+  } catch (err) {
+    console.error('Erro em /api/leaderboard/data:', err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
 app.get('/api/dashboard/data', async (req, res) => {
   try {
     const session = getSession(req);

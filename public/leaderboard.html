@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Classificação Geral — Casino Premium</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #09130e 0%, #0d1e16 50%, #050b08 100%);
+      --panel-bg: rgba(18, 38, 29, 0.45);
+      --border-glow: rgba(250, 202, 43, 0.2);
+      --gold: #FACA2B;
+      --mint: #57F287;
+      --ruby: #ED4245;
+      --glass: rgba(255, 255, 255, 0.03);
+      --text: #E5F3EB;
+      --text-muted: #8EAD9E;
+      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --transition: all 0.2s ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 15px 80px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 800px;
+    }
+
+    header {
+      width: 100%;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      border: 1px solid var(--border-glow);
+      box-shadow: var(--shadow);
+    }
+
+    .header-left h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-left p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .btn-back {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--text);
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      transition: var(--transition);
+    }
+
+    .btn-back:hover {
+      background: var(--panel-bg);
+      border-color: var(--border-glow);
+    }
+
+    /* Controls: Search */
+    .search-box-wrapper {
+      margin-bottom: 20px;
+      width: 100%;
+    }
+
+    .search-box {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: var(--panel-bg);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 16px 12px 40px;
+      color: var(--text);
+      font-size: 15px;
+      font-family: inherit;
+      transition: var(--transition);
+      box-shadow: var(--shadow);
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 15px rgba(250, 202, 43, 0.15);
+    }
+
+    .search-box::before {
+      content: '🔍';
+      position: absolute;
+      left: 14px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 15px;
+      opacity: 0.6;
+    }
+
+    /* Leaderboard Panel */
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      border: 1px solid rgba(250, 202, 43, 0.08);
+      box-shadow: var(--shadow);
+      padding: 24px;
+    }
+
+    .leaderboard-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .leaderboard-table th, .leaderboard-table td {
+      padding: 14px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .leaderboard-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .leaderboard-row {
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .leaderboard-row:hover {
+      background: rgba(255, 255, 255, 0.02);
+      transform: scale(1.005);
+    }
+
+    .rank-col {
+      font-weight: 800;
+      font-size: 16px;
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--text-muted);
+      width: 50px;
+      text-align: center;
+    }
+
+    .rank-col.gold { color: var(--gold); }
+    .rank-col.silver { color: #A0B2C6; }
+    .rank-col.bronze { color: #CD7F32; }
+
+    .user-col {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+    }
+
+    .user-col img {
+      width: 36px;
+      height: 36px;
+      border-radius: 50%;
+      background: #111;
+      object-fit: cover;
+    }
+
+    .wealth-col {
+      font-weight: 800;
+      color: var(--gold);
+      font-size: 15px;
+    }
+
+    .sub-wealth {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Unauth Screen */
+    #unauthScreen {
+      display: none;
+      text-align: center;
+      margin-top: 15vh;
+      max-width: 400px;
+      background: var(--panel-bg);
+      padding: 30px;
+      border-radius: 20px;
+      border: 1px solid var(--border-glow);
+      box-shadow: var(--shadow);
+    }
+
+    #unauthScreen h2 { font-size: 22px; color: var(--ruby); margin-bottom: 10px; }
+    #unauthScreen p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+  </style>
+</head>
+<body>
+
+  <!-- Ecrã de erro -->
+  <div id="unauthScreen">
+    <h2>🔒 Acesso Restrito</h2>
+    <p>Não foi possível carregar a classificação. Tens de estar logado na Dashboard primeiro.</p>
+    <p>Usa o comando <code>/leaderboard</code> no Discord.</p>
+  </div>
+
+  <div id="leaderboardApp" style="display: none; width: 100%; max-width: 800px;">
+    <header>
+      <div class="header-left">
+        <h1>🏆 Tabela de Classificação</h1>
+        <p>Consulta os magnatas e os jogadores mais ricos do servidor.</p>
+      </div>
+      <a href="/dashboard.html" class="btn-back">⬅ Voltar ao Painel</a>
+    </header>
+
+    <!-- Barra de Pesquisa -->
+    <div class="search-box-wrapper">
+      <div class="search-box">
+        <input type="text" id="leaderboardSearch" placeholder="Filtrar por nome de jogador..." oninput="filterLeaderboard()">
+      </div>
+    </div>
+
+    <!-- Tabela principal -->
+    <div class="panel">
+      <table class="leaderboard-table">
+        <thead>
+          <tr>
+            <th style="text-align: center;">Rank</th>
+            <th>Jogador</th>
+            <th>Nível</th>
+            <th style="text-align: right;">Riqueza Total</th>
+          </tr>
+        </thead>
+        <tbody id="leaderboardTableBody">
+          <!-- Injetado dinamicamente -->
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <script>
+    let leaderboardData = [];
+
+    async function loadLeaderboard() {
+      try {
+        const res = await fetch('/api/leaderboard/data');
+        if (!res.ok) {
+          throw new Error('Não autorizado');
+        }
+        leaderboardData = await res.json();
+        renderLeaderboard(leaderboardData);
+      } catch (err) {
+        document.getElementById('unauthScreen').style.display = 'block';
+      }
+    }
+
+    function fmt(val) {
+      return Math.round(val).toLocaleString('pt-PT') + ' 🪙';
+    }
+
+    function renderLeaderboard(data) {
+      document.getElementById('unauthScreen').style.display = 'none';
+      document.getElementById('leaderboardApp').style.display = 'block';
+
+      const tableBody = document.getElementById('leaderboardTableBody');
+      tableBody.innerHTML = '';
+
+      if (data.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="4" style="text-align: center; color: var(--text-muted); padding: 20px;">Nenhum jogador encontrado.</td></tr>';
+        return;
+      }
+
+      data.forEach((user, index) => {
+        const tr = document.createElement('tr');
+        tr.className = 'leaderboard-row';
+        tr.onclick = () => {
+          window.location.href = `/perfil.html?userId=${user.userId}`;
+        };
+
+        // Classes de rank para as medalhas
+        let rankClass = '';
+        let rankText = `#${index + 1}`;
+        if (index === 0) { rankClass = 'gold'; rankText = '🥇'; }
+        else if (index === 1) { rankClass = 'silver'; rankText = '🥈'; }
+        else if (index === 2) { rankClass = 'bronze'; rankText = '🥉'; }
+
+        tr.innerHTML = `
+          <td class="rank-col ${rankClass}">${rankText}</td>
+          <td>
+            <div class="user-col">
+              <img src="${user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png'}">
+              <div>${user.username}</div>
+            </div>
+          </td>
+          <td style="font-weight: 600; color: var(--mint);">Nível ${user.level}</td>
+          <td style="text-align: right;">
+            <div class="wealth-col">${fmt(user.balance + user.bank)}</div>
+            <div class="sub-wealth">Carteira: ${fmt(user.balance)} | Banco: ${fmt(user.bank)}</div>
+          </td>
+        `;
+        tableBody.appendChild(tr);
+      });
+    }
+
+    function filterLeaderboard() {
+      const q = document.getElementById('leaderboardSearch').value.toLowerCase().trim();
+      if (!q) {
+        renderLeaderboard(leaderboardData);
+        return;
+      }
+
+      const filtered = leaderboardData.filter(user => 
+        user.username.toLowerCase().includes(q)
+      );
+      renderLeaderboard(filtered);
+    }
+
+    loadLeaderboard();
+  </script>
+</body>
+</html>
