@@ -661,6 +661,18 @@
                 <button class="btn-play" id="btn-hack" onclick="startJob('hack')">Infiltrar</button>
               </div>
             </div>
+
+            <!-- Bónus Diário -->
+            <div class="job-card" style="border: 1px solid rgba(250, 202, 43, 0.2); background: rgba(250, 202, 43, 0.02); box-shadow: 0 4px 15px rgba(250, 202, 43, 0.05);">
+              <div class="job-header">
+                <h3 style="color: var(--gold); display: flex; align-items: center; gap: 6px;">🎁 Bónus Diário</h3>
+                <p>Resgata a tua recompensa de moedas gratuita diária e aumenta a tua streak de dias seguidos!</p>
+              </div>
+              <div class="job-footer" style="margin-top: 8px;">
+                <span class="cooldown-text" id="cooldown-daily" style="color: var(--gold); font-weight: 700;">Pronto</span>
+                <button class="btn-play" id="btn-daily" onclick="claimDaily()" style="background: var(--gold); color: #111; font-weight: 700; border-color: var(--gold-dark);">Reivindicar</button>
+              </div>
+            </div>
           </div>
         </div>
 
@@ -800,6 +812,7 @@
       setupCooldown('work', appData.cooldowns.work, 'Limpar');
       setupCooldown('pesca', appData.cooldowns.pesca, 'Pescar');
       setupCooldown('hack', appData.cooldowns.hack, 'Infiltrar');
+      setupCooldown('daily', appData.cooldowns.daily, 'Reivindicar');
 
       // Tabela Crypto
       const cryptoTableBody = document.getElementById('cryptoTableBody');
@@ -939,11 +952,15 @@
         const tick = () => {
           if (leftMs <= 0) {
             btn.disabled = false;
-            cdText.textContent = '';
+            cdText.textContent = 'Pronto';
+            btn.textContent = defaultLabel;
           } else {
-            const minutes = Math.floor(leftMs / 60000);
+            const hours = Math.floor(leftMs / (3600 * 1000));
+            const minutes = Math.floor((leftMs % (3600 * 1000)) / 60000);
             const seconds = Math.floor((leftMs % 60000) / 1000);
-            cdText.textContent = `${minutes}m ${seconds}s`;
+            
+            cdText.textContent = hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m ${seconds}s`;
+            btn.textContent = 'Aguardar';
             leftMs -= 1000;
             setTimeout(tick, 1000);
           }
@@ -951,7 +968,8 @@
         tick();
       } else {
         btn.disabled = false;
-        cdText.textContent = '';
+        cdText.textContent = 'Pronto';
+        btn.textContent = defaultLabel;
       }
     }
 
@@ -977,6 +995,26 @@
         window.location.href = `/${fileMap[job]}?jobToken=${data.jobToken}`;
       } catch (err) {
         alert('Erro ao ligar ao servidor.');
+      }
+    }
+
+    async function claimDaily() {
+      const btn = document.getElementById('btn-daily');
+      btn.disabled = true;
+      try {
+        const res = await fetch('/api/daily/claim', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Erro ao resgatar bónus.');
+          btn.disabled = false;
+          return;
+        }
+
+        alert(`🎁 Bónus Diário Resgatado!\n\nRecebeste ${data.amount} 🪙!\nStreak atual: ${data.streak} dias.`);
+        loadDashboard();
+      } catch (err) {
+        alert('Erro ao comunicar com o servidor.');
+        btn.disabled = false;
       }
     }
 

@@ -684,6 +684,10 @@ app.get('/api/dashboard/data', async (req, res) => {
     const pescaCooldown = db.getCooldown(guildId, userId, 'pescar');
     const hackCooldown = db.getCooldown(guildId, userId, 'hackear');
 
+    const now = Date.now();
+    const sinceLastDaily = now - (user.lastDaily || 0);
+    const dailyCooldown = Math.max(0, (24 * 60 * 60 * 1000) - sinceLastDaily);
+
     return res.json({
       guildId,
       userId,
@@ -707,12 +711,62 @@ app.get('/api/dashboard/data', async (req, res) => {
       cooldowns: {
         work: workCooldown,
         pesca: pescaCooldown,
-        hack: hackCooldown
+        hack: hackCooldown,
+        daily: dailyCooldown
       }
     });
   } catch (err) {
     console.error('Erro em /api/dashboard/data:', err);
     return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/daily/claim', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const cfg = db.getGuildConfig(guildId);
+    const user = db.getUser(guildId, userId);
+
+    const DAY_MS = 24 * 60 * 60 * 1000;
+    const now = Date.now();
+    const sinceLast = now - (user.lastDaily || 0);
+
+    if (sinceLast < DAY_MS) {
+      const remaining = DAY_MS - sinceLast;
+      const hours = Math.floor(remaining / (60 * 60 * 1000));
+      const mins = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
+      return res.status(400).json({ error: `Já recolheste hoje. Podes voltar daqui a ${hours}h ${mins}m.` });
+    }
+
+    if (sinceLast <= 2 * DAY_MS) {
+      user.dailyStreak += 1;
+    } else {
+      user.dailyStreak = 1;
+    }
+    user.lastDaily = now;
+
+    const streakBonus = Math.min(user.dailyStreak * 20, 500);
+    const total = cfg.dailyAmount + streakBonus;
+    user.balance += total;
+    db.saveUser(guildId, userId, user);
+
+    db.pushHistory(guildId, userId, { game: 'Bónus Diário Web', bet: 0, net: total });
+
+    return res.json({
+      success: true,
+      balance: user.balance,
+      amount: total,
+      base: cfg.dailyAmount,
+      bonus: streakBonus,
+      streak: user.dailyStreak,
+      cooldown: DAY_MS
+    });
+  } catch (err) {
+    console.error('Erro em /api/daily/claim:', err);
+    return res.status(500).json({ error: 'Erro no servidor.' });
   }
 });
 

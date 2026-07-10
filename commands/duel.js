@@ -95,15 +95,27 @@ module.exports = {
     };
 
     collector.on('collect', async i => {
-      const playerKey = i.user.id === challenger.id ? 'challenger' : 'opponent';
+      const isChallenger = i.user.id === challenger.id;
+      const playerKey = isChallenger ? 'challenger' : 'opponent';
+      
       if (choices[playerKey]) {
-        return i.reply({ content: 'Já escolheste nesta ronda. Aguarda pelo adversário.', ephemeral: true });
+        return i.deferUpdate().catch(() => {});
       }
+
       const pick = i.customId.replace('duel_', '');
       choices[playerKey] = pick;
-      await i.reply({ content: `Escolheste ${CHOICES[pick]} para a ronda ${round}.`, ephemeral: true });
 
-      if (!choices.challenger || !choices.opponent) return;
+      if (!choices.challenger || !choices.opponent) {
+        const statusEmbed = baseEmbed('⚔️ Duelo — Pedra, Papel, Tesoura', COLORS.info)
+          .setDescription(`Duelo entre ${challenger} e ${opponent} valendo **${fmt(amount)}**.\n\n` +
+                          `Placar: **${challenger.username} ${scoreChallenger} — ${scoreOpponent} ${opponent.username}**\n\n` +
+                          `Ronda ${round}:\n` +
+                          `👤 ${challenger.username}: ${choices.challenger ? '✅ Pronto!' : '⏳ A escolher...'}\n` +
+                          `👤 ${opponent.username}: ${choices.opponent ? '✅ Pronto!' : '⏳ A escolher...'}`);
+        
+        await i.update({ embeds: [statusEmbed] }).catch(() => {});
+        return;
+      }
 
       const c = choices.challenger;
       const o = choices.opponent;
@@ -128,11 +140,13 @@ module.exports = {
       }
 
       const progressEmbed = baseEmbed('⚔️ Duelo — Pedra, Papel, Tesoura', COLORS.info)
-        .setDescription(`${roundMsg}\n\nPlacar: **${challenger.username} ${scoreChallenger} — ${scoreOpponent} ${opponent.username}**\n\nRonda ${round}, escolham de novo!`);
+        .setDescription(`${roundMsg}\n\n` +
+                        `Placar: **${challenger.username} ${scoreChallenger} — ${scoreOpponent} ${opponent.username}**\n\n` +
+                        `Ronda ${round}:\n` +
+                        `👤 ${challenger.username}: ⏳ A escolher...\n` +
+                        `👤 ${opponent.username}: ⏳ A escolher...`);
 
-      try {
-        await interaction.editReply({ embeds: [progressEmbed], components: [buildRow()] });
-      } catch {}
+      await i.update({ embeds: [progressEmbed], components: [buildRow()] }).catch(() => {});
     });
 
     collector.on('end', async (collected, reason) => {

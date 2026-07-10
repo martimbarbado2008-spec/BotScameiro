@@ -572,6 +572,10 @@
             <span class="label">Valor Estimado:</span>
             <span class="value" id="currentHoldingsVal" style="color:var(--gold);">0 🪙</span>
           </div>
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
+            <button class="amount-shortcut" onclick="sellPercentage(50)" style="padding: 8px 0; font-size: 11px; border-color: rgba(237, 66, 69, 0.3); color: #fff; background: rgba(237, 66, 69, 0.1);">Vender 50% 📉</button>
+            <button class="amount-shortcut" onclick="sellPercentage(100)" style="padding: 8px 0; font-size: 11px; border-color: rgba(237, 66, 69, 0.5); color: #fff; background: rgba(237, 66, 69, 0.2);">Vender Tudo 🚪</button>
+          </div>
         </div>
       </div>
     </div>
@@ -807,6 +811,39 @@
       }
     }
 
+    async function sellPercentage(pct) {
+      const holdings = appData.cryptoHoldings[activeCoin] || 0;
+      if (holdings <= 0) {
+        showToast(`Não tens holdings de ${activeCoin} para vender.`, true);
+        return;
+      }
+
+      const cryptoAmount = holdings * (pct / 100);
+      
+      try {
+        const res = await fetch('/api/crypto/trade', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            action: 'sell',
+            coin: activeCoin,
+            amount: cryptoAmount
+          })
+        });
+
+        const result = await res.json();
+        if (!res.ok) {
+          showToast(result.error || 'Erro ao processar venda.', true);
+          return;
+        }
+
+        showToast(`Vendeste ${pct}% das tuas holdings de ${activeCoin} com sucesso!`);
+        await loadData();
+      } catch (err) {
+        showToast('Erro ao comunicar com o servidor.', true);
+      }
+    }
+
     // --- Gráfico em Tempo Real (Chart.js) ---
     function initChart() {
       const ctx = document.getElementById('liveChart').getContext('2d');
@@ -907,6 +944,7 @@
         // Flutuação realista de ±0.04%
         const pct = 1 + (Math.random() - 0.5) * 0.0008;
         const tickedPrice = baseline * pct;
+        currentPrices[c] = tickedPrice; // Atualiza o preço atual localmente
         
         // Guardar no histórico
         const history = chartHistory[c];
@@ -935,6 +973,8 @@
 
       updateChartDataset();
       renderTabs();
+      renderOrderDesk();
+      renderPortfolio();
     }, 1500);
 
     // --- Sincronizar periodicamente com os preços oficiais do servidor (a cada 12 segundos) ---
