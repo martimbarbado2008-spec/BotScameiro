@@ -1,0 +1,968 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Mesa de Blackjack Multiplayer — Casino Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #030a06;
+      --panel: rgba(6, 18, 12, 0.75);
+      --panel-border: rgba(87, 242, 135, 0.15);
+      --mint: #57f287;
+      --mint-glow: rgba(87, 242, 135, 0.4);
+      --gold: #f1c40f;
+      --ruby: #e74c3c;
+      --text: #ffffff;
+      --text-muted: rgba(255, 255, 255, 0.6);
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      position: relative;
+    }
+
+    #particles-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      z-index: 1;
+      pointer-events: none;
+    }
+
+    .main-wrapper {
+      position: relative;
+      z-index: 2;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      max-width: 1400px;
+      width: 100%;
+      margin: 0 auto;
+      padding: 24px;
+      gap: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      padding: 16px 24px;
+      border-radius: 16px;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+    }
+
+    .logo {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo span {
+      font-size: 28px;
+    }
+
+    .logo h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      background: linear-gradient(135deg, #fff, var(--mint));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-links {
+      display: flex;
+      gap: 12px;
+    }
+
+    .btn-nav {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      cursor: pointer;
+      text-decoration: none;
+      font-size: 14px;
+      font-weight: 600;
+      transition: all 0.2s ease;
+    }
+
+    .btn-nav:hover {
+      background: rgba(87, 242, 135, 0.1);
+      border-color: var(--mint);
+    }
+
+    .game-grid {
+      display: grid;
+      grid-template-columns: 1fr 340px;
+      gap: 20px;
+      flex: 1;
+    }
+
+    .table-panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      display: flex;
+      flex-direction: column;
+      padding: 30px;
+      position: relative;
+      min-height: 550px;
+      justify-content: space-between;
+    }
+
+    /* --- Status Banner --- */
+    .status-banner {
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 12px 24px;
+      text-align: center;
+      margin-bottom: 24px;
+    }
+
+    .status-text {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--mint);
+      text-shadow: 0 0 10px var(--mint-glow);
+    }
+
+    .timer-bar-container {
+      width: 100%;
+      height: 4px;
+      background: rgba(255, 255, 255, 0.05);
+      border-radius: 2px;
+      margin-top: 8px;
+      overflow: hidden;
+    }
+
+    .timer-bar {
+      height: 100%;
+      background: var(--mint);
+      width: 0%;
+      transition: width 1s linear;
+    }
+
+    /* --- Area do Dealer --- */
+    .dealer-area {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      margin-bottom: 40px;
+    }
+
+    .dealer-title {
+      font-size: 12px;
+      text-transform: uppercase;
+      font-weight: 800;
+      color: var(--text-muted);
+      letter-spacing: 1px;
+      margin-bottom: 8px;
+    }
+
+    .score-badge {
+      background: rgba(87, 242, 135, 0.2);
+      border: 1px solid var(--mint);
+      color: var(--mint);
+      padding: 2px 8px;
+      border-radius: 4px;
+      font-size: 11px;
+      font-weight: 800;
+      margin-left: 6px;
+    }
+
+    .cards-container {
+      display: flex;
+      gap: 10px;
+      min-height: 110px;
+      justify-content: center;
+      perspective: 1000px;
+    }
+
+    /* --- Cartas CSS --- */
+    .card {
+      width: 76px;
+      height: 110px;
+      background: #ffffff;
+      border-radius: 8px;
+      color: #000000;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px;
+      font-weight: 800;
+      font-size: 18px;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+      animation: dealCard 0.4s cubic-bezier(0.18, 0.89, 0.32, 1.28) forwards;
+      transform-origin: top left;
+      position: relative;
+    }
+
+    .card.red {
+      color: var(--ruby);
+    }
+
+    .card-top {
+      text-align: left;
+    }
+
+    .card-middle {
+      text-align: center;
+      font-size: 26px;
+    }
+
+    .card-bottom {
+      text-align: right;
+      transform: rotate(180deg);
+    }
+
+    .card.back {
+      background: linear-gradient(135deg, #134e2b, #051d10);
+      border: 2px solid rgba(87, 242, 135, 0.4);
+      color: transparent;
+      box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    }
+
+    .card.back::after {
+      content: '🎰';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 24px;
+    }
+
+    @keyframes dealCard {
+      from {
+        opacity: 0;
+        transform: translateY(-50px) rotate(-15deg);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0) rotate(0);
+      }
+    }
+
+    /* --- Area dos Jogadores --- */
+    .players-area {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      flex-wrap: wrap;
+      margin-bottom: 40px;
+    }
+
+    .player-spot {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 16px;
+      width: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .player-spot.active {
+      border-color: var(--mint);
+      box-shadow: 0 0 15px var(--mint-glow);
+      background: rgba(87, 242, 135, 0.02);
+      animation: pulseActiveTurn 2s infinite ease-in-out;
+    }
+
+    @keyframes pulseActiveTurn {
+      0%, 100% { border-color: rgba(87, 242, 135, 0.4); }
+      50% { border-color: var(--mint); }
+    }
+
+    .player-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid rgba(255, 255, 255, 0.1);
+      margin-bottom: 8px;
+    }
+
+    .player-spot.active .player-avatar {
+      border-color: var(--mint);
+    }
+
+    .player-name {
+      font-weight: 700;
+      font-size: 13px;
+      max-width: 100%;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      margin-bottom: 4px;
+    }
+
+    .player-bet {
+      font-size: 11px;
+      color: var(--gold);
+      font-weight: 800;
+      background: rgba(241, 196, 15, 0.1);
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-bottom: 12px;
+    }
+
+    .player-status-tag {
+      font-size: 10px;
+      font-weight: 800;
+      padding: 2px 6px;
+      border-radius: 4px;
+      margin-top: 8px;
+      text-transform: uppercase;
+    }
+
+    .status-playing { background: rgba(87, 242, 135, 0.1); color: var(--mint); }
+    .status-stood { background: rgba(255, 255, 255, 0.1); color: var(--text-muted); }
+    .status-bust { background: rgba(231, 76, 60, 0.1); color: var(--ruby); }
+    .status-blackjack { background: rgba(241, 196, 15, 0.1); color: var(--gold); }
+
+    /* --- Area de Controlos --- */
+    .controls-area {
+      background: rgba(0, 0, 0, 0.3);
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      padding: 20px;
+      border-radius: 0 0 18px 18px;
+      margin: 0 -30px -30px -30px;
+      display: flex;
+      justify-content: center;
+      gap: 16px;
+      align-items: center;
+      min-height: 90px;
+    }
+
+    .input-bet-wrapper {
+      display: flex;
+      align-items: center;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 8px;
+      padding: 2px 8px;
+    }
+
+    .input-bet {
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      width: 80px;
+      padding: 8px;
+      text-align: center;
+      outline: none;
+    }
+
+    .btn-action {
+      border: none;
+      padding: 12px 24px;
+      border-radius: 8px;
+      font-size: 14px;
+      font-weight: 800;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-hit {
+      background: var(--mint);
+      color: #000;
+    }
+
+    .btn-hit:hover {
+      box-shadow: 0 0 15px var(--mint-glow);
+      transform: translateY(-1px);
+    }
+
+    .btn-stand {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border: 1px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .btn-stand:hover {
+      background: rgba(255, 255, 255, 0.15);
+      transform: translateY(-1px);
+    }
+
+    .btn-join {
+      background: var(--gold);
+      color: #000;
+    }
+
+    .btn-join:hover {
+      box-shadow: 0 0 15px rgba(241, 196, 15, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* --- Chat Sidebar --- */
+    .sidebar-panel {
+      display: flex;
+      flex-direction: column;
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 20px;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      height: 100%;
+      overflow: hidden;
+    }
+
+    .sidebar-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--mint);
+    }
+
+    .sidebar-messages {
+      flex: 1;
+      padding: 16px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      font-size: 13px;
+      max-height: 400px;
+    }
+
+    .chat-bubble {
+      display: flex;
+      gap: 8px;
+      align-items: flex-start;
+      background: rgba(255, 255, 255, 0.01);
+      padding: 8px;
+      border-radius: 8px;
+    }
+
+    .chat-bubble img {
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+    }
+
+    .chat-bubble-user {
+      font-weight: 700;
+      color: var(--mint);
+      margin-bottom: 2px;
+    }
+
+    .chat-bubble-text {
+      color: var(--text);
+      word-break: break-word;
+    }
+
+    .sidebar-footer {
+      padding: 12px 16px;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      display: flex;
+      gap: 8px;
+    }
+
+    .chat-input {
+      flex: 1;
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      border-radius: 8px;
+      padding: 8px 12px;
+      font-size: 12px;
+      outline: none;
+    }
+
+    .chat-send-btn {
+      background: var(--mint);
+      border: none;
+      color: #000;
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+    }
+
+    /* Modal de não autenticado */
+    .unauth-modal {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.95);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ecrã Bloqueado por Não Autenticado -->
+  <div class="unauth-modal" id="unauthScreen" style="display: none;">
+    <div style="background: var(--panel); border: 1px solid var(--panel-border); padding: 40px; border-radius: 20px; max-width: 400px;">
+      <h2 style="color: var(--ruby); margin-bottom: 12px;">Sessão Não Iniciada</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Inicia sessão no bot através do link seguro gerado pelo Discord.</p>
+    </div>
+  </div>
+
+  <canvas id="particles-canvas"></canvas>
+
+  <div class="main-wrapper">
+    <!-- Header -->
+    <header>
+      <div class="logo">
+        <span>🃏</span>
+        <h1>Blackjack Multiplayer</h1>
+      </div>
+      <div class="nav-links">
+        <a href="/dashboard.html" class="btn-nav">Painel Principal 🏠</a>
+        <a href="/guia.html" class="btn-nav">Guia de Comandos 🌐</a>
+      </div>
+    </header>
+
+    <!-- Grelha Principal -->
+    <div class="game-grid">
+      
+      <!-- Mesa de Jogo -->
+      <div class="table-panel">
+        
+        <!-- Banner de Estado da Mesa -->
+        <div class="status-banner">
+          <div class="status-text" id="statusText">Aguardando novos jogadores...</div>
+          <div class="timer-bar-container" id="timerBarContainer" style="display: none;">
+            <div class="timer-bar" id="timerBar"></div>
+          </div>
+        </div>
+
+        <!-- Dealer -->
+        <div class="dealer-area">
+          <div class="dealer-title">Dealer <span class="score-badge" id="dealerScore">0</span></div>
+          <div class="cards-container" id="dealerCards">
+            <!-- Cartas do Dealer -->
+          </div>
+        </div>
+
+        <!-- Jogadores Sentados -->
+        <div class="players-area" id="playersArea">
+          <!-- Jogadores sentados na mesa -->
+        </div>
+
+        <!-- Controlos do Jogo -->
+        <div class="controls-area" id="controlsArea">
+          <!-- Controlos renderizados consoante a fase do jogo -->
+        </div>
+
+      </div>
+
+      <!-- Chat Sidebar -->
+      <div class="sidebar-panel">
+        <div class="sidebar-header">💬 Live Chat</div>
+        <div class="sidebar-messages" id="chatMessages">
+          <!-- Mensagens de Chat -->
+        </div>
+        <div class="sidebar-footer">
+          <input type="text" class="chat-input" id="chatInput" placeholder="Envia uma mensagem..." onkeydown="handleChatKey(event)">
+          <button class="chat-send-btn" onclick="sendChatMessage()">➔</button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let appData = null;
+    let userId = null;
+    let pollInterval = null;
+    let chatSse = null;
+
+    // --- Verificar Autenticação ---
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/dashboard/data');
+        if (!res.ok) {
+          document.getElementById('unauthScreen').style.display = 'flex';
+          return;
+        }
+        appData = await res.json();
+        userId = appData.userId;
+        
+        initChatStream();
+        startPolling();
+      } catch (err) {
+        document.getElementById('unauthScreen').style.display = 'flex';
+      }
+    }
+
+    // --- Polling do Estado do Blackjack ---
+    function startPolling() {
+      fetchTableState();
+      pollInterval = setInterval(fetchTableState, 1000);
+    }
+
+    async function fetchTableState() {
+      try {
+        const res = await fetch('/api/blackjack/state');
+        if (!res.ok) return;
+        const state = await res.json();
+        renderTable(state);
+      } catch (err) {
+        console.error("Erro ao carregar estado da mesa:", err);
+      }
+    }
+
+    // --- Renderização da Mesa ---
+    function renderTable(state) {
+      // Banner de Estado & Timer
+      const banner = document.getElementById('statusText');
+      const timerContainer = document.getElementById('timerBarContainer');
+      const timerBar = document.getElementById('timerBar');
+
+      if (state.status === 'waiting') {
+        banner.innerText = ' MESA VAZIA • Senta-te para começar a jogar!';
+        timerContainer.style.display = 'none';
+      } else if (state.status === 'betting') {
+        banner.innerText = `⏳ FASE DE APOSTAS • Começa em ${state.betTimeLeft}s`;
+        timerContainer.style.display = 'block';
+        timerBar.style.width = `${(state.betTimeLeft / 20) * 100}%`;
+      } else if (state.status === 'dealing') {
+        banner.innerText = '🃏 DISTRIBUIÇÃO • Dando cartas aos jogadores...';
+        timerContainer.style.display = 'none';
+      } else if (state.status === 'players_turn') {
+        banner.innerText = ` Vez do jogador ativo (${state.turnTimeLeft}s restantes)`;
+        timerContainer.style.display = 'block';
+        timerBar.style.width = `${(state.turnTimeLeft / 15) * 100}%`;
+      } else if (state.status === 'dealer_turn') {
+        banner.innerText = 'Dealer a jogar...';
+        timerContainer.style.display = 'none';
+      } else if (state.status === 'resolving') {
+        banner.innerText = ` MESA RESOLVIDA • Reinicia em ${state.resolveTimeLeft}s`;
+        timerContainer.style.display = 'block';
+        timerBar.style.width = `${(state.resolveTimeLeft / 10) * 100}%`;
+      }
+
+      // Render Dealer Cards
+      const dealerContainer = document.getElementById('dealerCards');
+      dealerContainer.innerHTML = '';
+      state.dealerCards.forEach(card => {
+        dealerContainer.appendChild(createCardElement(card));
+      });
+      document.getElementById('dealerScore').innerText = state.dealerScore;
+
+      // Render Players
+      const playersArea = document.getElementById('playersArea');
+      playersArea.innerHTML = '';
+
+      state.players.forEach((p, idx) => {
+        const spot = document.createElement('div');
+        spot.className = `player-spot ${idx === state.currentPlayerIndex && state.status === 'players_turn' ? 'active' : ''}`;
+        
+        let statusTag = '';
+        if (p.status === 'stood') statusTag = '<span class="player-status-tag status-stood">Parou</span>';
+        if (p.status === 'bust') statusTag = '<span class="player-status-tag status-bust">Estourou</span>';
+        if (p.status === 'blackjack') statusTag = '<span class="player-status-tag status-blackjack">Blackjack!</span>';
+        if (p.status === 'playing') statusTag = '<span class="player-status-tag status-playing">A Jogar</span>';
+
+        spot.innerHTML = `
+          <img class="player-avatar" src="${p.avatar}" alt="Avatar">
+          <div class="player-name">${p.username}</div>
+          <div class="player-bet">${p.bet} 🪙</div>
+          <div class="cards-container" style="gap: 5px; min-height: 80px; transform: scale(0.85);">
+            ${p.cards.map(c => createCardElementHTML(c)).join('')}
+          </div>
+          <div style="font-size: 11px; font-weight:800; margin-top:4px;">Pontos: ${p.score}</div>
+          ${statusTag}
+          ${state.status === 'resolving' && p.resultText ? `<div style="font-size: 11px; font-weight:800; color:var(--mint); margin-top:8px;">${p.resultText} (${p.payoutResult}🪙)</div>` : ''}
+        `;
+        playersArea.appendChild(spot);
+      });
+
+      // Render Controls
+      const controlsArea = document.getElementById('controlsArea');
+      const isSeated = state.players.some(p => p.userId === userId);
+      const isMyTurn = state.status === 'players_turn' && state.currentPlayerUserId === userId;
+
+      if ((state.status === 'waiting' || state.status === 'betting') && !isSeated) {
+        controlsArea.innerHTML = `
+          <div class="input-bet-wrapper">
+            <span>🪙</span>
+            <input type="number" class="input-bet" id="betInput" value="100" min="10" step="50">
+          </div>
+          <button class="btn-action btn-join" onclick="joinTable()">Sentar na Mesa 🪙</button>
+        `;
+      } else if (isMyTurn) {
+        controlsArea.innerHTML = `
+          <button class="btn-action btn-hit" onclick="hit()">Pedir Carta 🃏</button>
+          <button class="btn-action btn-stand" onclick="stand()">Parar 🛑</button>
+        `;
+      } else {
+        if (isSeated) {
+          controlsArea.innerHTML = `<span style="font-size: 13px; color: var(--text-muted); font-weight:600;">Estás sentado na mesa. Aguarda a tua vez de jogar...</span>`;
+        } else {
+          controlsArea.innerHTML = `<span style="font-size: 13px; color: var(--text-muted); font-weight:600;">Jogo em andamento. Aguarda pela próxima rodada...</span>`;
+        }
+      }
+    }
+
+    // --- Ações de Jogo ---
+    async function joinTable() {
+      const input = document.getElementById('betInput');
+      const bet = parseInt(input.value, 10);
+      if (isNaN(bet) || bet <= 0) {
+        alert("Aposta inválida!");
+        return;
+      }
+
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+      try {
+        const res = await fetch('/api/blackjack/join', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bet })
+        });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Erro ao entrar na mesa.');
+        } else {
+          fetchTableState();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function hit() {
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+      try {
+        const res = await fetch('/api/blackjack/hit', { method: 'POST' });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Erro ao pedir carta.');
+        } else {
+          fetchTableState();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function stand() {
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+      try {
+        const res = await fetch('/api/blackjack/stand', { method: 'POST' });
+        if (!res.ok) {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Erro ao parar.');
+        } else {
+          fetchTableState();
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    // --- Helpers de Cartas ---
+    function createCardElement(card) {
+      const div = document.createElement('div');
+      if (card.name === '?') {
+        div.className = 'card back';
+        return div;
+      }
+
+      const isRed = card.suit === '♥' || card.suit === '♦';
+      div.className = `card ${isRed ? 'red' : ''}`;
+      div.innerHTML = `
+        <div class="card-top">${card.name}</div>
+        <div class="card-middle">${card.suit}</div>
+        <div class="card-bottom">${card.name}</div>
+      `;
+      return div;
+    }
+
+    function createCardElementHTML(card) {
+      if (card.name === '?') {
+        return `<div class="card back"></div>`;
+      }
+      const isRed = card.suit === '♥' || card.suit === '♦';
+      return `
+        <div class="card ${isRed ? 'red' : ''}">
+          <div class="card-top">${card.name}</div>
+          <div class="card-middle">${card.suit}</div>
+          <div class="card-bottom">${card.name}</div>
+        </div>
+      `;
+    }
+
+    // --- Transmissão do Live Chat ---
+    function initChatStream() {
+      if (chatSse) return;
+
+      chatSse = new EventSource('/api/chat/stream');
+
+      chatSse.addEventListener('history', (e) => {
+        const history = JSON.parse(e.data);
+        const container = document.getElementById('chatMessages');
+        container.innerHTML = '';
+        history.forEach(appendMessage);
+        scrollToBottom();
+      });
+
+      chatSse.addEventListener('message', (e) => {
+        const msg = JSON.parse(e.data);
+        appendMessage(msg);
+        scrollToBottom();
+      });
+
+      chatSse.onerror = () => {
+        chatSse.close();
+        chatSse = null;
+        setTimeout(initChatStream, 3000);
+      };
+    }
+
+    function appendMessage(msg) {
+      const container = document.getElementById('chatMessages');
+      const bubble = document.createElement('div');
+      bubble.className = 'chat-bubble';
+      const avatarUrl = msg.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+      bubble.innerHTML = `
+        <img src="${avatarUrl}" alt="Avatar">
+        <div>
+          <div class="chat-bubble-user">${msg.username}</div>
+          <div class="chat-bubble-text">${escapeHTML(msg.message)}</div>
+        </div>
+      `;
+      container.appendChild(bubble);
+    }
+
+    function scrollToBottom() {
+      const container = document.getElementById('chatMessages');
+      container.scrollTop = container.scrollHeight;
+    }
+
+    function handleChatKey(e) {
+      if (e.key === 'Enter') {
+        sendChatMessage();
+      }
+    }
+
+    async function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (!text) return;
+      input.value = '';
+
+      try {
+        const res = await fetch('/api/chat/send', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: text })
+        });
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    function escapeHTML(str) {
+      return str.replace(/[&<>'"]/g, tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag));
+    }
+
+    // --- Interactive Particle Background ---
+    const canvas = document.getElementById('particles-canvas');
+    const ctx = canvas.getContext('2d');
+    let particles = [];
+
+    function resizeCanvas() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resizeCanvas);
+    resizeCanvas();
+
+    class Particle {
+      constructor() {
+        this.x = Math.random() * canvas.width;
+        this.y = Math.random() * canvas.height;
+        this.size = Math.random() * 2 + 1;
+        this.speedX = Math.random() * 0.3 - 0.15;
+        this.speedY = Math.random() * 0.3 - 0.15;
+      }
+      update() {
+        this.x += this.speedX;
+        this.y += this.speedY;
+        if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+        if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+      }
+      draw() {
+        ctx.fillStyle = 'rgba(87, 242, 135, 0.2)';
+        ctx.beginPath();
+        ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+    }
+
+    function initParticles() {
+      for (let i = 0; i < 50; i++) {
+        particles.push(new Particle());
+      }
+    }
+    initParticles();
+
+    function animateParticles() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      particles.forEach(p => {
+        p.update();
+        p.draw();
+      });
+      requestAnimationFrame(animateParticles);
+    }
+    animateParticles();
+
+    checkAuth();
+  </script>
+</body>
+</html>

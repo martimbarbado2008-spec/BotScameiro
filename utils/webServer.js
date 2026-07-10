@@ -1895,6 +1895,349 @@ app.post('/api/chat/duel/decline', async (req, res) => {
   }
 });
  
+// --- Jogo de Blackjack Multiplayer Web ---
+const bjTable = {
+  players: [], // { userId, guildId, username, avatar, cards: [], bet, status: 'playing'|'stood'|'bust'|'blackjack', score: 0 }
+  dealerCards: [],
+  status: 'waiting', // waiting, betting, dealing, players_turn, dealer_turn, resolving
+  currentPlayerIndex: 0,
+  turnTimeLeft: 0,
+  betTimeLeft: 0,
+  resolveTimeLeft: 0,
+  deck: []
+};
+
+function createDeck() {
+  const suits = ['♠', '♥', '♦', '♣'];
+  const values = [
+    { name: 'A', value: 11 },
+    { name: '2', value: 2 },
+    { name: '3', value: 3 },
+    { name: '4', value: 4 },
+    { name: '5', value: 5 },
+    { name: '6', value: 6 },
+    { name: '7', value: 7 },
+    { name: '8', value: 8 },
+    { name: '9', value: 9 },
+    { name: '10', value: 10 },
+    { name: 'J', value: 10 },
+    { name: 'Q', value: 10 },
+    { name: 'K', value: 10 }
+  ];
+  let deck = [];
+  for (let d = 0; d < 6; d++) {
+    for (const suit of suits) {
+      for (const val of values) {
+        deck.push({ suit, name: val.name, val: val.value });
+      }
+    }
+  }
+  for (let i = deck.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [deck[i], deck[j]] = [deck[j], deck[i]];
+  }
+  return deck;
+}
+
+function calculateHandScore(cards) {
+  let score = 0;
+  let aces = 0;
+  for (const card of cards) {
+    score += card.val;
+    if (card.name === 'A') aces++;
+  }
+  while (score > 21 && aces > 0) {
+    score -= 10;
+    aces--;
+  }
+  return score;
+}
+
+function advancePlayerTurn() {
+  let nextIdx = bjTable.players.findIndex((p, idx) => idx > bjTable.currentPlayerIndex && p.status === 'playing');
+  if (nextIdx === -1) {
+    bjTable.status = 'dealer_turn';
+    bjTable.turnTimeLeft = 0;
+  } else {
+    bjTable.currentPlayerIndex = nextIdx;
+    bjTable.turnTimeLeft = 15;
+  }
+}
+
+function resolvePayouts() {
+  const dScore = calculateHandScore(bjTable.dealerCards);
+  const dBust = dScore > 21;
+  const dBJ = dScore === 21 && bjTable.dealerCards.length === 2;
+
+  bjTable.players.forEach(p => {
+    const pScore = p.score;
+    const pBJ = p.status === 'blackjack';
+    
+    if (pScore > 21) {
+      p.payoutResult = 0;
+      p.resultText = 'Rebentou (Bust)';
+      return;
+    }
+
+    if (pBJ) {
+      if (dBJ) {
+        p.payoutResult = p.bet;
+        p.resultText = 'Empate (Push)';
+      } else {
+        p.payoutResult = Math.round(p.bet * 2.5);
+        p.resultText = 'Blackjack! 🎉';
+      }
+    } else {
+      if (dBust) {
+        p.payoutResult = p.bet * 2;
+        p.resultText = 'Venceu! Dealer Rebentou';
+      } else if (dBJ) {
+        p.payoutResult = 0;
+        p.resultText = 'Perdeu (Dealer BJ)';
+      } else if (pScore > dScore) {
+        p.payoutResult = p.bet * 2;
+        p.resultText = 'Venceu! 🏆';
+      } else if (pScore === dScore) {
+        p.payoutResult = p.bet;
+        p.resultText = 'Empate (Push)';
+      } else {
+        p.payoutResult = 0;
+        p.resultText = 'Perdeu';
+      }
+    }
+
+    if (p.payoutResult > 0) {
+      const u = db.getUser(p.guildId, p.userId);
+      u.balance += p.payoutResult;
+      db.saveUser(p.guildId, p.userId, u);
+      db.pushHistory(p.guildId, p.userId, { game: 'Blackjack Online Web', bet: p.bet, net: p.payoutResult - p.bet });
+    }
+  });
+}
+
+function tickBlackjackTable() {
+  try {
+    if (bjTable.status === 'betting') {
+      bjTable.betTimeLeft--;
+      if (bjTable.betTimeLeft <= 0) {
+        if (bjTable.players.length === 0) {
+          bjTable.status = 'waiting';
+        } else {
+          bjTable.status = 'dealing';
+          bjTable.deck = createDeck();
+          
+          bjTable.players.forEach(p => {
+            p.cards = [bjTable.deck.pop(), bjTable.deck.pop()];
+            p.score = calculateHandScore(p.cards);
+            if (p.score === 21) {
+              p.status = 'blackjack';
+            } else {
+              p.status = 'playing';
+            }
+          });
+
+          bjTable.dealerCards = [bjTable.deck.pop(), bjTable.deck.pop()];
+
+          let nextIdx = bjTable.players.findIndex(p => p.status === 'playing');
+          if (nextIdx === -1) {
+            bjTable.status = 'dealer_turn';
+            bjTable.turnTimeLeft = 0;
+          } else {
+            bjTable.status = 'players_turn';
+            bjTable.currentPlayerIndex = nextIdx;
+            bjTable.turnTimeLeft = 15;
+          }
+        }
+      }
+    } else if (bjTable.status === 'players_turn') {
+      bjTable.turnTimeLeft--;
+      if (bjTable.turnTimeLeft <= 0) {
+        const p = bjTable.players[bjTable.currentPlayerIndex];
+        if (p) {
+          p.status = 'stood';
+        }
+        advancePlayerTurn();
+      }
+    } else if (bjTable.status === 'dealer_turn') {
+      const score = calculateHandScore(bjTable.dealerCards);
+      if (score < 17) {
+        bjTable.dealerCards.push(bjTable.deck.pop());
+      } else {
+        bjTable.status = 'resolving';
+        bjTable.resolveTimeLeft = 10;
+        resolvePayouts();
+      }
+    } else if (bjTable.status === 'resolving') {
+      bjTable.resolveTimeLeft--;
+      if (bjTable.resolveTimeLeft <= 0) {
+        bjTable.players = [];
+        bjTable.dealerCards = [];
+        bjTable.status = 'waiting';
+      }
+    }
+  } catch (err) {
+    console.error('Erro no loop do Blackjack:', err);
+  }
+}
+
+setInterval(tickBlackjackTable, 1000);
+
+app.get('/api/blackjack/state', (req, res) => {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+  let visibleDealerCards = [...bjTable.dealerCards];
+  if (bjTable.status === 'players_turn' && visibleDealerCards.length > 0) {
+    visibleDealerCards[1] = { suit: '?', name: '?', val: 0 };
+  }
+
+  res.json({
+    players: bjTable.players.map(p => ({
+      userId: p.userId,
+      username: p.username,
+      avatar: p.avatar,
+      cards: p.cards,
+      bet: p.bet,
+      status: p.status,
+      score: p.score,
+      payoutResult: p.payoutResult,
+      resultText: p.resultText
+    })),
+    dealerCards: visibleDealerCards,
+    dealerScore: bjTable.status === 'players_turn' ? (visibleDealerCards[0] ? visibleDealerCards[0].val : 0) : calculateHandScore(bjTable.dealerCards),
+    status: bjTable.status,
+    currentPlayerIndex: bjTable.currentPlayerIndex,
+    turnTimeLeft: bjTable.turnTimeLeft,
+    betTimeLeft: bjTable.betTimeLeft,
+    resolveTimeLeft: bjTable.resolveTimeLeft,
+    currentPlayerUserId: bjTable.players[bjTable.currentPlayerIndex] ? bjTable.players[bjTable.currentPlayerIndex].userId : null
+  });
+});
+
+app.post('/api/blackjack/join', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { bet } = req.body;
+
+    if (isNaN(bet) || bet <= 0) {
+      return res.status(400).json({ error: 'Aposta inválida.' });
+    }
+
+    if (bjTable.status !== 'waiting' && bjTable.status !== 'betting') {
+      return res.status(400).json({ error: 'A mesa não está em fase de apostas.' });
+    }
+
+    if (bjTable.players.some(p => p.userId === userId)) {
+      return res.status(400).json({ error: 'Já estás sentado nesta mesa.' });
+    }
+
+    const u = db.getUser(guildId, userId);
+    if (u.balance < bet) {
+      return res.status(400).json({ error: 'Não tens moedas suficientes.' });
+    }
+
+    let username = u.username || 'Jogador';
+    let avatar = 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+      if (uObj) {
+        username = uObj.username;
+        avatar = uObj.avatarURL({ extension: 'png', size: 128 }) || `https://cdn.discordapp.com/embed/avatars/${parseInt(uObj.discriminator) % 5}.png`;
+      }
+    }
+
+    u.balance -= bet;
+    db.saveUser(guildId, userId, u);
+
+    bjTable.players.push({
+      userId,
+      guildId,
+      username,
+      avatar,
+      cards: [],
+      bet,
+      status: 'waiting',
+      score: 0
+    });
+
+    if (bjTable.status === 'waiting') {
+      bjTable.status = 'betting';
+      bjTable.betTimeLeft = 20;
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao entrar no blackjack:', err);
+    res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+app.post('/api/blackjack/hit', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { userId } = session;
+
+    if (bjTable.status !== 'players_turn') {
+      return res.status(400).json({ error: 'Não é a vez dos jogadores.' });
+    }
+
+    const currentPlayer = bjTable.players[bjTable.currentPlayerIndex];
+    if (!currentPlayer || currentPlayer.userId !== userId) {
+      return res.status(403).json({ error: 'Não é a tua vez de jogar.' });
+    }
+
+    const card = bjTable.deck.pop();
+    currentPlayer.cards.push(card);
+    currentPlayer.score = calculateHandScore(currentPlayer.cards);
+
+    if (currentPlayer.score > 21) {
+      currentPlayer.status = 'bust';
+      advancePlayerTurn();
+    } else if (currentPlayer.score === 21) {
+      currentPlayer.status = 'stood';
+      advancePlayerTurn();
+    } else {
+      bjTable.turnTimeLeft = 15;
+    }
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao pedir carta:', err);
+    res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+app.post('/api/blackjack/stand', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { userId } = session;
+
+    if (bjTable.status !== 'players_turn') {
+      return res.status(400).json({ error: 'Não é a vez dos jogadores.' });
+    }
+
+    const currentPlayer = bjTable.players[bjTable.currentPlayerIndex];
+    if (!currentPlayer || currentPlayer.userId !== userId) {
+      return res.status(403).json({ error: 'Não é a tua vez de jogar.' });
+    }
+
+    currentPlayer.status = 'stood';
+    advancePlayerTurn();
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao parar turno:', err);
+    res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
 app.use((req, res) => {
   res.status(404).json({ error: 'Rota não encontrada.' });
 });
