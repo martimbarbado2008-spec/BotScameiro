@@ -1,52 +1,39 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const db = require('../utils/database');
-const { baseEmbed, fmt, COLORS } = require('../utils/embeds');
-
-const DAY_MS = 24 * 60 * 60 * 1000;
+const webTokens = require('../utils/webTokens');
+const { baseEmbed, COLORS } = require('../utils/embeds');
 
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('diario')
-    .setDescription('Recolhe o teu bónus diário'),
+    .setDescription('Recebe o teu link para girares a Roda da Fortuna no site e ganhares prémios'),
 
   async execute(interaction) {
     const guildId = interaction.guildId;
     const userId = interaction.user.id;
-    const cfg = db.getGuildConfig(guildId);
-    const user = db.getUser(guildId, userId);
 
-    const now = Date.now();
-    const sinceLast = now - user.lastDaily;
-
-    if (sinceLast < DAY_MS) {
-      const remaining = DAY_MS - sinceLast;
-      const hours = Math.floor(remaining / (60 * 60 * 1000));
-      const mins = Math.floor((remaining % (60 * 60 * 1000)) / (60 * 1000));
-      return interaction.reply({ content: `Já recolheste hoje. Podes voltar daqui a ${hours}h ${mins}m.`, ephemeral: true });
+    const baseUrl = process.env.WEB_BASE_URL;
+    if (!baseUrl) {
+      return interaction.reply({ content: 'O servidor web ainda não está configurado (falta WEB_BASE_URL no .env). Avisa o dono do bot.', ephemeral: true });
     }
 
-    // mantém o streak se recolhido dentro de 48h, caso contrário reinicia
-    if (sinceLast <= 2 * DAY_MS) {
-      user.dailyStreak += 1;
-    } else {
-      user.dailyStreak = 1;
-    }
-    user.lastDaily = now;
+    // Cria token seguro de login para quem executa o comando
+    const token = webTokens.createToken(guildId, userId);
+    
+    // Redireciona diretamente para a roda.html
+    const redirect = '/roda.html';
+    const link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}&redirect=${encodeURIComponent(redirect)}`;
 
-    const streakBonus = Math.min(user.dailyStreak * 20, 500);
-    const total = cfg.dailyAmount + streakBonus;
-    user.balance += total;
-    db.saveUser(guildId, userId, user);
+    const embed = baseEmbed('🎡 Roda da Fortuna — Bónus Diário', COLORS.gold)
+      .setDescription('O bónus diário agora é ganho na nossa **Roda da Fortuna** online!\n\nClica no botão abaixo para abrires o site e girares a roleta. Podes ganhar:\n* 💰 **Moedas de Casino** (até 5000 🪙 + Bónus de Streak!)\n* ⚡ **XP de Nível**\n* 🧹 **Resets de Cooldowns** de Trabalho\n\n*Este link é pessoal e expira em 10 minutos.*');
 
-    const embed = baseEmbed('🎁 Bónus diário', COLORS.win)
-      .setDescription(`Recebeste ${fmt(total)}`)
-      .addFields(
-        { name: 'Base', value: fmt(cfg.dailyAmount), inline: true },
-        { name: 'Bónus de streak', value: fmt(streakBonus), inline: true },
-        { name: 'Streak atual', value: `${user.dailyStreak} dias`, inline: true },
-        { name: 'Novo saldo', value: fmt(user.balance), inline: true }
-      );
+    const row = new ActionRowBuilder().addComponents(
+      new ButtonBuilder()
+        .setLabel('Girar a Roda da Fortuna 🎡')
+        .setStyle(ButtonStyle.Link)
+        .setURL(link)
+    );
 
-    return interaction.reply({ embeds: [embed] });
+    return interaction.reply({ embeds: [embed], components: [row] });
   }
 };
