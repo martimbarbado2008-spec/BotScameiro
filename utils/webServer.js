@@ -825,6 +825,47 @@ app.post('/api/daily/claim', async (req, res) => {
 
     db.saveUser(guildId, userId, user);
 
+    // --- Enviar Embed para o canal de logs/alertas do Discord ---
+    if (discordClient && cfg.logChannelId) {
+      (async () => {
+        try {
+          const channel = await discordClient.channels.fetch(cfg.logChannelId).catch(() => null);
+          if (channel && typeof channel.send === 'function') {
+            let prizeString = '';
+            const fields = [
+              { name: 'Jogador', value: `<@${userId}>`, inline: true },
+              { name: 'Streak', value: `🔥 ${user.dailyStreak} dias`, inline: true }
+            ];
+
+            if (type === 'coins') {
+              prizeString = `💰 **+${rewardAmount + streakBonus} 🪙**\n*(Base: ${rewardAmount} | Streak: +${streakBonus})*`;
+              fields.push({ name: 'Novo Saldo', value: `${Math.round(user.balance).toLocaleString('pt-PT')} 🪙`, inline: true });
+            } else if (type === 'xp') {
+              prizeString = `⚡ **+150 XP**`;
+              fields.push({ name: 'Nível Atual', value: `Nível ${user.level}`, inline: true });
+            } else if (type === 'reset') {
+              prizeString = `🧹 **Reset de Cooldowns**\n*(Trabalho, Pesca e Hack)*`;
+            }
+
+            fields.unshift({ name: 'Prémio Ganho', value: prizeString, inline: true });
+
+            await channel.send({
+              embeds: [{
+                title: '🎡 Roda da Fortuna — Bónus Diário',
+                color: 0xfaca2b, // ouro
+                description: `🎉 <@${userId}> girou a roleta no site do casino!`,
+                fields,
+                timestamp: new Date().toISOString(),
+                footer: { text: 'Casino Arena — Roda da Fortuna' }
+              }]
+            });
+          }
+        } catch (dErr) {
+          console.error('Falha ao enviar log da roleta para o Discord:', dErr);
+        }
+      })();
+    }
+
     return res.json({
       success: true,
       sectorIndex,
