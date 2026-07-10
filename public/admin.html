@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Painel de Administração ⚙️ — Casino Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090e0c;
+      --panel-bg: rgba(13, 22, 18, 0.95);
+      --border-glow: rgba(87, 242, 135, 0.2);
+      --mint: #57f287;
+      --mint-glow: rgba(87, 242, 135, 0.4);
+      --gold: #faca2b;
+      --ruby: #ed4245;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --transition: all 0.2s ease;
+      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #0f2319 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 20px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 20px;
+    }
+
+    h1 {
+      font-size: 28px;
+      font-weight: 800;
+      color: #fff;
+    }
+
+    .logo-highlight {
+      color: var(--mint);
+      text-shadow: 0 0 10px var(--mint-glow);
+    }
+
+    .btn-back {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 14px;
+      transition: var(--transition);
+    }
+
+    .btn-back:hover {
+      background: rgba(255,255,255,0.1);
+      color: #fff;
+    }
+
+    .admin-grid {
+      display: grid;
+      grid-template-columns: 320px 1fr;
+      gap: 30px;
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255,255,255,0.03);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 10px;
+    }
+
+    /* User Selector */
+    .user-list {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-height: 500px;
+      overflow-y: auto;
+      padding-right: 5px;
+    }
+
+    .user-item {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.04);
+      padding: 12px;
+      border-radius: 10px;
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      transition: var(--transition);
+    }
+
+    .user-item:hover {
+      background: rgba(87, 242, 135, 0.05);
+      border-color: rgba(87, 242, 135, 0.2);
+    }
+
+    .user-item.active {
+      background: rgba(87, 242, 135, 0.1);
+      border-color: var(--mint);
+    }
+
+    .user-item .name {
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .user-item .details {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    /* Form Fields */
+    .form-group {
+      margin-bottom: 20px;
+    }
+
+    .form-label {
+      display: block;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      letter-spacing: 0.05em;
+    }
+
+    input[type="number"], select {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 10px;
+      padding: 12px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      font-family: inherit;
+      outline: none;
+      transition: var(--transition);
+    }
+
+    input[type="number"]:focus, select:focus {
+      border-color: var(--mint);
+      box-shadow: 0 0 10px rgba(87, 242, 135, 0.1);
+    }
+
+    .input-grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+    }
+
+    .btn-action {
+      background: var(--mint);
+      color: #050e08;
+      border: none;
+      padding: 14px 20px;
+      border-radius: 10px;
+      font-weight: 800;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .btn-action:hover:not(:disabled) {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px var(--mint-glow);
+    }
+
+    .btn-action:disabled {
+      background: #2b3a32;
+      color: #555;
+      cursor: not-allowed;
+    }
+
+    .btn-secondary {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: #fff;
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255,255,255,0.1);
+    }
+
+    .crypto-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+
+    /* Toast */
+    .toast {
+      position: fixed;
+      top: 20px;
+      right: 20px;
+      background: #0d1e16;
+      border: 1px solid var(--mint);
+      color: var(--text);
+      padding: 12px 24px;
+      border-radius: 8px;
+      box-shadow: var(--shadow);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transform: translateY(-50px);
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      font-weight: 600;
+    }
+
+    .toast.show {
+      transform: translateY(0);
+      opacity: 1;
+    }
+  </style>
+</head>
+<body>
+
+  <div id="toast" class="toast">
+    <span>⚙️</span>
+    <span id="toastMsg">Alteração guardada!</span>
+  </div>
+
+  <header>
+    <div>
+      <h1>Painel de <span class="logo-highlight">Administração</span> ⚙️</h1>
+      <p style="font-size:12px; color:var(--text-muted); margin-top:4px;">Ferramentas avançadas para gestão de membros e economia.</p>
+    </div>
+    <a href="/dashboard.html" class="btn-back">⬅ Painel do Jogador</a>
+  </header>
+
+  <div class="admin-grid">
+    <!-- Left Column: User list -->
+    <div class="panel">
+      <h2 class="panel-title">👥 Lista de Jogadores</h2>
+      <div class="user-list" id="usersList">
+        <p style="font-size:12px; color:var(--text-muted); text-align:center;">A carregar jogadores...</p>
+      </div>
+    </div>
+
+    <!-- Right Column: Edit panel -->
+    <div class="panel" id="editPanel" style="display: none;">
+      <h2 class="panel-title">✍️ Editar Perfil de: <span id="editUserTitle" style="color:var(--mint);">...</span></h2>
+
+      <div class="input-grid-2">
+        <div class="form-group">
+          <label class="form-label">💰 Moedas na Carteira</label>
+          <input type="number" id="fieldBalance" min="0">
+        </div>
+        <div class="form-group">
+          <label class="form-label">🏦 Moedas no Banco</label>
+          <input type="number" id="fieldBank" min="0">
+        </div>
+      </div>
+
+      <div class="input-grid-2">
+        <div class="form-group">
+          <label class="form-label">📊 Nível do Jogador</label>
+          <input type="number" id="fieldLevel" min="1">
+        </div>
+        <div class="form-group">
+          <label class="form-label">✨ Experiência (XP)</label>
+          <input type="number" id="fieldXp" min="0">
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">👑 Nível VIP do Casino</label>
+        <select id="fieldVip">
+          <option value="0">Sem VIP (Nível 0)</option>
+          <option value="1">VIP Bronze (Nível 1)</option>
+          <option value="2">VIP Prata (Nível 2)</option>
+          <option value="3">VIP Ouro (Nível 3)</option>
+          <option value="4">VIP Diamante (Nível 4)</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">📈 Holdings Crypto (Opções Binárias)</label>
+        <div class="crypto-grid">
+          <div>
+            <span style="font-size:10px; color:var(--text-muted); display:block; text-align:center; margin-bottom:4px;">BTC</span>
+            <input type="number" id="cryptoBTC" min="0" step="0.0001">
+          </div>
+          <div>
+            <span style="font-size:10px; color:var(--text-muted); display:block; text-align:center; margin-bottom:4px;">ETH</span>
+            <input type="number" id="cryptoETH" min="0" step="0.0001">
+          </div>
+          <div>
+            <span style="font-size:10px; color:var(--text-muted); display:block; text-align:center; margin-bottom:4px;">SOL</span>
+            <input type="number" id="cryptoSOL" min="0" step="0.1">
+          </div>
+          <div>
+            <span style="font-size:10px; color:var(--text-muted); display:block; text-align:center; margin-bottom:4px;">DOGE</span>
+            <input type="number" id="cryptoDOGE" min="0">
+          </div>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:30px;">
+        <button class="btn-action btn-secondary" onclick="clearCooldowns()">⚡ Limpar Cooldowns</button>
+        <button class="btn-action" onclick="saveUser()">Guardar Alterações 💾</button>
+      </div>
+    </div>
+
+    <!-- Empty edit selection state -->
+    <div class="panel" id="emptyPanel" style="display: flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:60px 20px;">
+      <span style="font-size:48px; margin-bottom:15px;">👥</span>
+      <h3>Nenhum Jogador Selecionado</h3>
+      <p style="font-size:13px; color:var(--text-muted); margin-top:8px;">Seleciona um membro na lista da esquerda para editar os seus saldos, VIP e cooldowns.</p>
+    </div>
+  </div>
+
+  <script>
+    let users = [];
+    let selectedUserId = null;
+
+    async function loadUsers() {
+      try {
+        const res = await fetch('/api/admin/users');
+        if (!res.ok) {
+          throw new Error("Não autorizado");
+        }
+        users = await res.json();
+        renderUsersList();
+      } catch (err) {
+        alert("Acesso negado. Apenas administradores do servidor podem ver esta página.");
+        window.location.href = "/dashboard.html";
+      }
+    }
+
+    function renderUsersList() {
+      const container = document.getElementById('usersList');
+      container.innerHTML = '';
+
+      if (users.length === 0) {
+        container.innerHTML = '<p style="font-size:12px; color:var(--text-muted); text-align:center;">Nenhum jogador registado.</p>';
+        return;
+      }
+
+      users.forEach(u => {
+        const div = document.createElement('div');
+        div.className = `user-item ${u.userId === selectedUserId ? 'active' : ''}`;
+        div.onclick = () => selectUser(u.userId);
+
+        div.innerHTML = `
+          <span class="name">${u.username}</span>
+          <span class="details">Carteira: ${Math.round(u.balance).toLocaleString('pt-PT')} 🪙 | VIP: ${u.vipLevel}</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    function selectUser(userId) {
+      selectedUserId = userId;
+      renderUsersList();
+
+      const user = users.find(u => u.userId === userId);
+      if (!user) return;
+
+      document.getElementById('emptyPanel').style.display = 'none';
+      document.getElementById('editPanel').style.display = 'block';
+
+      document.getElementById('editUserTitle').textContent = user.username;
+      document.getElementById('fieldBalance').value = Math.round(user.balance);
+      document.getElementById('fieldBank').value = Math.round(user.bank);
+      document.getElementById('fieldLevel').value = user.level || 1;
+      document.getElementById('fieldXp').value = user.xp || 0;
+      document.getElementById('fieldVip').value = user.vipLevel || 0;
+
+      const crypto = user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 };
+      document.getElementById('cryptoBTC').value = crypto.BTC || 0;
+      document.getElementById('cryptoETH').value = crypto.ETH || 0;
+      document.getElementById('cryptoSOL').value = crypto.SOL || 0;
+      document.getElementById('cryptoDOGE').value = crypto.DOGE || 0;
+    }
+
+    function showToast(msg) {
+      const toast = document.getElementById('toast');
+      document.getElementById('toastMsg').textContent = msg;
+      toast.classList.add('show');
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    async function saveUser() {
+      if (!selectedUserId) return;
+
+      const balance = parseFloat(document.getElementById('fieldBalance').value);
+      const bank = parseFloat(document.getElementById('fieldBank').value);
+      const level = parseInt(document.getElementById('fieldLevel').value);
+      const xp = parseInt(document.getElementById('fieldXp').value);
+      const vipLevel = parseInt(document.getElementById('fieldVip').value);
+
+      const crypto = {
+        BTC: parseFloat(document.getElementById('cryptoBTC').value) || 0,
+        ETH: parseFloat(document.getElementById('cryptoETH').value) || 0,
+        SOL: parseFloat(document.getElementById('cryptoSOL').value) || 0,
+        DOGE: parseFloat(document.getElementById('cryptoDOGE').value) || 0
+      };
+
+      try {
+        const res = await fetch('/api/admin/user/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            targetUserId: selectedUserId,
+            balance,
+            bank,
+            level,
+            xp,
+            vipLevel,
+            crypto
+          })
+        });
+
+        if (!res.ok) throw new Error();
+
+        showToast("Perfil atualizado com sucesso! 💾");
+        
+        // Recarregar lista
+        await loadUsers();
+        selectUser(selectedUserId);
+      } catch (err) {
+        alert("Erro ao salvar alterações do utilizador.");
+      }
+    }
+
+    async function clearCooldowns() {
+      if (!selectedUserId || !confirm("Tens a certeza que queres limpar todos os cooldowns (trabalho, pesca, hack e daily) deste utilizador?")) return;
+
+      try {
+        const res = await fetch('/api/admin/user/clear-cooldowns', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetUserId: selectedUserId })
+        });
+
+        if (!res.ok) throw new Error();
+
+        showToast("Todos os cooldowns foram zerados! ⚡");
+      } catch (err) {
+        alert("Erro ao limpar cooldowns.");
+      }
+    }
+
+    loadUsers();
+  </script>
+  <script src="/music.js"></script>
+</body>
+</html>

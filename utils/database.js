@@ -471,5 +471,6 @@ module.exports = {
   getTournamentLeaderboard, endTournament, getAllGuildIdsWithTournamentSupport, saveTournament,
   getLottery, saveLottery, buyLotteryTickets, drawLottery,
   getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild,
-  getFootballMatches, saveFootballMatches, getFootballBets, saveFootballBets
+  getFootballMatches, saveFootballMatches, getFootballBets, saveFootballBets,
+  getUsersData: () => users
 };

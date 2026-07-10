@@ -560,7 +560,7 @@
         </div>
         <div class="profile-info">
           <h1 id="userTag">...</h1>
-          <p>Nível <span id="userLevel">0</span> | VIP: <span id="userVip" style="color:var(--gold); font-weight:700;">Nenhum</span></p>
+          <p>Nível <span id="userLevel">0</span> | VIP: <span id="userVip" style="color:var(--gold); font-weight:700;">Nenhum</span> <a href="/admin.html" id="adminLink" style="display:none; margin-left: 10px; background: rgba(87, 242, 135, 0.1); border: 1px solid var(--mint); color: var(--mint); padding: 2px 6px; border-radius: 6px; font-size: 10px; font-weight: 800; text-decoration: none;">⚙️ Painel Admin</a></p>
           <div class="xp-bar-container">
             <div class="xp-labels">
               <span>XP: <span id="userXp">0</span>/<span id="xpNeeded">0</span></span>
@@ -777,6 +777,12 @@
       
       const VIP_NAMES = { 0: 'Nenhum', 1: 'Bronze', 2: 'Prata', 3: 'Ouro' };
       document.getElementById('userVip').textContent = VIP_NAMES[appData.vipLevel || 0];
+
+      if (appData.isAdmin) {
+        document.getElementById('adminLink').style.display = 'inline-block';
+      } else {
+        document.getElementById('adminLink').style.display = 'none';
+      }
 
       const xpPercent = Math.min(100, (appData.xp / appData.xpNeeded) * 100);
       document.getElementById('xpFill').style.width = xpPercent + '%';
@@ -1099,5 +1105,6 @@
 
     loadDashboard();
   </script>
+  <script src="/music.js"></script>
 </body>
 </html>

@@ -645,11 +645,21 @@ app.get('/api/dashboard/data', async (req, res) => {
 
     let username = 'Utilizador';
     let avatar = null;
+    let isAdmin = false;
+
     if (discordClient) {
       const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
       if (uObj) {
         username = uObj.username;
         avatar = uObj.displayAvatarURL({ size: 128 }) || uObj.defaultAvatarURL;
+      }
+
+      const guild = discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch(() => null);
+      if (guild) {
+        const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+        if (member && member.permissions.has('Administrator')) {
+          isAdmin = true;
+        }
       }
     }
 
@@ -693,6 +703,7 @@ app.get('/api/dashboard/data', async (req, res) => {
       userId,
       username,
       avatar,
+      isAdmin,
       balance: user.balance,
       bank: user.bank,
       level: user.level,
@@ -1197,6 +1208,134 @@ app.post('/api/trabalho/completar', (req, res) => {
   } catch (err) {
     console.error('Erro em /api/trabalho/completar:', err);
     return res.status(500).json({ error: 'Erro no servidor ao guardar o resultado. Tenta de novo.' });
+  }
+});
+
+// =========================================================================
+// ⚙️ ENDPOINTS DE ADMINISTRAÇÃO SECURE (ADMINISTRATOR PERMISSION ONLY)
+// =========================================================================
+
+async function checkAdmin(req, res, next) {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Não autorizado. Faz login primeiro.' });
+
+  const { guildId, userId } = session;
+  if (!discordClient) return res.status(500).json({ error: 'Cliente Discord offline.' });
+
+  try {
+    const guild = discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch(() => null);
+    if (!guild) return res.status(404).json({ error: 'Servidor Guilda não encontrado.' });
+
+    const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+    if (!member || !member.permissions.has('Administrator')) {
+      return res.status(403).json({ error: 'Acesso negado. Apenas administradores do servidor podem realizar esta ação.' });
+    }
+    next();
+  } catch (err) {
+    console.error('Erro na verificação de administrador:', err);
+    return res.status(500).json({ error: 'Erro de verificação.' });
+  }
+}
+
+app.get('/api/admin/users', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const usersData = db.getUsersData ? db.getUsersData() : require('./database').getUsersData?.() || {};
+
+    const guildKeys = Object.keys(usersData).filter(k => k.startsWith(`${guildId}:`));
+
+    const list = await Promise.all(
+      guildKeys.map(async k => {
+        const parts = k.split(':');
+        const uId = parts[1];
+        const uData = usersData[k];
+
+        let uName = `Jogador ${uId}`;
+        if (discordClient) {
+          const uObj = discordClient.users.cache.get(uId) || await discordClient.users.fetch(uId).catch(() => null);
+          if (uObj) uName = uObj.username;
+        }
+
+        return {
+          userId: uId,
+          username: uName,
+          balance: uData.balance,
+          bank: uData.bank,
+          vipLevel: uData.vipLevel || 0,
+          level: uData.level || 1,
+          xp: uData.xp || 0,
+          crypto: uData.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
+          lastDaily: uData.lastDaily || 0
+        };
+      })
+    );
+
+    return res.json(list);
+  } catch (err) {
+    console.error('Erro em /api/admin/users:', err);
+    res.status(500).json({ error: 'Erro ao carregar utilizadores.' });
+  }
+});
+
+app.post('/api/admin/user/update', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const { targetUserId, balance, bank, level, xp, vipLevel, crypto } = req.body;
+
+    if (!targetUserId) return res.status(400).json({ error: 'targetUserId em falta.' });
+
+    const usersData = db.getUsersData ? db.getUsersData() : require('./database').getUsersData?.() || {};
+    const uKey = `${guildId}:${targetUserId}`;
+    
+    if (!usersData[uKey]) {
+      return res.status(404).json({ error: 'Jogador não encontrado na base de dados.' });
+    }
+
+    const uData = usersData[uKey];
+
+    if (typeof balance === 'number') uData.balance = balance;
+    if (typeof bank === 'number') uData.bank = bank;
+    if (typeof level === 'number') uData.level = level;
+    if (typeof xp === 'number') uData.xp = xp;
+    if (typeof vipLevel === 'number') uData.vipLevel = vipLevel;
+    if (crypto && typeof crypto === 'object') {
+      uData.crypto = { ...uData.crypto, ...crypto };
+    }
+
+    db.saveUser(guildId, targetUserId, uData);
+    return res.json({ success: true, user: uData });
+  } catch (err) {
+    console.error('Erro em /api/admin/user/update:', err);
+    res.status(500).json({ error: 'Erro ao atualizar utilizador.' });
+  }
+});
+
+app.post('/api/admin/user/clear-cooldowns', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const { targetUserId } = req.body;
+
+    if (!targetUserId) return res.status(400).json({ error: 'targetUserId em falta.' });
+
+    const usersData = db.getUsersData ? db.getUsersData() : require('./database').getUsersData?.() || {};
+    const uKey = `${guildId}:${targetUserId}`;
+
+    if (!usersData[uKey]) {
+      return res.status(404).json({ error: 'Jogador não encontrado.' });
+    }
+
+    const uData = usersData[uKey];
+    uData.cooldowns = {};
+    uData.lastDaily = 0;
+
+    db.saveUser(guildId, targetUserId, uData);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Erro em /api/admin/user/clear-cooldowns:', err);
+    res.status(500).json({ error: 'Erro ao limpar cooldowns.' });
   }
 });
  
