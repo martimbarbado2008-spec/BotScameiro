@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Manual do Jogador — Casino Bot Guide</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #060e0a 0%, #0d1e16 50%, #030705 100%);
+      --panel-bg: rgba(18, 38, 29, 0.45);
+      --border-glow: rgba(250, 202, 43, 0.2);
+      --gold: #FACA2B;
+      --gold-dark: #b08915;
+      --mint: #57F287;
+      --ruby: #ED4245;
+      --glass: rgba(255, 255, 255, 0.03);
+      --text: #E5F3EB;
+      --text-muted: #8EAD9E;
+      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 40px 16px 80px;
+      overflow-x: hidden;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+    ::-webkit-scrollbar-thumb { background: var(--panel-bg); border-radius: 4px; border: 1px solid var(--border-glow); }
+
+    .container {
+      width: 100%;
+      max-width: 1000px;
+    }
+
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+      position: relative;
+    }
+
+    .eyebrow {
+      display: inline-block;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-glow);
+      color: var(--gold);
+      font-weight: 700;
+      font-size: 11px;
+      letter-spacing: .12em;
+      text-transform: uppercase;
+      padding: 6px 16px;
+      border-radius: 99px;
+      margin-bottom: 16px;
+      box-shadow: 0 0 15px rgba(250, 202, 43, 0.1);
+    }
+
+    h1 {
+      font-size: 36px;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      margin-bottom: 12px;
+      background: linear-gradient(90deg, #fff, var(--text-muted));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    header p {
+      font-size: 15px;
+      color: var(--text-muted);
+      max-width: 500px;
+      margin: 0 auto;
+      line-height: 1.5;
+    }
+
+    /* Controls: Search and Filters */
+    .controls-wrapper {
+      background: var(--panel-bg);
+      border: 1px solid rgba(250, 202, 43, 0.08);
+      border-radius: 20px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      margin-bottom: 30px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .search-box {
+      position: relative;
+      width: 100%;
+    }
+
+    .search-box input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 14px 16px 14px 44px;
+      color: var(--text);
+      font-size: 16px;
+      font-family: inherit;
+      transition: var(--transition);
+    }
+
+    .search-box input:focus {
+      outline: none;
+      border-color: var(--gold);
+      box-shadow: 0 0 15px rgba(250, 202, 43, 0.15);
+      background: rgba(0, 0, 0, 0.4);
+    }
+
+    .search-box::before {
+      content: '🔍';
+      position: absolute;
+      left: 16px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 16px;
+      opacity: 0.6;
+    }
+
+    .filters {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .btn-filter {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: var(--text-muted);
+      padding: 10px 18px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      cursor: pointer;
+      transition: var(--transition);
+      user-select: none;
+    }
+
+    .btn-filter:hover {
+      background: rgba(255,255,255,0.06);
+      color: var(--text);
+      border-color: rgba(255,255,255,0.12);
+    }
+
+    .btn-filter.active {
+      background: linear-gradient(135deg, var(--gold), var(--gold-dark));
+      color: #0c1410;
+      border-color: var(--gold);
+      box-shadow: 0 4px 12px rgba(250, 202, 43, 0.2);
+    }
+
+    /* Command Grid */
+    .command-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 16px;
+    }
+
+    .command-card {
+      background: var(--panel-bg);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 16px;
+      padding: 24px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      transition: var(--transition);
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .command-card:hover {
+      transform: translateY(-2px);
+      border-color: var(--border-glow);
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45), 0 0 10px rgba(250, 202, 43, 0.05);
+    }
+
+    .command-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .command-name {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--mint);
+      letter-spacing: -0.01em;
+    }
+
+    .badge-category {
+      background: rgba(255, 255, 255, 0.04);
+      color: var(--text-muted);
+      font-size: 10px;
+      text-transform: uppercase;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      padding: 4px 10px;
+      border-radius: 6px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .badge-category.admin {
+      background: rgba(237, 66, 69, 0.08);
+      color: var(--ruby);
+      border-color: rgba(237, 66, 69, 0.2);
+    }
+
+    .command-description {
+      font-size: 14px;
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    .command-params {
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 8px;
+      padding: 12px;
+      border: 1px solid rgba(255, 255, 255, 0.02);
+    }
+
+    .params-title {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      letter-spacing: 0.05em;
+    }
+
+    .param-item {
+      font-size: 13px;
+      line-height: 1.4;
+      margin-bottom: 4px;
+    }
+
+    .param-item:last-child { margin-bottom: 0; }
+    .param-name {
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--gold);
+      font-weight: 600;
+    }
+
+    .command-example {
+      font-size: 13px;
+      font-family: 'Share Tech Mono', monospace;
+      color: #9cbca8;
+      background: rgba(0,0,0,0.3);
+      padding: 8px 12px;
+      border-radius: 6px;
+      border-left: 3px solid var(--gold);
+    }
+
+    .command-note {
+      font-size: 12px;
+      color: var(--text-muted);
+      font-style: italic;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .command-note::before {
+      content: '💡';
+    }
+
+    /* Footer */
+    footer {
+      text-align: center;
+      margin-top: 50px;
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.03em;
+    }
+
+    .btn-back-dash {
+      display: inline-block;
+      margin-bottom: 24px;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--text);
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      transition: var(--transition);
+    }
+
+    .btn-back-dash:hover {
+      background: var(--panel-bg);
+      border-color: var(--border-glow);
+      transform: translateY(-1px);
+    }
+
+    /* Empty state */
+    .empty-state {
+      display: none;
+      text-align: center;
+      padding: 40px;
+      background: var(--panel-bg);
+      border-radius: 16px;
+      border: 1px dashed rgba(255, 255, 255, 0.06);
+    }
+
+    .empty-state h3 { font-size: 18px; margin-bottom: 6px; color: var(--text); }
+    .empty-state p { font-size: 14px; color: var(--text-muted); }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <a href="/dashboard.html" class="btn-back-dash">⬅ Voltar ao Painel</a>
+      <div>
+        <span class="eyebrow">Manual do Utilizador</span>
+      </div>
+      <h1>Comandos do Casino Bot</h1>
+      <p>Explora a lista completa de comandos disponíveis no bot de Discord. Usa a pesquisa para encontrar o que precisas.</p>
+    </header>
+
+    <div class="controls-wrapper">
+      <div class="search-box">
+        <input type="text" id="searchInput" placeholder="Pesquisar comando (ex: slots, banco, config)..." oninput="filterCommands()">
+      </div>
+      <div class="filters">
+        <button class="btn-filter active" onclick="setCategory('all', this)">Tudo</button>
+        <button class="btn-filter" onclick="setCategory('jogos', this)">🎮 Jogos</button>
+        <button class="btn-filter" onclick="setCategory('economia', this)">💰 Economia</button>
+        <button class="btn-filter" onclick="setCategory('progressao', this)">📈 Progressão</button>
+        <button class="btn-filter" onclick="setCategory('torneios', this)">🏆 Torneios</button>
+        <button class="btn-filter" onclick="setCategory('admin', this)">🛠️ Administração</button>
+      </div>
+    </div>
+
+    <div class="command-grid" id="commandGrid">
+      <!-- Os comandos serão injetados aqui via JS para facilidade de manutenção e filtro avançado -->
+    </div>
+
+    <div class="empty-state" id="emptyState">
+      <h3>Nenhum comando encontrado</h3>
+      <p>Tenta pesquisar por termos diferentes ou limpa a pesquisa.</p>
+    </div>
+
+    <footer>
+      Casino Bot &copy; 2026. Feito com ❤️ para o teu servidor de Discord.
+    </footer>
+  </div>
+
+  <script>
+    const COMMANDS = [
+      // CATEGORIA: JOGOS
+      {
+        name: '/slots',
+        category: 'jogos',
+        desc: 'Desafia a clássica slot machine do casino com símbolos dinâmicos.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' }
+        ],
+        example: '/slots aposta: 100',
+        note: 'Se alinhares 3 símbolos iguais, multiplicas a tua aposta. Utilizadores VIP têm pagamentos bónus.'
+      },
+      {
+        name: '/blackjack',
+        category: 'jogos',
+        desc: 'Joga blackjack clássico 21 contra a inteligência do bot com interface interativa.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' }
+        ],
+        example: '/blackjack aposta: 200',
+        note: 'Usa os botões interativos para pedir carta (Hit), parar (Stand) ou duplicar (Double Down).'
+      },
+      {
+        name: '/blackjack-mesa',
+        category: 'jogos',
+        desc: 'Inicia ou junta-te a uma mesa de blackjack multijogador onde os jogadores jogam em turnos contra o dealer.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' }
+        ],
+        example: '/blackjack-mesa aposta: 500',
+        note: 'Outros membros do servidor têm 30 segundos para se juntarem antes de a ronda começar.'
+      },
+      {
+        name: '/roleta',
+        category: 'jogos',
+        desc: 'Aposta na roleta europeia de 37 números com diversas opções de apostas.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' },
+          { name: 'opcao', desc: 'Onde apostar (vermelho, preto, par, impar, numero).' },
+          { name: 'numero', desc: 'Opcional. O número exato (0-36) se escolheste a opção "numero".' }
+        ],
+        example: '/roleta aposta: 150 opcao: vermelho',
+        note: 'Acertar no número exato paga 35 vezes o valor apostado!'
+      },
+      {
+        name: '/dados',
+        category: 'jogos',
+        desc: 'Lança dois dados e aposta no resultado geral da soma.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' },
+          { name: 'opcao', desc: 'Aposta em par, impar ou numero exato.' },
+          { name: 'total', desc: 'Opcional. A soma exata (2-12) se escolheste a opção "numero".' }
+        ],
+        example: '/dados aposta: 100 opcao: par',
+        note: 'Apostar na soma exata oferece multiplicadores mais altos proporcionalmente à dificuldade (ex: 2 e 12 pagam mais).'
+      },
+      {
+        name: '/poker',
+        category: 'jogos',
+        desc: 'Joga Poker clássico (5 Card Draw) contra o bot, com descarte e troca de até 3 cartas.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' }
+        ],
+        example: '/poker aposta: 300',
+        note: 'Podes selecionar quais as cartas que pretendes descartar através dos botões no Discord antes do showdown.'
+      },
+      {
+        name: '/coinflip',
+        category: 'jogos',
+        desc: 'Tenta a tua sorte lançando uma moeda ao ar contra a casa.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' },
+          { name: 'opcao', desc: 'Escolhe entre cara ou coroa.' }
+        ],
+        example: '/coinflip aposta: 50 opcao: cara',
+        note: 'A vitória duplica o valor apostado (taxado ligeiramente pela taxa do casino).'
+      },
+      {
+        name: '/higherlower',
+        category: 'jogos',
+        desc: 'Joga ao Maior ou Menor. Adivinha se a próxima carta do baralho é superior ou inferior à atual.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas para iniciar o jogo.' }
+        ],
+        example: '/higherlower aposta: 100',
+        note: 'A cada acerto o multiplicador sobe. Podes retirar os teus ganhos a qualquer momento!'
+      },
+      {
+        name: '/mines',
+        category: 'jogos',
+        desc: 'Campo Minado interativo do casino. Revela gemas ocultas e evita explodir nas minas.',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' },
+          { name: 'minas', desc: 'Número de minas no tabuleiro (1-24). Quanto mais minas, maior o risco e o prémio.' }
+        ],
+        example: '/mines aposta: 200 minas: 3',
+        note: 'Clica nos botões para revelar. Levanta o prémio acumulado antes de pisares uma mina.'
+      },
+      {
+        name: '/crash',
+        category: 'jogos',
+        desc: 'Vê o multiplicador do foguetão subir em tempo real. Retira a aposta antes que exploda!',
+        params: [
+          { name: 'aposta', desc: 'Quantidade de moedas a apostar.' }
+        ],
+        example: '/crash aposta: 150',
+        note: 'Clica no botão "Cashout" antes que o crash aconteça. O multiplicador pode subir infinitamente, mas pode explodir em 1.00x!'
+      },
+      {
+        name: '/lotaria comprar',
+        category: 'jogos',
+        desc: 'Adquire bilhetes para o sorteio semanal do jackpot acumulado do casino.',
+        params: [
+          { name: 'quantidade', desc: 'Número de bilhetes a comprar.' }
+        ],
+        example: '/lotaria comprar quantidade: 5',
+        note: 'O preço de cada bilhete é definido pela administração do casino e o prémio cresce com cada compra.'
+      },
+      {
+        name: '/lotaria info',
+        category: 'jogos',
+        desc: 'Consulta as estatísticas do sorteio atual da lotaria.',
+        params: [],
+        example: '/lotaria info',
+        note: 'Mostra o valor acumulado no jackpot, o tempo restante para o sorteio e quantos bilhetes possuis.'
+      },
+
+      // CATEGORIA: ECONOMIA
+      {
+        name: '/saldo',
+        category: 'economia',
+        desc: 'Verifica o saldo total atual de moedas (carteira + banco).',
+        params: [
+          { name: 'utilizador', desc: 'Opcional. Vê o saldo de outro membro do servidor.' }
+        ],
+        example: '/saldo utilizador: @JogadorForte',
+        note: 'Se omitires o parâmetro utilizador, verás as tuas próprias finanças.'
+      },
+      {
+        name: '/diario',
+        category: 'economia',
+        desc: 'Resgata a tua recompensa de moedas diária.',
+        params: [],
+        example: '/diario',
+        note: 'Resgatar consecutivamente aumenta a tua Streak diária, atribuindo multiplicadores de bónus.'
+      },
+      {
+        name: '/trabalhar',
+        category: 'economia',
+        desc: 'Ganha moedas limpando a casa num jogo interativo no site do bot.',
+        params: [],
+        example: '/trabalhar',
+        note: 'O bot envia-te um link pessoal exclusivo para o jogo. Quanto mais limpares, mais moedas ganhas!'
+      },
+      {
+        name: '/pescar',
+        category: 'economia',
+        desc: 'Pesca peixes raros e ganha moedas num teste de reflexos dinâmico no site.',
+        params: [],
+        example: '/pescar',
+        note: 'Puxa o anzol quando o peixe estiver na zona verde. Podes pescar até 3 peixes por sessão.'
+      },
+      {
+        name: '/hackear',
+        category: 'economia',
+        desc: 'Ganha grandes somas invadindo o banco do casino ao replicar as sequências de luzes e sons no site.',
+        params: [],
+        example: '/hackear',
+        note: 'Tens de replicar com sucesso até 5 níveis de sequências (estilo Simon Says). Errar uma única vez ativa o alarme!'
+      },
+      {
+        name: '/banco depositar',
+        category: 'economia',
+        desc: 'Guarda as moedas da tua carteira no banco do casino.',
+        params: [
+          { name: 'valor', desc: 'Moedas a depositar (ou digita "tudo").' }
+        ],
+        example: '/banco depositar valor: 5000',
+        note: 'O dinheiro guardado no banco acumula juros periodicamente e fica protegido de assaltos com o comando /roubar.'
+      },
+      {
+        name: '/banco levantar',
+        category: 'economia',
+        desc: 'Levanta moedas guardadas na tua conta bancária para a carteira.',
+        params: [
+          { name: 'valor', desc: 'Moedas a levantar (ou digita "tudo").' }
+        ],
+        example: '/banco levantar valor: 1500',
+        note: 'Apenas dinheiro na carteira pode ser usado para apostar nos jogos.'
+      },
+      {
+        name: '/emprestimo pedir',
+        category: 'economia',
+        desc: 'Pede um empréstimo de moedas ao casino caso estejas com saldo em baixo.',
+        params: [
+          { name: 'valor', desc: 'Quantidade de moedas solicitada.' }
+        ],
+        example: '/emprestimo pedir valor: 2000',
+        note: 'Deves pagar o empréstimo antes da data limite para evitar juros adicionais e o bloqueio de certas funções.'
+      },
+      {
+        name: '/emprestimo pagar',
+        category: 'economia',
+        desc: 'Efetua o pagamento do teu empréstimo ativo no casino.',
+        params: [
+          { name: 'valor', desc: 'Quantidade de moedas a abater na dívida (ou "tudo").' }
+        ],
+        example: '/emprestimo pagar valor: tudo',
+        note: 'Se o teu saldo na carteira for suficiente, podes pagar tudo de uma vez para te livrares dos juros.'
+      },
+      {
+        name: '/emprestimo estado',
+        category: 'economia',
+        desc: 'Verifica o estado do teu empréstimo atual.',
+        params: [],
+        example: '/emprestimo estado',
+        note: 'Mostra o valor total em dívida, a taxa de juros aplicada e a data limite de reembolso.'
+      },
+      {
+        name: '/roubar',
+        category: 'economia',
+        desc: 'Tenta assaltar a carteira de outro utilizador do servidor.',
+        params: [
+          { name: 'utilizador', desc: 'Membro que pretendes assaltar.' }
+        ],
+        example: '/roubar utilizador: @JogadorRico',
+        note: 'Tens uma probabilidade de falhar. Se fores apanhado, pagarás uma multa pesada baseada no teu nível e saldo.'
+      },
+      {
+        name: '/leaderboard',
+        category: 'economia',
+        desc: 'Exibe a tabela classificativa dos membros com maior riqueza acumulada no servidor.',
+        params: [],
+        example: '/leaderboard',
+        note: 'Calcula a soma do dinheiro na carteira e no banco dos jogadores mais ricos.'
+      },
+      {
+        name: '/loja',
+        category: 'economia',
+        desc: 'Abre o menu interativo da loja do casino.',
+        params: [],
+        example: '/loja',
+        note: 'Permite comprar cargos VIP, badges especiais e multiplicadores com moedas do jogo.'
+      },
+      {
+        name: '/apostar',
+        category: 'economia',
+        desc: 'Desafia um amigo para um jogo de Coinflip 1v1 direto onde o vencedor leva tudo.',
+        params: [
+          { name: 'oponente', desc: 'O membro que queres desafiar.' },
+          { name: 'valor', desc: 'A aposta que ambos os jogadores devem cobrir.' }
+        ],
+        example: '/apostar oponente: @Amigo valor: 1000',
+        note: 'O oponente deve clicar em aceitar no chat para a moeda ser lançada.'
+      },
+      {
+        name: '/duelo',
+        category: 'economia',
+        desc: 'Desafia outro jogador para uma partida de Pedra, Papel ou Tesoura ao melhor de 3 rondas.',
+        params: [
+          { name: 'oponente', desc: 'O utilizador a desafiar.' },
+          { name: 'valor', desc: 'A aposta que será disputada.' }
+        ],
+        example: '/duelo oponente: @Inimigo valor: 500',
+        note: 'Os movimentos são selecionados em botões privados no Discord (ephemerals) para evitar batota.'
+      },
+      {
+        name: '/transferir',
+        category: 'economia',
+        desc: 'Transfere moedas de forma segura da tua carteira para outro utilizador.',
+        params: [
+          { name: 'jogador', desc: 'O membro do Discord que irá receber.' },
+          { name: 'valor', desc: 'Quantidade de moedas a transferir.' }
+        ],
+        example: '/transferir jogador: @Novato valor: 250',
+        note: 'Esta transação é taxada ligeiramente pela casa dependendo da configuração do servidor.'
+      },
+
+      // CATEGORIA: PROGRESSÃO
+      {
+        name: '/perfil',
+        category: 'progressao',
+        desc: 'Mostra o teu cartão de perfil completo ou o de outro membro.',
+        params: [
+          { name: 'utilizador', desc: 'Opcional. Utilizador a consultar.' }
+        ],
+        example: '/perfil utilizador: @Player1',
+        note: 'Mostra o teu Nível, XP acumulado, VIP ativo, badges, vitórias, derrotas e volume total apostado.'
+      },
+      {
+        name: '/conquistas',
+        category: 'progressao',
+        desc: 'Exibe a lista de conquistas especiais disponíveis no bot.',
+        params: [
+          { name: 'utilizador', desc: 'Opcional. Utilizador a consultar.' }
+        ],
+        example: '/conquistas',
+        note: 'As conquistas desbloqueadas ficam em destaque. Cada conquista ganha pode dar bónus de XP ou moedas.'
+      },
+      {
+        name: '/historico',
+        category: 'progressao',
+        desc: 'Mostra as últimas 10 jogadas e transações de um jogador.',
+        params: [
+          { name: 'utilizador', desc: 'Opcional. Utilizador a consultar.' }
+        ],
+        example: '/historico',
+        note: 'Regista vitórias em slots, blackjack, perdas, compras na loja ou transferências efetuadas.'
+      },
+
+      // CATEGORIA: TORNEIOS
+      {
+        name: '/torneio',
+        category: 'torneios',
+        desc: 'Consulta o estado e o ranking de jogadores do torneio ativo no servidor.',
+        params: [],
+        example: '/torneio',
+        note: 'Mostra o prémio em jogo, o critério de vitória (ex: mais volume apostado) e o tempo que resta.'
+      },
+
+      // CATEGORIA: ADMIN (ADMINISTRAÇÃO)
+      {
+        name: '/casino-config ver',
+        category: 'admin',
+        desc: 'Exibe a configuração económica e de regras ativa no bot para o servidor atual.',
+        params: [],
+        example: '/casino-config ver',
+        note: 'Requer permissão de Gerir Servidor ou Administrador.',
+        admin: true
+      },
+      {
+        name: '/casino-config definir',
+        category: 'admin',
+        desc: 'Modifica um parâmetro de configuração do bot para o servidor.',
+        params: [
+          { name: 'campo', desc: 'O parâmetro a alterar (ex: apostaMin, apostaMax, jurosEmprestimo, probRoubo).' },
+          { name: 'valor', desc: 'O novo valor numérico a definir.' }
+        ],
+        example: '/casino-config definir campo: apostaMin valor: 10',
+        note: 'As alterações são guardadas na nuvem instantaneamente.',
+        admin: true
+      },
+      {
+        name: '/casino-config canal-logs',
+        category: 'admin',
+        desc: 'Configura o canal de texto do Discord onde o bot irá escrever os logs de casino.',
+        params: [
+          { name: 'canal', desc: 'O canal de texto pretendido.' }
+        ],
+        example: '/casino-config canal-logs canal: #logs-casino',
+        note: 'Importante para monitorizar transações suspeitas e anunciar vencedores de torneios ou lotaria.',
+        admin: true
+      },
+      {
+        name: '/casino-config cargo-nivel',
+        category: 'admin',
+        desc: 'Associa um cargo do servidor a um determinado nível de progressão do bot.',
+        params: [
+          { name: 'nivel', desc: 'O nível necessário (ex: 10).' },
+          { name: 'cargo', desc: 'O cargo a ser atribuído automaticamente.' }
+        ],
+        example: '/casino-config cargo-nivel nivel: 10 cargo: @MestreDoCasino',
+        note: 'Quando um jogador atinge esse nível, o bot atribui-lhe o cargo automaticamente no Discord.',
+        admin: true
+      },
+      {
+        name: '/casino-config cargo-saldo',
+        category: 'admin',
+        desc: 'Associa um cargo ao saldo de moedas acumuladas pelo jogador.',
+        params: [
+          { name: 'saldo', desc: 'O saldo de moedas requerido.' },
+          { name: 'cargo', desc: 'O cargo a ser atribuído.' }
+        ],
+        example: '/casino-config cargo-saldo saldo: 100000 cargo: @Milionario',
+        note: 'Útil para destacar visualmente os magnatas da economia do teu servidor.',
+        admin: true
+      },
+      {
+        name: '/casino-config torneio-automatico',
+        category: 'admin',
+        desc: 'Agenda torneios semanais para iniciarem e terminarem automaticamente.',
+        params: [
+          { name: 'dia', desc: 'Dia da semana (ex: Domingo).' },
+          { name: 'hora', desc: 'Hora de início (ex: 20:00).' },
+          { name: 'duracao', desc: 'Duração em horas do torneio.' }
+        ],
+        example: '/casino-config torneio-automatico dia: Domingo hora: 20:00 duracao: 24',
+        note: 'Mantém a tua comunidade ativa de forma autónoma sem necessitar de intervenção manual.',
+        admin: true
+      },
+      {
+        name: '/torneio-admin criar',
+        category: 'admin',
+        desc: 'Inicia um torneio de apostas manualmente no servidor.',
+        params: [
+          { name: 'duracao', desc: 'Duração do torneio em minutos.' },
+          { name: 'premio', desc: 'O prémio em moedas para o vencedor do pódio.' }
+        ],
+        example: '/torneio-admin criar duracao: 120 premio: 50000',
+        note: 'Os participantes acumulam pontos com base no volume apostado durante o período do torneio.',
+        admin: true
+      },
+      {
+        name: '/torneio-admin terminar',
+        category: 'admin',
+        desc: 'Encerra o torneio ativo no momento, distribui as moedas aos vencedores e publica o pódio.',
+        params: [],
+        example: '/torneio-admin terminar',
+        note: 'Ideal para finalizar eventos antes do tempo estipulado.',
+        admin: true
+      },
+      {
+        name: '/reset-saldo',
+        category: 'admin',
+        desc: 'Redefine o saldo de um utilizador específico ou limpa toda a economia do servidor.',
+        params: [
+          { name: 'jogador', desc: 'Digita o utilizador específico para resetar OU "todos" para reiniciar toda a economia.' }
+        ],
+        example: '/reset-saldo jogador: todos',
+        note: 'Cuidado! Esta ação é irreversível e apagará os saldos permanentemente.',
+        admin: true
+      },
+      {
+        name: '/parar-bot',
+        category: 'admin',
+        desc: 'Desliga com segurança o processo do bot.',
+        params: [],
+        example: '/parar-bot',
+        note: 'Garante que todos os dados pendentes em cache são salvos no banco de dados na nuvem antes do desligamento.',
+        admin: true
+      }
+    ];
+
+    let currentCategory = 'all';
+
+    function setCategory(category, element) {
+      currentCategory = category;
+      
+      // Atualiza botão ativo
+      const buttons = document.querySelectorAll('.btn-filter');
+      buttons.forEach(b => b.classList.remove('active'));
+      element.classList.add('active');
+
+      filterCommands();
+    }
+
+    function filterCommands() {
+      const query = document.getElementById('searchInput').value.toLowerCase().trim();
+      const grid = document.getElementById('commandGrid');
+      const emptyState = document.getElementById('emptyState');
+      
+      grid.innerHTML = '';
+      let visibleCount = 0;
+
+      COMMANDS.forEach(cmd => {
+        // Filtro por categoria
+        if (currentCategory !== 'all') {
+          if (currentCategory === 'admin' && !cmd.admin) return;
+          if (currentCategory !== 'admin' && (cmd.category !== currentCategory || cmd.admin)) return;
+        }
+
+        // Filtro por pesquisa
+        const matchesSearch = cmd.name.toLowerCase().includes(query) || 
+                              cmd.desc.toLowerCase().includes(query) ||
+                              (cmd.example && cmd.example.toLowerCase().includes(query)) ||
+                              cmd.params.some(p => p.name.toLowerCase().includes(query) || p.desc.toLowerCase().includes(query));
+
+        if (!matchesSearch) return;
+
+        visibleCount++;
+
+        // Cria o card do comando
+        const card = document.createElement('div');
+        card.className = 'command-card';
+        
+        let categoryLabel = cmd.category.charAt(0).toUpperCase() + cmd.category.slice(1);
+        if (cmd.admin) categoryLabel = 'Administração';
+
+        let paramsHTML = '';
+        if (cmd.params && cmd.params.length > 0) {
+          paramsHTML = `
+            <div class="command-params">
+              <div class="params-title">Parâmetros</div>
+              ${cmd.params.map(p => `
+                <div class="param-item">
+                  <span class="param-name">${p.name}</span> &mdash; ${p.desc}
+                </div>
+              `).join('')}
+            </div>
+          `;
+        }
+
+        card.innerHTML = `
+          <div class="command-header">
+            <div class="command-name">${cmd.name}</div>
+            <span class="badge-category ${cmd.admin ? 'admin' : ''}">
+              ${cmd.admin ? '🛡️ Admin' : categoryLabel}
+            </span>
+          </div>
+          <div class="command-description">${cmd.desc}</div>
+          ${paramsHTML}
+          <div class="command-example">Uso: ${cmd.example}</div>
+          ${cmd.note ? `<div class="command-note">${cmd.note}</div>` : ''}
+        `;
+
+        grid.appendChild(card);
+      });
+
+      if (visibleCount === 0) {
+        emptyState.style.display = 'block';
+      } else {
+        emptyState.style.display = 'none';
+      }
+    }
+
+    // Carregamento inicial
+    filterCommands();
+  </script>
+</body>
+</html>

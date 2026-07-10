@@ -1,4 +1,4 @@
-const { SlashCommandBuilder } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
 const { baseEmbed, COLORS } = require('../utils/embeds');
 
 module.exports = {
@@ -29,7 +29,9 @@ module.exports = {
       .addFields(
         { name: '/saldo [utilizador]', value: 'Vê o teu saldo ou o de outro jogador.' },
         { name: '/diario', value: 'Recolhe o bónus diário, com bónus de streak.' },
-        { name: '/trabalhar', value: 'Ganha dinheiro sem risco (com cooldown).' },
+        { name: '/trabalhar', value: 'Ganha dinheiro no mini-jogo web de faxina.' },
+        { name: '/pescar', value: 'Ganha dinheiro no mini-jogo web de pesca.' },
+        { name: '/hackear', value: 'Ganha dinheiro no mini-jogo web de hacking.' },
         { name: '/banco depositar|levantar', value: 'Guarda dinheiro no banco, protegido de roubos.' },
         { name: '/emprestimo pedir|pagar|estado', value: 'Pede dinheiro emprestado ao casino, com juro e prazo.' },
         { name: '/roubar utilizador', value: 'Tenta roubar % da carteira de outro jogador — risco de multa se falhares.' },
@@ -66,9 +68,22 @@ module.exports = {
       )
       .setFooter({ text: 'Usa / no chat para ver todas as opções de cada comando.' });
 
-    const reply = await interaction.reply({
-      embeds: [introEmbed, gamesEmbed, economyEmbed, progressionEmbed, tournamentEmbed, adminEmbed],
-      fetchReply: true
-    });
+    const baseUrl = process.env.WEB_BASE_URL;
+    const payload = {
+      embeds: [introEmbed, gamesEmbed, economyEmbed, progressionEmbed, tournamentEmbed, adminEmbed]
+    };
+
+    if (baseUrl) {
+      const link = `${baseUrl.replace(/\/$/, '')}/guia.html`;
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('Ver Guia no Site 🌐')
+          .setStyle(ButtonStyle.Link)
+          .setURL(link)
+      );
+      payload.components = [row];
+    }
+
+    const reply = await interaction.reply(payload);
   }
 };
