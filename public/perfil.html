@@ -1,0 +1,560 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Perfil do Jogador — Casino Premium</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #09130e 0%, #0d1e16 50%, #050b08 100%);
+      --panel-bg: rgba(18, 38, 29, 0.45);
+      --border-glow: rgba(250, 202, 43, 0.2);
+      --gold: #FACA2B;
+      --mint: #57F287;
+      --ruby: #ED4245;
+      --glass: rgba(255, 255, 255, 0.03);
+      --text: #E5F3EB;
+      --text-muted: #8EAD9E;
+      --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+      --transition: all 0.2s ease;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 15px 80px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 900px;
+    }
+
+    header {
+      width: 100%;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border-radius: 20px;
+      border: 1px solid var(--border-glow);
+      box-shadow: var(--shadow);
+    }
+
+    .profile-section {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .avatar-wrapper {
+      position: relative;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      padding: 3px;
+      background: linear-gradient(135deg, var(--gold), var(--mint));
+      box-shadow: 0 0 15px rgba(250, 202, 43, 0.3);
+    }
+
+    .avatar-wrapper img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      background: #111;
+      object-fit: cover;
+    }
+
+    .profile-info h1 {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .profile-info p {
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .xp-bar-container {
+      width: 100%;
+      max-width: 320px;
+      margin-top: 8px;
+    }
+
+    .xp-labels {
+      display: flex;
+      justify-content: space-between;
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-bottom: 4px;
+    }
+
+    .xp-track {
+      width: 100%;
+      height: 8px;
+      background: rgba(255,255,255,0.05);
+      border-radius: 99px;
+      overflow: hidden;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .xp-fill {
+      height: 100%;
+      background: linear-gradient(90deg, var(--gold), var(--mint));
+      border-radius: 99px;
+      width: 0%;
+      transition: width 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .btn-back {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--text);
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      transition: var(--transition);
+    }
+
+    .btn-back:hover {
+      background: var(--panel-bg);
+      border-color: var(--border-glow);
+    }
+
+    /* HUD Balances */
+    .hud-balances {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      gap: 12px;
+      margin-bottom: 24px;
+      width: 100%;
+    }
+
+    .hud-card {
+      background: var(--panel-bg);
+      border: 1px solid rgba(250, 202, 43, 0.08);
+      padding: 12px 20px;
+      border-radius: 14px;
+      box-shadow: var(--shadow);
+      text-align: right;
+    }
+
+    .hud-card .lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-muted);
+      margin-bottom: 2px;
+    }
+
+    .hud-card .val {
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    /* Grid Layout */
+    .main-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 24px;
+      width: 100%;
+    }
+
+    @media (max-width: 850px) {
+      .main-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border-radius: 20px;
+      border: 1px solid rgba(250, 202, 43, 0.08);
+      box-shadow: var(--shadow);
+      padding: 24px;
+      margin-bottom: 24px;
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 700;
+      margin-bottom: 18px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 8px;
+    }
+
+    /* Achievements Grid */
+    .achievements-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+      gap: 12px;
+    }
+
+    .badge-card {
+      background: rgba(255,255,255,0.02);
+      border: 1px solid rgba(255,255,255,0.02);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      filter: grayscale(100%);
+      opacity: 0.4;
+      transition: all 0.3s ease;
+      cursor: help;
+    }
+
+    .badge-card.unlocked {
+      filter: grayscale(0%);
+      opacity: 1;
+      background: var(--panel-bg);
+      border-color: var(--border-glow);
+      box-shadow: 0 4px 12px rgba(250,202,43,0.05);
+    }
+
+    .badge-card .icon { font-size: 28px; margin-bottom: 4px; }
+    .badge-card .name { font-size: 11px; font-weight: 700; margin-bottom: 2px; }
+    .badge-card .desc { font-size: 9px; color: var(--text-muted); line-height: 1.2; }
+
+    /* Crypto Portfolio */
+    .crypto-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .crypto-table th, .crypto-table td {
+      padding: 12px;
+      text-align: left;
+      border-bottom: 1px solid rgba(255,255,255,0.03);
+    }
+
+    .crypto-table th {
+      font-size: 11px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .crypto-table td { font-size: 14px; }
+    .crypto-name-col { display: flex; align-items: center; gap: 8px; font-weight: 600; }
+
+    /* History list */
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .history-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 12px;
+      padding: 8px 12px;
+      background: rgba(255,255,255,0.01);
+      border-radius: 8px;
+    }
+
+    .hist-game { font-weight: 600; }
+    .hist-net { font-weight: 700; }
+    .hist-net.win { color: var(--mint); }
+    .hist-net.lose { color: var(--ruby); }
+
+    /* Unauth */
+    #unauthScreen {
+      display: none;
+      text-align: center;
+      margin-top: 15vh;
+      max-width: 400px;
+      background: var(--panel-bg);
+      padding: 30px;
+      border-radius: 20px;
+      border: 1px solid var(--border-glow);
+      box-shadow: var(--shadow);
+    }
+
+    #unauthScreen h2 { font-size: 22px; color: var(--ruby); margin-bottom: 10px; }
+    #unauthScreen p { color: var(--text-muted); font-size: 14px; margin-bottom: 20px; }
+    #unauthScreen code { background: rgba(0,0,0,0.3); padding: 2px 6px; border-radius: 4px; color: var(--gold); }
+  </style>
+</head>
+<body>
+
+  <!-- Ecrã de erro -->
+  <div id="unauthScreen">
+    <h2>🔒 Acesso Restrito</h2>
+    <p>Não foi possível carregar os dados. Tens de estar logado na Dashboard primeiro.</p>
+    <p>Usa <code>/perfil</code> ou <code>/start</code> no Discord.</p>
+  </div>
+
+  <div id="perfilApp" style="display: none; width: 100%; max-width: 900px;">
+    <header>
+      <div class="profile-section">
+        <div class="avatar-wrapper">
+          <img id="userAvatar" src="" alt="Avatar">
+        </div>
+        <div class="profile-info">
+          <h1 id="userTag">...</h1>
+          <p>Nível <span id="userLevel">0</span> | VIP: <span id="userVip" style="color:var(--gold); font-weight:700;">Nenhum</span></p>
+          <div class="xp-bar-container">
+            <div class="xp-labels">
+              <span>XP: <span id="userXp">0</span>/<span id="xpNeeded">0</span></span>
+            </div>
+            <div class="xp-track">
+              <div class="xp-fill" id="xpFill"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <a href="/dashboard.html" class="btn-back">⬅ Voltar à Dashboard</a>
+    </header>
+
+    <div class="hud-balances">
+      <div class="hud-card">
+        <div class="lbl">Carteira</div>
+        <div class="val" id="walletBalance">...</div>
+      </div>
+      <div class="hud-card">
+        <div class="lbl">Banco</div>
+        <div class="val" id="bankBalance">...</div>
+      </div>
+      <div class="hud-card">
+        <div class="lbl">Investido</div>
+        <div class="val" id="investedBalance">...</div>
+      </div>
+    </div>
+
+    <div class="main-grid">
+      <!-- Coluna Esquerda -->
+      <div>
+        <!-- Painel de Estatísticas -->
+        <div class="panel">
+          <h2 class="panel-title"><span>📊</span> Estatísticas de Jogo</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Vitórias</div>
+              <div class="val" id="statsWins" style="color: var(--mint); font-size: 15px;">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Derrotas</div>
+              <div class="val" id="statsLosses" style="color: var(--ruby); font-size: 15px;">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Win Rate</div>
+              <div class="val" id="statsWinRate" style="font-size: 15px;">0%</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Total Apostado</div>
+              <div class="val" id="statsWagered" style="font-size: 13px; color: var(--gold);">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Moedas Ganhas</div>
+              <div class="val" id="statsWonCoins" style="color: var(--mint); font-size: 13px;">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Moedas Perdidas</div>
+              <div class="val" id="statsLostCoins" style="color: var(--ruby); font-size: 13px;">0</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel de Crypto -->
+        <div class="panel">
+          <h2 class="panel-title"><span>📈</span> Carteira de Criptomoedas Fictícias</h2>
+          <table class="crypto-table">
+            <thead>
+              <tr>
+                <th>Moeda</th>
+                <th>Preço</th>
+                <th>A Minha Carteira</th>
+              </tr>
+            </thead>
+            <tbody id="cryptoTableBody">
+              <!-- Renderizado dinamicamente -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Conquistas -->
+        <div class="panel">
+          <h2 class="panel-title"><span>🏅</span> Conquistas Desbloqueadas</h2>
+          <div class="achievements-grid" id="achievementsGrid">
+            <!-- Renderizado dinamicamente -->
+          </div>
+        </div>
+      </div>
+
+      <!-- Coluna Direita -->
+      <div>
+        <!-- Histórico -->
+        <div class="panel">
+          <h2 class="panel-title"><span>📋</span> Últimas Atividades</h2>
+          <div class="history-list" id="historyList">
+            <!-- Injetado dinamicamente -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const urlParams = new URLSearchParams(window.location.search);
+    const userId = urlParams.get('userId');
+
+    async function loadProfile() {
+      if (!userId) {
+        document.getElementById('unauthScreen').style.display = 'block';
+        return;
+      }
+
+      try {
+        const res = await fetch(`/api/profile/data?userId=${userId}`);
+        if (!res.ok) {
+          throw new Error('Não autorizado');
+        }
+        const data = await res.json();
+        renderProfile(data);
+      } catch (err) {
+        document.getElementById('unauthScreen').style.display = 'block';
+      }
+    }
+
+    function fmt(val) {
+      return Math.round(val).toLocaleString('pt-PT') + ' 🪙';
+    }
+
+    function renderProfile(data) {
+      document.getElementById('unauthScreen').style.display = 'none';
+      document.getElementById('perfilApp').style.display = 'block';
+
+      // Avatar e Perfil info
+      document.getElementById('userAvatar').src = data.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+      document.getElementById('userTag').textContent = data.username;
+      document.getElementById('userLevel').textContent = data.level;
+      document.getElementById('userXp').textContent = data.xp;
+      document.getElementById('xpNeeded').textContent = data.xpNeeded;
+
+      const VIP_NAMES = { 0: 'Nenhum', 1: 'Bronze', 2: 'Prata', 3: 'Ouro' };
+      document.getElementById('userVip').textContent = VIP_NAMES[data.vipLevel || 0];
+
+      const xpPercent = Math.min(100, (data.xp / data.xpNeeded) * 100);
+      document.getElementById('xpFill').style.width = xpPercent + '%';
+
+      // Balanço
+      document.getElementById('walletBalance').textContent = fmt(data.balance);
+      document.getElementById('bankBalance').textContent = fmt(data.bank);
+
+      // Calcular Investimentos Crypto
+      const coins = ['BTC', 'ETH', 'SOL', 'DOGE'];
+      const names = { BTC: 'Bitcoin', ETH: 'Ethereum', SOL: 'Solana', DOGE: 'Dogecoin' };
+      const icons = { BTC: '🪙', ETH: '🔷', SOL: '☀️', DOGE: '🐶' };
+
+      let totalInvested = 0;
+      coins.forEach(c => {
+        const price = data.cryptoPrices[c] || 0;
+        const holdings = data.cryptoHoldings[c] || 0;
+        totalInvested += holdings * price;
+      });
+      document.getElementById('investedBalance').textContent = fmt(totalInvested);
+
+      // Estatísticas
+      const wins = data.stats.wins || 0;
+      const losses = data.stats.losses || 0;
+      const totalGames = wins + losses;
+      const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : '0.0';
+      
+      document.getElementById('statsWins').textContent = wins;
+      document.getElementById('statsLosses').textContent = losses;
+      document.getElementById('statsWinRate').textContent = winRate + '%';
+      document.getElementById('statsWagered').textContent = fmt(data.stats.wagered || 0);
+      document.getElementById('statsWonCoins').textContent = fmt(data.stats.wonCoins || 0);
+      document.getElementById('statsLostCoins').textContent = fmt(data.stats.lostCoins || 0);
+
+      // Render Crypto Table
+      const cryptoTableBody = document.getElementById('cryptoTableBody');
+      cryptoTableBody.innerHTML = '';
+      coins.forEach(coin => {
+        const price = data.cryptoPrices[coin];
+        const holdings = data.cryptoHoldings[coin] || 0;
+        const value = holdings * price;
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>
+            <div class="crypto-name-col">
+              <span style="font-size:18px;">${icons[coin]}</span>
+              <div>
+                <div>${coin}</div>
+                <div style="font-size:10px; color:var(--text-muted);">${names[coin]}</div>
+              </div>
+            </div>
+          </td>
+          <td style="font-weight:700;">${coin === 'DOGE' ? price.toFixed(3) : Math.round(price).toLocaleString('pt-PT')} 🪙</td>
+          <td>
+            <div>${holdings.toFixed(4)} ${coin}</div>
+            <div style="font-size:10px; color:var(--text-muted);">${fmt(value)}</div>
+          </td>
+        `;
+        cryptoTableBody.appendChild(tr);
+      });
+
+      // Conquistas
+      const achGrid = document.getElementById('achievementsGrid');
+      achGrid.innerHTML = '';
+      data.allAchievements.forEach(ach => {
+        const unlocked = data.badges.includes(ach.id);
+        const card = document.createElement('div');
+        card.className = `badge-card ${unlocked ? 'unlocked' : ''}`;
+        card.title = ach.desc;
+        const iconAndName = ach.name.split(' ');
+        const icon = iconAndName[0];
+        const nameText = iconAndName.slice(1).join(' ');
+        card.innerHTML = `
+          <div class="icon">${icon}</div>
+          <div class="name">${nameText}</div>
+          <div class="desc">${ach.desc}</div>
+        `;
+        achGrid.appendChild(card);
+      });
+
+      // Histórico
+      const histList = document.getElementById('historyList');
+      histList.innerHTML = '';
+      if (!data.history || data.history.length === 0) {
+        histList.innerHTML = '<p style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sem transações recentes</p>';
+      } else {
+        data.history.forEach(h => {
+          const sign = h.net >= 0 ? '+' : '';
+          const isWin = h.net >= 0;
+          const item = document.createElement('div');
+          item.className = 'history-item';
+          item.innerHTML = `
+            <span class="hist-game">${h.game}</span>
+            <span class="hist-net ${isWin ? 'win' : 'lose'}">${sign}${fmt(h.net)}</span>
+          `;
+          histList.appendChild(item);
+        });
+      }
+    }
+
+    loadProfile();
+  </script>
+</body>
+</html>

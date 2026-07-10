@@ -697,7 +697,12 @@
       <div>
         <!-- Leaderboard -->
         <div class="panel">
-          <h2 class="panel-title"><span class="emoji">🏆</span> Classificação Global</h2>
+          <h2 class="panel-title" style="margin-bottom: 12px;"><span class="emoji">🏆</span> Classificação Global</h2>
+          <div style="position: relative; margin-bottom: 16px;">
+            <input type="text" id="memberSearchInput" placeholder="Procurar jogador..." style="width: 100%; padding: 10px 12px 10px 34px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px;" oninput="searchMembers()">
+            <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; opacity: 0.6;">🔍</span>
+            <div id="searchDropdown" style="display: none; position: absolute; left: 0; right: 0; top: 100%; background: #0c1c14; border: 1px solid var(--border-glow); border-radius: 10px; box-shadow: var(--shadow); z-index: 50; max-height: 200px; overflow-y: auto; margin-top: 6px;"></div>
+          </div>
           <div class="leaderboard-list" id="leaderboardList">
             <!-- Renderizado dinamicamente -->
           </div>
@@ -833,6 +838,19 @@
       appData.leaderboard.forEach((user, index) => {
         const row = document.createElement('div');
         row.className = 'leaderboard-item';
+        row.style.cursor = 'pointer';
+        row.style.transition = 'background 0.2s ease, transform 0.15s ease';
+        row.onclick = () => {
+          window.location.href = `/perfil.html?userId=${user.userId}`;
+        };
+        row.onmouseover = () => {
+          row.style.background = 'rgba(255,255,255,0.02)';
+          row.style.transform = 'translateX(4px)';
+        };
+        row.onmouseout = () => {
+          row.style.background = 'transparent';
+          row.style.transform = 'translateX(0)';
+        };
         row.innerHTML = `
           <div class="leaderboard-left">
             <span class="rank-num">#${index + 1}</span>
@@ -982,6 +1000,64 @@
     }
 
 
+
+    let searchTimeout = null;
+    function searchMembers() {
+      const q = document.getElementById('memberSearchInput').value.trim();
+      const dropdown = document.getElementById('searchDropdown');
+
+      if (!q) {
+        dropdown.style.display = 'none';
+        return;
+      }
+
+      clearTimeout(searchTimeout);
+      searchTimeout = setTimeout(async () => {
+        try {
+          const res = await fetch(`/api/members/search?q=${encodeURIComponent(q)}`);
+          if (!res.ok) return;
+          const members = await res.json();
+
+          dropdown.innerHTML = '';
+          if (members.length === 0) {
+            dropdown.innerHTML = '<div style="padding: 10px; font-size: 12px; color: var(--text-muted); text-align: center;">Nenhum jogador encontrado</div>';
+          } else {
+            members.forEach(m => {
+              const div = document.createElement('div');
+              div.style.display = 'flex';
+              div.style.alignItems = 'center';
+              div.style.gap = '10px';
+              div.style.padding = '8px 12px';
+              div.style.cursor = 'pointer';
+              div.style.borderBottom = '1px solid rgba(255,255,255,0.02)';
+              div.style.transition = 'background 0.2s ease';
+              div.innerHTML = `
+                <img src="${m.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png'}" style="width: 24px; height: 24px; border-radius: 50%;">
+                <span style="font-size: 13px;">${m.username}</span>
+              `;
+              div.onclick = () => {
+                window.location.href = `/perfil.html?userId=${m.userId}`;
+              };
+              div.onmouseover = () => div.style.background = 'rgba(255,255,255,0.05)';
+              div.onmouseout = () => div.style.background = 'transparent';
+              dropdown.appendChild(div);
+            });
+          }
+          dropdown.style.display = 'block';
+        } catch (err) {
+          console.error(err);
+        }
+      }, 300);
+    }
+
+    // Fecha o dropdown ao clicar fora
+    document.addEventListener('click', (e) => {
+      const dropdown = document.getElementById('searchDropdown');
+      const input = document.getElementById('memberSearchInput');
+      if (e.target !== dropdown && e.target !== input) {
+        dropdown.style.display = 'none';
+      }
+    });
 
     loadDashboard();
   </script>

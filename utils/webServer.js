@@ -487,6 +487,7 @@ app.get('/hack/:token', (req, res) => {
 
 app.get('/api/login-dashboard', (req, res) => {
   const token = req.query.token;
+  const redirectUrl = req.query.redirect || '/dashboard.html';
   if (!token) {
     return res.status(400).send('Token de login em falta.');
   }
@@ -499,7 +500,96 @@ app.get('/api/login-dashboard', (req, res) => {
   const sessionToken = createSession(guildId, userId);
   
   res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`);
-  res.redirect('/dashboard.html');
+  res.redirect(redirectUrl);
+});
+
+app.get('/api/profile/data', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) {
+      return res.status(401).json({ error: 'Não autorizado. Faz login de novo.' });
+    }
+
+    const { guildId } = session;
+    const targetUserId = req.query.userId;
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'Utilizador não especificado.' });
+    }
+
+    const user = db.getUser(guildId, targetUserId);
+    const prices = db.getCryptoPrices();
+
+    let username = 'Utilizador';
+    let avatar = null;
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(targetUserId) || await discordClient.users.fetch(targetUserId).catch(() => null);
+      if (uObj) {
+        username = uObj.username;
+        avatar = uObj.displayAvatarURL({ size: 128 }) || uObj.defaultAvatarURL;
+      }
+    }
+
+    const { ACHIEVEMENTS } = require('./progression');
+
+    return res.json({
+      guildId,
+      userId: targetUserId,
+      username,
+      avatar,
+      balance: user.balance,
+      bank: user.bank,
+      level: user.level,
+      xp: user.xp,
+      xpNeeded: db.xpForLevel(user.level),
+      vipLevel: user.vipLevel || 0,
+      stats: user.stats || { wins: 0, losses: 0, wagered: 0, wonCoins: 0, lostCoins: 0 },
+      badges: user.badges || [],
+      inventory: user.inventory || [],
+      history: db.getHistory(guildId, targetUserId, 10),
+      cryptoPrices: prices,
+      cryptoHoldings: user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
+      allAchievements: ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name, desc: a.desc }))
+    });
+  } catch (err) {
+    console.error('Erro em /api/profile/data:', err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.get('/api/members/search', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) {
+      return res.status(401).json({ error: 'Não autorizado.' });
+    }
+
+    const { guildId } = session;
+    const query = (req.query.q || '').toLowerCase().trim();
+
+    const uIds = db.getAllUserIdsForGuild(guildId);
+    const results = [];
+
+    for (const id of uIds) {
+      let username = 'Jogador';
+      let avatar = null;
+      
+      const uObj = discordClient ? (discordClient.users.cache.get(id) || await discordClient.users.fetch(id).catch(() => null)) : null;
+      if (uObj) {
+        username = uObj.username;
+        avatar = uObj.displayAvatarURL({ size: 64 }) || uObj.defaultAvatarURL;
+      }
+
+      if (!query || username.toLowerCase().includes(query)) {
+        results.push({ userId: id, username, avatar });
+      }
+      if (results.length >= 10) break; // Limite de 10 resultados para performance
+    }
+
+    return res.json(results);
+  } catch (err) {
+    console.error('Erro em /api/members/search:', err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
 });
 
 app.get('/api/dashboard/data', async (req, res) => {

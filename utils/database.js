@@ -179,6 +179,12 @@ function getLeaderboard(guildId, limit = 10) {
     .slice(0, limit);
 }
 
+function getAllUserIdsForGuild(guildId) {
+  return Object.keys(users)
+    .filter(k => k.startsWith(`${guildId}:`))
+    .map(k => k.split(':')[1]);
+}
+
 function resetUser(guildId, userId) {
   users[key(guildId, userId)] = defaultUser();
   persist();
@@ -438,5 +444,5 @@ module.exports = {
   startTournament, getTournament, isTournamentActive, addTournamentScore,
   getTournamentLeaderboard, endTournament, getAllGuildIdsWithTournamentSupport, saveTournament,
   getLottery, saveLottery, buyLotteryTickets, drawLottery,
-  getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto
+  getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild
 };
