@@ -726,24 +726,36 @@
       const isSeated = state.players.some(p => p.userId === userId);
       const isMyTurn = state.status === 'players_turn' && state.currentPlayerUserId === userId;
 
+      let controlsHTML = '';
       if ((state.status === 'waiting' || state.status === 'betting') && !isSeated) {
-        controlsArea.innerHTML = `
+        const currentBet = document.getElementById('betInput') ? document.getElementById('betInput').value : '100';
+        controlsHTML = `
           <div class="input-bet-wrapper">
             <span>🪙</span>
-            <input type="number" class="input-bet" id="betInput" value="100" min="10" step="50">
+            <input type="number" class="input-bet" id="betInput" value="${currentBet}" min="10" step="50">
           </div>
           <button class="btn-action btn-join" onclick="joinTable()">Sentar na Mesa 🪙</button>
         `;
       } else if (isMyTurn) {
-        controlsArea.innerHTML = `
+        controlsHTML = `
           <button class="btn-action btn-hit" onclick="hit()">Pedir Carta 🃏</button>
           <button class="btn-action btn-stand" onclick="stand()">Parar 🛑</button>
         `;
       } else {
         if (isSeated) {
-          controlsArea.innerHTML = `<span style="font-size: 13px; color: var(--text-muted); font-weight:600;">Estás sentado na mesa. Aguarda a tua vez de jogar...</span>`;
+          controlsHTML = `<span style="font-size: 13px; color: var(--text-muted); font-weight:600;">Estás sentado na mesa. Aguarda a tua vez de jogar...</span>`;
         } else {
-          controlsArea.innerHTML = `<span style="font-size: 13px; color: var(--text-muted); font-weight:600;">Jogo em andamento. Aguarda pela próxima rodada...</span>`;
+          controlsHTML = `<span style="font-size: 13px; color: var(--text-muted); font-weight:600;">Jogo em andamento. Aguarda pela próxima rodada...</span>`;
+        }
+      }
+
+      const normalizedNew = controlsHTML.replace(/\s+/g, ' ').trim();
+      const normalizedOld = controlsArea.innerHTML.replace(/\s+/g, ' ').trim();
+      if (normalizedNew !== normalizedOld) {
+        if (document.getElementById('betInput') && controlsHTML.includes('id="betInput"')) {
+          // Mantém o input intacto para não perder o foco ao digitar!
+        } else {
+          controlsArea.innerHTML = controlsHTML;
         }
       }
     }
