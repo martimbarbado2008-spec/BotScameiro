@@ -1569,6 +1569,80 @@ app.post('/api/chat/send', async (req, res) => {
       }
     }
 
+    const broadcast = (entry) => {
+      const ssePayload = `event: message\ndata: ${JSON.stringify(entry)}\n\n`;
+      chatClients.forEach(client => {
+        try {
+          client.write(ssePayload);
+        } catch (err) {
+          chatClients.delete(client);
+        }
+      });
+    };
+
+    // --- Comando Coinflip /cf ---
+    if (cleanMessage.startsWith('/coinflip ') || cleanMessage.startsWith('/cf ')) {
+      const parts = cleanMessage.split(/\s+/);
+      const amountArg = parts[1];
+      const sideArg = parts[2] ? parts[2].toLowerCase() : null;
+
+      if (!amountArg || !sideArg || (sideArg !== 'cara' && sideArg !== 'coroa')) {
+        return res.status(400).json({ error: 'Uso correto: /coinflip <quantia> <cara|coroa>' });
+      }
+
+      const user = db.getUser(guildId, userId);
+      let amount = 0;
+      if (amountArg.toLowerCase() === 'all') {
+        amount = user.balance;
+      } else {
+        amount = parseInt(amountArg, 10);
+      }
+
+      if (isNaN(amount) || amount <= 0) {
+        return res.status(400).json({ error: 'Aposta inválida.' });
+      }
+
+      if (user.balance < amount) {
+        return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+      }
+
+      // Processar aposta
+      user.balance -= amount;
+      const win = Math.random() < 0.5;
+      const coinResult = win ? sideArg : (sideArg === 'cara' ? 'coroa' : 'cara');
+      
+      let netResult = -amount;
+      let msgText = '';
+
+      if (win) {
+        const payout = amount * 2;
+        user.balance += payout;
+        netResult = amount;
+        msgText = `🪙 [COINFLIP] @${username} apostou ${amount.toLocaleString('pt-PT')} 🪙 em ${sideArg.toUpperCase()}... Deu ${coinResult.toUpperCase()}! Ganhou ${payout.toLocaleString('pt-PT')} 🪙! 🎉`;
+      } else {
+        msgText = `🪙 [COINFLIP] @${username} apostou ${amount.toLocaleString('pt-PT')} 🪙 em ${sideArg.toUpperCase()}... Deu ${coinResult.toUpperCase()}! Perdeu ${amount.toLocaleString('pt-PT')} 🪙! 😢`;
+      }
+
+      db.saveUser(guildId, userId, user);
+      db.pushHistory(guildId, userId, { game: 'Chat Coinflip', bet: amount, net: netResult });
+
+      const systemEntry = {
+        id: Date.now() + Math.random().toString(),
+        userId: 'system',
+        username: '🤖 Coinflip Casino',
+        avatar: 'https://cdn-icons-png.flaticon.com/512/217/217853.png',
+        message: msgText,
+        timestamp: Date.now()
+      };
+
+      chatHistory.push(systemEntry);
+      if (chatHistory.length > 50) chatHistory.shift();
+      broadcast(systemEntry);
+
+      return res.json({ success: true, entry: systemEntry });
+    }
+
+    // --- Envio de mensagem normal ---
     const chatEntry = {
       id: Date.now() + Math.random().toString(),
       userId,
@@ -1581,14 +1655,7 @@ app.post('/api/chat/send', async (req, res) => {
     chatHistory.push(chatEntry);
     if (chatHistory.length > 50) chatHistory.shift();
 
-    const ssePayload = `event: message\ndata: ${JSON.stringify(chatEntry)}\n\n`;
-    chatClients.forEach(client => {
-      try {
-        client.write(ssePayload);
-      } catch (err) {
-        chatClients.delete(client);
-      }
-    });
+    broadcast(chatEntry);
 
     return res.json({ success: true, entry: chatEntry });
   } catch (err) {

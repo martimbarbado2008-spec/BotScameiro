@@ -1434,6 +1434,14 @@
         });
         if (res.ok) {
           if (typeof window.playSFX === 'function') window.playSFX('trade');
+          if (text.startsWith('/coinflip') || text.startsWith('/cf')) {
+            loadDashboard();
+          }
+        } else {
+          const data = await res.json().catch(() => ({}));
+          if (data.error) {
+            alert(data.error);
+          }
         }
       } catch (err) {
         console.error("Erro ao enviar mensagem:", err);
