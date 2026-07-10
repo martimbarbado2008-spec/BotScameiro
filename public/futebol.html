@@ -542,11 +542,8 @@
           <button id="modeVirtualBtn" onclick="setSportsbookMode('virtual')" style="flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: var(--transition); background: transparent; color: var(--text-muted); font-family: inherit;">🤖 Liga Virtual (IA)</button>
         </div>
 
-        <div class="league-filter-row">
-          <button class="filter-btn active" onclick="setLeagueFilter('all')">Todos os Jogos</button>
-          <button class="filter-btn" onclick="setLeagueFilter('Liga Portugal')">🇵🇹 Liga Portugal</button>
-          <button class="filter-btn" onclick="setLeagueFilter('Premier League')">🏴󠁧󠁢󠁥󠁮󠁧󠁿 Premier League</button>
-          <button class="filter-btn" onclick="setLeagueFilter('Champions League')">🇪🇺 Champions League</button>
+        <div class="league-filter-row" id="leagueFilterRow">
+          <!-- Injetado dinamicamente -->
         </div>
 
         <div id="matchesListContainer" style="display: flex; flex-direction: column; gap: 16px;">
@@ -602,9 +599,11 @@
         realBtn.style.color = 'var(--text-muted)';
       }
 
-      // Limpar boletim de aposta se mudarmos de separador
+      // Limpar boletim de aposta e resetar filtro se mudarmos de separador
       selectedBet = null;
+      activeFilter = 'all';
       renderBetSlip();
+      renderLeagueFilters();
       renderMatches();
     }
 
@@ -635,6 +634,7 @@
         const betsRes = await fetch('/api/football/bets');
         if (betsRes.ok) bets = await betsRes.json();
 
+        renderLeagueFilters();
         renderMatches();
         renderBetsHistory();
       } catch (err) {
@@ -642,17 +642,38 @@
       }
     }
 
+    const LEAGUE_EMOJIS = {
+      'Liga Portugal': '🇵🇹 ',
+      'Premier League': '🏴󠁧󠁢󠁥󠁮󠁧󠁿 ',
+      'Champions League': '🇪🇺 ',
+      'La Liga (Espanha)': '🇪🇸 ',
+      'Serie A (Itália)': '🇮🇹 ',
+      'Bundesliga (Alemanha)': '🇩🇪 ',
+      'Ligue 1 (França)': '🇫🇷 ',
+      'Campeonato do Mundo': '🏆 ',
+      'Campeonato da Europa': '🇪🇺 '
+    };
+
+    function renderLeagueFilters() {
+      const container = document.getElementById('leagueFilterRow');
+      if (!container) return;
+
+      const modeMatches = matches.filter(m => activeMode === 'real' ? m.id.startsWith('r_') : m.id.startsWith('v_'));
+      const uniqueLeagues = [...new Set(modeMatches.map(m => m.league))];
+
+      let html = `<button class="filter-btn ${activeFilter === 'all' ? 'active' : ''}" onclick="setLeagueFilter('all')">Todos os Jogos</button>`;
+      
+      uniqueLeagues.forEach(league => {
+        const emoji = LEAGUE_EMOJIS[league] || '⚽ ';
+        html += `<button class="filter-btn ${activeFilter === league ? 'active' : ''}" onclick="setLeagueFilter('${league}')">${emoji}${league}</button>`;
+      });
+
+      container.innerHTML = html;
+    }
+
     function setLeagueFilter(league) {
       activeFilter = league;
-      // Atualizar botões de filtro ativos
-      const btns = document.querySelectorAll('.filter-btn');
-      btns.forEach(b => {
-        if (b.textContent.includes(league) || (league === 'all' && b.textContent === 'Todos os Jogos')) {
-          b.classList.add('active');
-        } else {
-          b.classList.remove('active');
-        }
-      });
+      renderLeagueFilters();
       renderMatches();
     }
 

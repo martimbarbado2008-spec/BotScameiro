@@ -13,10 +13,37 @@ const VIRTUAL_TEAMS = {
   "Champions League": [
     "Real Madrid", "Barcelona", "Bayern Munich", "PSG", "Inter Milan", 
     "Dortmund", "Atletico Madrid", "Juventus", "AC Milan", "Leverkusen"
+  ],
+  "La Liga (Espanha)": [
+    "Real Madrid", "Barcelona", "Atletico Madrid", "Real Sociedad", 
+    "Athletic Bilbao", "Girona", "Real Betis", "Sevilla", "Valencia", "Villarreal"
+  ],
+  "Serie A (Itália)": [
+    "Inter Milan", "AC Milan", "Juventus", "Napoli", "AS Roma", 
+    "Lazio", "Atalanta", "Fiorentina", "Bologna", "Torino"
+  ],
+  "Bundesliga (Alemanha)": [
+    "Bayern Munich", "Bayer Leverkusen", "Dortmund", "RB Leipzig", 
+    "Eintracht Frankfurt", "Stuttgart", "Gladbach", "Wolfsburg", "Freiburg"
+  ],
+  "Ligue 1 (França)": [
+    "PSG", "Marseille", "Monaco", "Lille", "Lyon", "Lens", "Rennes", "Nice"
+  ],
+  "Campeonato do Mundo": [
+    "Portugal", "Brasil", "Argentina", "França", "Alemanha", 
+    "Espanha", "Inglaterra", "Itália", "Países Baixos", "Bélgica", "Uruguai", "Croácia"
+  ],
+  "Campeonato da Europa": [
+    "Portugal", "Espanha", "França", "Alemanha", "Inglaterra", 
+    "Itália", "Bélgica", "Países Baixos", "Croácia", "Dinamarca", "Suíça"
   ]
 };
 
-const LEAGUES = ["Liga Portugal", "Premier League", "Champions League"];
+const LEAGUES = [
+  "Liga Portugal", "Premier League", "Champions League",
+  "La Liga (Espanha)", "Serie A (Itália)", "Bundesliga (Alemanha)",
+  "Ligue 1 (França)", "Campeonato do Mundo", "Campeonato da Europa"
+];
 const GAME_DURATION_MS = 5 * 60 * 1000;
 
 // Variável global em memória para controlar a taxa de pedidos à API (odds-api)
@@ -50,7 +77,13 @@ async function fetchRealMatches(guildId) {
   const sports = [
     { key: 'soccer_portugal_primeira_liga', name: 'Liga Portugal' },
     { key: 'soccer_epl', name: 'Premier League' },
-    { key: 'soccer_uefa_champs_league', name: 'Champions League' }
+    { key: 'soccer_uefa_champs_league', name: 'Champions League' },
+    { key: 'soccer_spain_la_liga', name: 'La Liga (Espanha)' },
+    { key: 'soccer_italy_serie_a', name: 'Serie A (Itália)' },
+    { key: 'soccer_germany_bundesliga', name: 'Bundesliga (Alemanha)' },
+    { key: 'soccer_france_ligue_one', name: 'Ligue 1 (França)' },
+    { key: 'soccer_fifa_world_cup', name: 'Campeonato do Mundo' },
+    { key: 'soccer_uefa_european_championship', name: 'Campeonato da Europa' }
   ];
 
   let matchesList = db.getFootballMatches(guildId);
