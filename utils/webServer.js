@@ -706,6 +706,7 @@ app.get('/api/dashboard/data', async (req, res) => {
       leaderboard,
       cryptoPrices: prices,
       cryptoHoldings: user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
+      contracts: user.contracts || [],
       allAchievements: ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name, desc: a.desc })),
       shopItems: ITEMS,
       cooldowns: {
@@ -800,39 +801,121 @@ app.post('/api/shop/buy', async (req, res) => {
   return res.json({ success: true, balance: user.balance, inventory: user.inventory });
 });
 
-app.post('/api/crypto/trade', async (req, res) => {
+app.post('/api/crypto/contract/create', async (req, res) => {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Não autorizado.' });
 
   const { guildId, userId } = session;
-  const { action, coin, amount } = req.body;
+  const { coin, amount, direction, entryPrice } = req.body;
 
-  if (!['buy', 'sell'].includes(action) || !['BTC', 'ETH', 'SOL', 'DOGE'].includes(coin) || typeof amount !== 'number' || amount <= 0) {
-    return res.status(400).json({ error: 'Parâmetros inválidos.' });
+  if (!['BTC', 'ETH', 'SOL', 'DOGE'].includes(coin) || typeof amount !== 'number' || amount < 10 || !['up', 'down'].includes(direction) || typeof entryPrice !== 'number') {
+    return res.status(400).json({ error: 'Parâmetros de contrato inválidos.' });
   }
 
-  const prices = db.getCryptoPrices();
-  const price = prices[coin];
+  const user = db.getUser(guildId, userId);
+  if (user.balance < amount) {
+    return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+  }
 
-  if (action === 'buy') {
-    const cost = Math.round(amount * price);
-    const user = db.getUser(guildId, userId);
-    if (user.balance < cost) {
-      return res.status(400).json({ error: 'Saldo insuficiente.' });
-    }
-    const result = db.buyCrypto(guildId, userId, coin, amount, price);
-    db.pushHistory(guildId, userId, { game: `Crypto Buy (${coin})`, bet: cost, net: -cost });
-    return res.json({ success: true, balance: result.balance, holdings: result.holdings });
+  // Subtrair o investimento imediatamente
+  user.balance -= amount;
+
+  const contractId = 'c_' + Math.random().toString(36).substr(2, 9);
+  const newContract = {
+    id: contractId,
+    coin,
+    amount,
+    direction,
+    entryPrice,
+    expiryTime: Date.now() + 30 * 1000, // Contrato de 30 segundos
+    status: 'pending',
+    payout: 0,
+    createdAt: Date.now()
+  };
+
+  user.contracts = user.contracts || [];
+  user.contracts.unshift(newContract);
+  db.saveUser(guildId, userId, user);
+
+  return res.json({ success: true, balance: user.balance, contract: newContract });
+});
+
+app.post('/api/crypto/contract/resolve', async (req, res) => {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+  const { guildId, userId } = session;
+  const { contractId, exitPrice } = req.body;
+
+  if (!contractId || typeof exitPrice !== 'number') {
+    return res.status(400).json({ error: 'Parâmetros de resolução inválidos.' });
+  }
+
+  const user = db.getUser(guildId, userId);
+  user.contracts = user.contracts || [];
+  const contract = user.contracts.find(c => c.id === contractId);
+
+  if (!contract) {
+    return res.status(404).json({ error: 'Contrato não encontrado.' });
+  }
+
+  if (contract.status !== 'pending') {
+    return res.status(400).json({ error: 'Contrato já foi resolvido.' });
+  }
+
+  // Validar se o tempo já expirou (com margem de tolerância de 1.5s)
+  if (Date.now() < contract.expiryTime - 1500) {
+    return res.status(400).json({ error: 'O contrato ainda não expirou.' });
+  }
+
+  // Determinar vencedor
+  const isUp = contract.direction === 'up';
+  let won = false;
+  if (isUp && exitPrice > contract.entryPrice) won = true;
+  if (!isUp && exitPrice < contract.entryPrice) won = true;
+
+  let payout = 0;
+  if (won) {
+    payout = Math.round(contract.amount * 1.85); // Retorno de 85% de lucro
+    user.balance += payout;
+    contract.status = 'won';
+    contract.payout = payout;
+    db.pushHistory(guildId, userId, {
+      game: `Crypto Option (${contract.coin} ${isUp ? '▲' : '▼'})`,
+      bet: contract.amount,
+      net: payout - contract.amount
+    });
   } else {
-    const user = db.getUser(guildId, userId);
-    if (!user.crypto || (user.crypto[coin] || 0) < amount) {
-      return res.status(400).json({ error: 'Holdings insuficientes.' });
-    }
-    const result = db.sellCrypto(guildId, userId, coin, amount, price);
-    const gain = Math.round(amount * price);
-    db.pushHistory(guildId, userId, { game: `Crypto Sell (${coin})`, bet: 0, net: gain });
-    return res.json({ success: true, balance: result.balance, holdings: result.holdings });
+    contract.status = 'lost';
+    contract.payout = 0;
+    db.pushHistory(guildId, userId, {
+      game: `Crypto Option (${contract.coin} ${isUp ? '▲' : '▼'})`,
+      bet: contract.amount,
+      net: -contract.amount
+    });
   }
+
+  // Limitar histórico de contratos guardados na DB a 30 por performance
+  if (user.contracts.length > 30) {
+    user.contracts = user.contracts.slice(0, 30);
+  }
+
+  db.saveUser(guildId, userId, user);
+
+  // Regista na progressão e conquistas do casino
+  const progression = require('./progression');
+  progression.afterGameForMember({
+    guildId,
+    channelId: null,
+    client: discordClient
+  }, { id: userId, user: { id: userId } }, {
+    game: 'Opções Binárias',
+    bet: contract.amount,
+    net: payout - contract.amount,
+    won: won
+  }).catch(err => console.error('Erro na progressão de Opções Binárias:', err));
+
+  return res.json({ success: true, balance: user.balance, contract });
 });
 
 app.get('/api/football/matches', async (req, res) => {

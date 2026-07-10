@@ -562,37 +562,34 @@
           </button>
         </div>
 
-        <div class="holding-info-box">
-          <div class="panel-subtitle">Detalhes do Ativo</div>
-          <div class="holding-row">
-            <span class="label">Holdings Atuais:</span>
-            <span class="value" id="currentHoldingsQty">0.0000 BTC</span>
+        <div class="holding-info-box" id="activeTradesBox">
+          <div class="panel-subtitle" style="display:flex; justify-content:space-between; align-items:center;">
+            <span>Operações Ativas</span>
+            <span id="activeCountBadge" style="background:var(--mint); color:#000; padding:2px 6px; border-radius:10px; font-size:10px; font-weight:800;">0</span>
           </div>
-          <div class="holding-row">
-            <span class="label">Valor Estimado:</span>
-            <span class="value" id="currentHoldingsVal" style="color:var(--gold);">0 🪙</span>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 10px;">
-            <button class="amount-shortcut" onclick="sellPercentage(50)" style="padding: 8px 0; font-size: 11px; border-color: rgba(237, 66, 69, 0.3); color: #fff; background: rgba(237, 66, 69, 0.1);">Vender 50% 📉</button>
-            <button class="amount-shortcut" onclick="sellPercentage(100)" style="padding: 8px 0; font-size: 11px; border-color: rgba(237, 66, 69, 0.5); color: #fff; background: rgba(237, 66, 69, 0.2);">Vender Tudo 🚪</button>
+          <div id="activeContractsList" style="display: flex; flex-direction: column; gap: 8px; margin-top: 10px; max-height: 200px; overflow-y: auto;">
+            <div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sem operações ativas.</div>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Bottom Area: Portfolio holdings table -->
+    <!-- Bottom Area: Portfolio contracts table -->
     <div class="panel portfolio-panel">
-      <h2 class="panel-title">💼 Carteira Geral de Ativos</h2>
+      <h2 class="panel-title">📜 Histórico de Contratos Recentes</h2>
       <table class="portfolio-table">
         <thead>
           <tr>
-            <th>Moeda</th>
-            <th>Preço Atual</th>
-            <th>A Minha Carteira</th>
-            <th style="text-align: right;">Valor em Moedas</th>
+            <th>Ativo</th>
+            <th>Direção</th>
+            <th>Investimento</th>
+            <th>Preço de Entrada</th>
+            <th>Preço de Saída</th>
+            <th>Resultado</th>
+            <th style="text-align: right;">Retorno</th>
           </tr>
         </thead>
-        <tbody id="portfolioTableBody">
+        <tbody id="contractsTableBody">
           <!-- Injetado dinamicamente -->
         </tbody>
       </table>
@@ -685,44 +682,45 @@
       document.getElementById('unauthScreen').style.display = 'none';
 
       document.getElementById('walletBalance').textContent = Math.round(appData.balance).toLocaleString('pt-PT') + ' 🪙';
-
-      const holdings = appData.cryptoHoldings[activeCoin] || 0;
-      const currentPrice = currentPrices[activeCoin];
-      const totalVal = holdings * currentPrice;
-
-      document.getElementById('currentHoldingsQty').textContent = `${holdings.toFixed(4)} ${activeCoin}`;
-      document.getElementById('currentHoldingsVal').textContent = Math.round(totalVal).toLocaleString('pt-PT') + ' 🪙';
+      renderActiveContracts();
     }
 
     function renderPortfolio() {
-      const tableBody = document.getElementById('portfolioTableBody');
+      const tableBody = document.getElementById('contractsTableBody');
+      if (!tableBody) return;
       tableBody.innerHTML = '';
 
-      coins.forEach(c => {
-        const price = currentPrices[c];
-        const holdings = appData.cryptoHoldings[c] || 0;
-        const totalVal = holdings * price;
+      const contracts = appData.contracts || [];
+      const completed = contracts.filter(c => c.status !== 'pending');
 
+      if (completed.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:20px; color:var(--text-muted);">Sem operações concluídas recentemente.</td></tr>';
+        return;
+      }
+
+      completed.forEach(c => {
         const tr = document.createElement('tr');
+        const isUp = c.direction === 'up';
+        const isWon = c.status === 'won';
+        const net = isWon ? `+${Math.round(c.payout)}` : `0`;
+        const directionLabel = isUp ? '<span style="color:var(--mint); font-weight:700;">▲ SUBIR (CALL)</span>' : '<span style="color:var(--ruby); font-weight:700;">▼ DESCER (PUT)</span>';
+        
+        const entryFmt = c.coin === 'DOGE' ? c.entryPrice.toFixed(3) : Math.round(c.entryPrice).toLocaleString('pt-PT');
+        const exitFmt = c.exitPrice ? (c.coin === 'DOGE' ? c.exitPrice.toFixed(3) : Math.round(c.exitPrice).toLocaleString('pt-PT')) : 'N/A';
+
         tr.innerHTML = `
           <td>
             <div class="portfolio-coin-name">
-              <span style="font-size:18px;">${coinIcons[c]}</span>
-              <div>
-                <div>${c}</div>
-                <div style="font-size:10px; color:var(--text-muted);">${coinNames[c]}</div>
-              </div>
+              <span style="font-size:18px;">${coinIcons[c.coin]}</span>
+              <span>${c.coin}</span>
             </div>
           </td>
-          <td style="font-family: 'Share Tech Mono', monospace; font-weight: 700;">
-            ${c === 'DOGE' ? price.toFixed(3) : Math.round(price).toLocaleString('pt-PT')} 🪙
-          </td>
-          <td style="font-family: 'Share Tech Mono', monospace;">
-            ${holdings.toFixed(4)} ${c}
-          </td>
-          <td class="portfolio-value" style="text-align: right; font-family: 'Share Tech Mono', monospace;">
-            ${Math.round(totalVal).toLocaleString('pt-PT')} 🪙
-          </td>
+          <td>${directionLabel}</td>
+          <td style="font-family: 'Share Tech Mono', monospace; font-weight: 700;">${c.amount} 🪙</td>
+          <td style="font-family: 'Share Tech Mono', monospace;">${entryFmt} 🪙</td>
+          <td style="font-family: 'Share Tech Mono', monospace;">${exitFmt} 🪙</td>
+          <td style="font-weight:700; color: ${isWon ? 'var(--mint)' : 'var(--ruby)'}">${isWon ? 'GANHOU 🟩' : 'PERDEU 🟥'}</td>
+          <td class="portfolio-value" style="text-align: right; font-family: 'Share Tech Mono', monospace;">${net} 🪙</td>
         `;
         tableBody.appendChild(tr);
       });
@@ -741,15 +739,14 @@
     function calculateCryptoAmount() {
       const input = document.getElementById('tradeAmount');
       const cashVal = parseFloat(input.value) || 0;
-      const price = currentPrices[activeCoin];
       
-      if (cashVal <= 0 || !price) {
-        document.getElementById('estCryptoQty').textContent = `Equivale a ≈ 0.0000 ${activeCoin}`;
+      if (cashVal <= 0) {
+        document.getElementById('estCryptoQty').textContent = `Retorno Potencial (85%): +0 🪙`;
         return;
       }
 
-      const cryptoQty = cashVal / price;
-      document.getElementById('estCryptoQty').textContent = `Equivale a ≈ ${cryptoQty.toFixed(4)} ${activeCoin}`;
+      const potential = Math.round(cashVal * 1.85);
+      document.getElementById('estCryptoQty').textContent = `Retorno Potencial (85%): +${potential} 🪙`;
     }
 
     // --- Notificações Toast ---
@@ -773,75 +770,110 @@
       }, 4000);
     }
 
-    // --- Executar Trades no Servidor ---
+    // --- Executar Contrato no Servidor ---
     async function executeTrade(action) {
-      const cashInput = document.getElementById('tradeAmount');
-      const cashVal = parseFloat(cashInput.value);
+      const amountInput = document.getElementById('tradeAmount');
+      const cashVal = parseFloat(amountInput.value);
       
-      if (isNaN(cashVal) || cashVal <= 0) {
-        showToast('Introduz uma quantia de investimento válida.', true);
+      if (isNaN(cashVal) || cashVal < 10) {
+        showToast('Introduz um investimento mínimo de 10 🪙.', true);
         return;
       }
 
-      const price = currentPrices[activeCoin];
-      const cryptoAmount = cashVal / price;
+      if (cashVal > appData.balance) {
+        showToast('Saldo de carteira insuficiente.', true);
+        return;
+      }
+
+      const entryPrice = currentPrices[activeCoin];
+      const direction = action === 'buy' ? 'up' : 'down';
 
       try {
-        const res = await fetch('/api/crypto/trade', {
+        const res = await fetch('/api/crypto/contract/create', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            action,
             coin: activeCoin,
-            amount: cryptoAmount
+            amount: cashVal,
+            direction,
+            entryPrice
           })
         });
 
         const result = await res.json();
         if (!res.ok) {
-          showToast(result.error || 'Erro ao processar negociação.', true);
+          showToast(result.error || 'Erro ao criar operação.', true);
           return;
         }
 
-        showToast(`${action === 'buy' ? 'Compra' : 'Venda'} efetuada com sucesso!`);
-        cashInput.value = '';
-        await loadData(); // Recarregar saldos e inventários
+        showToast(`Operação de ${activeCoin} iniciada! 🚀`);
+        
+        appData.balance = result.balance;
+        appData.contracts = appData.contracts || [];
+        appData.contracts.unshift(result.contract);
+        
+        amountInput.value = '';
+        calculateCryptoAmount();
+        renderOrderDesk();
+        renderPortfolio();
       } catch (err) {
-        showToast('Erro ao comunicar com o servidor.', true);
+        showToast('Erro ao ligar ao servidor.', true);
       }
     }
 
-    async function sellPercentage(pct) {
-      const holdings = appData.cryptoHoldings[activeCoin] || 0;
-      if (holdings <= 0) {
-        showToast(`Não tens holdings de ${activeCoin} para vender.`, true);
+    function renderActiveContracts() {
+      const container = document.getElementById('activeContractsList');
+      const badge = document.getElementById('activeCountBadge');
+      if (!container) return;
+
+      const contracts = appData?.contracts || [];
+      const pending = contracts.filter(c => c.status === 'pending');
+      badge.textContent = pending.length;
+
+      if (pending.length === 0) {
+        container.innerHTML = '<div style="font-size:12px; color:var(--text-muted); text-align:center; padding:10px;">Sem operações ativas.</div>';
         return;
       }
 
-      const cryptoAmount = holdings * (pct / 100);
-      
-      try {
-        const res = await fetch('/api/crypto/trade', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            action: 'sell',
-            coin: activeCoin,
-            amount: cryptoAmount
-          })
-        });
+      container.innerHTML = '';
+      pending.forEach(c => {
+        const currentPrice = currentPrices[c.coin];
+        if (!currentPrice) return;
+        const isUp = c.direction === 'up';
+        const isWinning = isUp ? (currentPrice > c.entryPrice) : (currentPrice < c.entryPrice);
+        
+        const timeRemaining = Math.max(0, Math.round((c.expiryTime - Date.now()) / 1000));
+        
+        const card = document.createElement('div');
+        card.style.background = 'rgba(0,0,0,0.2)';
+        card.style.border = `1px solid ${isWinning ? 'rgba(87, 242, 135, 0.2)' : 'rgba(237, 66, 69, 0.2)'}`;
+        card.style.borderRadius = '8px';
+        card.style.padding = '10px';
+        card.style.display = 'flex';
+        card.style.flexDirection = 'column';
+        card.style.gap = '4px';
 
-        const result = await res.json();
-        if (!res.ok) {
-          showToast(result.error || 'Erro ao processar venda.', true);
-          return;
-        }
+        const directionLabel = isUp ? '<span style="color:var(--mint); font-weight:800;">▲ UP (CALL)</span>' : '<span style="color:var(--ruby); font-weight:800;">▼ DOWN (PUT)</span>';
+        
+        const entryFmt = c.coin === 'DOGE' ? c.entryPrice.toFixed(3) : Math.round(c.entryPrice).toLocaleString('pt-PT');
+        const curFmt = c.coin === 'DOGE' ? currentPrice.toFixed(3) : Math.round(currentPrice).toLocaleString('pt-PT');
 
-        showToast(`Vendeste ${pct}% das tuas holdings de ${activeCoin} com sucesso!`);
-        await loadData();
-      } catch (err) {
-        showToast('Erro ao comunicar com o servidor.', true);
-      }
+        card.innerHTML = `
+          <div style="display:flex; justify-content:space-between; font-size:12px; font-weight:700;">
+            <span>${coinIcons[c.coin]} ${c.coin} (${c.amount} 🪙)</span>
+            <span>${directionLabel}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; color:var(--text-muted); font-family: 'Share Tech Mono', monospace;">
+            <span>Entrada: ${entryFmt}</span>
+            <span style="color: ${isWinning ? 'var(--mint)' : 'var(--ruby)'}">Atual: ${curFmt}</span>
+          </div>
+          <div style="display:flex; justify-content:space-between; font-size:11px; margin-top:4px;">
+            <span style="font-weight:700; color:var(--gold);">Retorno: ${isWinning ? `+${Math.round(c.amount * 1.85)} 🪙` : '0 🪙'}</span>
+            <span style="color:${timeRemaining < 10 ? 'var(--ruby)' : 'var(--text-muted)'}; font-weight:700;">Tempo: ${timeRemaining}s</span>
+          </div>
+        `;
+        container.appendChild(card);
+      });
     }
 
     // --- Gráfico em Tempo Real (Chart.js) ---
@@ -967,6 +999,47 @@
             displayEl.className = 'chart-live-price up';
           } else {
             displayEl.className = 'chart-live-price down';
+          }
+        }
+      });
+
+      // Auto-resolver contratos cuja expiração tenha chegado
+      const contracts = appData?.contracts || [];
+      contracts.forEach(async (c) => {
+        if (c.status === 'pending' && Date.now() >= c.expiryTime) {
+          c.status = 'resolving'; // Evitar duplo processamento
+          
+          try {
+            const exitPrice = currentPrices[c.coin];
+            const res = await fetch('/api/crypto/contract/resolve', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                contractId: c.id,
+                exitPrice
+              })
+            });
+
+            const result = await res.json();
+            if (res.ok) {
+              c.status = result.contract.status;
+              c.payout = result.contract.payout;
+              c.exitPrice = exitPrice;
+              appData.balance = result.balance;
+              
+              const isWon = c.status === 'won';
+              if (isWon) {
+                showToast(`💰 Lucro! Ganhaste +${c.payout} 🪙 no contrato ${c.coin}!`);
+              } else {
+                showToast(`❌ Contrato ${c.coin} expirado sem retorno.`, true);
+              }
+              
+              renderOrderDesk();
+              renderPortfolio();
+            }
+          } catch (err) {
+            console.error("Erro ao resolver contrato:", err);
+            c.status = 'pending'; // Resetar caso falhe a rede
           }
         }
       });

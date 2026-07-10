@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roda da Fortuna — Casino Arena 🎡</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090e0c;
+      --panel-bg: rgba(13, 22, 18, 0.9);
+      --border-glow: rgba(87, 242, 135, 0.2);
+      --mint: #57f287;
+      --mint-glow: rgba(87, 242, 135, 0.4);
+      --gold: #faca2b;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #0f2319 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 500px;
+      width: 100%;
+      text-align: center;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5), 0 0 20px rgba(87, 242, 135, 0.05);
+      border-radius: 24px;
+      padding: 30px;
+      position: relative;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      margin-bottom: 8px;
+      color: #fff;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 30px;
+    }
+
+    /* Wheel Area */
+    .wheel-outer {
+      position: relative;
+      width: 320px;
+      height: 320px;
+      margin: 0 auto 30px auto;
+      border-radius: 50%;
+      box-shadow: 0 0 30px rgba(87, 242, 135, 0.15), inset 0 0 20px rgba(0,0,0,0.6);
+      padding: 10px;
+      background: #111;
+      border: 6px solid #222;
+    }
+
+    /* O ponteiro da roda */
+    .wheel-pointer {
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 24px;
+      height: 30px;
+      background: var(--gold);
+      clip-path: polygon(50% 100%, 0 0, 100% 0);
+      z-index: 10;
+      filter: drop-shadow(0 4px 6px rgba(0,0,0,0.4));
+    }
+
+    .wheel-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+      transition: transform 6s cubic-bezier(0.1, 0.8, 0.1, 1);
+      transform: rotate(0deg);
+    }
+
+    canvas {
+      width: 100%;
+      height: 100%;
+      display: block;
+      border-radius: 50%;
+    }
+
+    /* Botão central */
+    .wheel-center-pin {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 50px;
+      height: 50px;
+      background: radial-gradient(circle, #222 0%, #111 100%);
+      border: 3px solid var(--gold);
+      border-radius: 50%;
+      z-index: 5;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      color: var(--gold);
+    }
+
+    .btn-spin {
+      width: 100%;
+      background: var(--mint);
+      color: #050e08;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      box-shadow: 0 4px 15px var(--mint-glow);
+      transition: var(--transition);
+    }
+
+    .btn-spin:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(87, 242, 135, 0.4);
+    }
+
+    .btn-spin:disabled {
+      background: #2b3a32;
+      color: #555;
+      box-shadow: none;
+      cursor: not-allowed;
+    }
+
+    .btn-back {
+      display: inline-block;
+      margin-top: 15px;
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 13px;
+      font-weight: 600;
+      transition: var(--transition);
+    }
+
+    .btn-back:hover {
+      color: #fff;
+    }
+
+    /* Modal de Vitória */
+    .win-overlay {
+      position: fixed;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(0,0,0,0.85);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+    }
+
+    .win-modal {
+      background: rgba(17, 30, 24, 0.95);
+      border: 2px solid var(--mint);
+      box-shadow: 0 0 30px rgba(87, 242, 135, 0.2);
+      border-radius: 24px;
+      padding: 40px 30px;
+      max-width: 420px;
+      width: 100%;
+      text-align: center;
+      animation: scaleUp 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    @keyframes scaleUp {
+      from { transform: scale(0.8); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .win-emoji {
+      font-size: 60px;
+      margin-bottom: 15px;
+      display: inline-block;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .win-title {
+      font-size: 22px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .win-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--gold);
+      font-family: 'Share Tech Mono', monospace;
+      margin: 15px 0;
+    }
+
+    .win-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 25px;
+      line-height: 1.5;
+    }
+
+    .btn-close-win {
+      background: var(--mint);
+      color: #050e08;
+      border: none;
+      border-radius: 10px;
+      padding: 12px 24px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <h1>Roda da Fortuna 🎡</h1>
+    <p class="subtitle">Roda a roleta diária para ganhares recompensas fantásticas em moedas ou bónus!</p>
+
+    <div class="wheel-outer">
+      <div class="wheel-pointer"></div>
+      <div class="wheel-center-pin">🎡</div>
+      <div class="wheel-inner" id="wheel">
+        <canvas id="wheelCanvas" width="300" height="300"></canvas>
+      </div>
+    </div>
+
+    <button class="btn-spin" id="spinBtn" onclick="spinWheel()">Girar Roda 🚀</button>
+    <div>
+      <a href="/dashboard.html" class="btn-back">⬅ Voltar ao Painel</a>
+    </div>
+  </div>
+
+  <!-- Win Modal Overlay -->
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-modal">
+      <span class="win-emoji" id="winEmoji">🎁</span>
+      <h2 class="win-title" id="winTitle">Recompensa Recebida!</h2>
+      <div class="win-value" id="winValue">+0 🪙</div>
+      <p class="win-desc" id="winDesc">O prémio foi creditado na tua conta do casino.</p>
+      <button class="btn-close-win" onclick="closeWinModal()">Excelente! 🎉</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Configuração dos setores da roda (mesmos pesos e prémios do servidor)
+    const sectors = [
+      { label: "150 🪙", color: "#164e32", textCol: "#fff" }, // 0
+      { label: "300 🪙", color: "#1c5f3e", textCol: "#fff" }, // 1
+      { label: "500 🪙", color: "#22714a", textCol: "#fff" }, // 2
+      { label: "1000 🪙", color: "#faca2b", textCol: "#111" }, // 3
+      { label: "2500 🪙", color: "#991b1b", textCol: "#fff" }, // 4
+      { label: "5000 🪙", color: "#6d28d9", textCol: "#fff" }, // 5
+      { label: "XP ⚡", color: "#0369a1", textCol: "#fff" }, // 6
+      { label: "Trabalho 🧹", color: "#475569", textCol: "#fff" } // 7
+    ];
+
+    const numSectors = sectors.length;
+    const arc = 2 * Math.PI / numSectors;
+
+    // Desenhar a roda no canvas
+    function drawWheel() {
+      const radius = canvas.width / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      for (let i = 0; i < numSectors; i++) {
+        const angle = i * arc;
+        ctx.beginPath();
+        ctx.fillStyle = sectors[i].color;
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius - 4, angle, angle + arc);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+
+        // Linha separadora
+        ctx.strokeStyle = "rgba(0,0,0,0.15)";
+        ctx.lineWidth = 2;
+        ctx.stroke();
+
+        // Adicionar texto
+        ctx.save();
+        ctx.fillStyle = sectors[i].textCol;
+        ctx.font = "bold 13px 'Outfit', sans-serif";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        // Rodar para o meio do setor
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        // Deslocar para a borda
+        ctx.fillText(sectors[i].label, radius - 15, 0);
+        ctx.restore();
+      }
+    }
+
+    drawWheel();
+
+    let isSpinning = false;
+
+    async function spinWheel() {
+      if (isSpinning) return;
+      
+      const btn = document.getElementById('spinBtn');
+      btn.disabled = true;
+      isSpinning = true;
+
+      try {
+        const res = await fetch('/api/daily/claim', { method: 'POST' });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          alert(data.error || 'Erro ao girar a roda.');
+          btn.disabled = false;
+          isSpinning = false;
+          return;
+        }
+
+        // Determinar qual o setor correspondente ao prémio
+        // O servidor devolve: { success, balance, amount, base, bonus, streak }
+        // Mapeamos a recompensa base/bónus para os setores
+        let targetIndex = 0;
+        
+        // Determinar prémio com base na resposta da API
+        // Mapeamento simples de acordo com o total de moedas ganho
+        const total = data.amount;
+        if (total >= 5000) targetIndex = 5;
+        else if (total >= 2500) targetIndex = 4;
+        else if (total >= 1000) targetIndex = 3;
+        else if (total >= 500) targetIndex = 2;
+        else if (total >= 300) targetIndex = 1;
+        else targetIndex = 0;
+
+        // Calcular rotação
+        // O ponteiro está no topo (ângulo = -90 graus / -PI/2)
+        // Para alinhar o setor targetIndex com o topo, o ângulo da roda deve ser:
+        // totalRot = (voltas completas) + (ângulo para alinhar o setor)
+        // O setor i ocupa de (i * arc) a ((i+1) * arc). O centro é (i + 0.5) * arc.
+        const sectorAngle = (targetIndex + 0.5) * arc;
+        const targetRotRad = (2.5 * Math.PI) - sectorAngle; // alinha com o topo
+        
+        // Adiciona 5 voltas completas para o efeito visual dramático
+        const totalRotRad = (10 * Math.PI) + targetRotRad;
+        const totalRotDeg = totalRotRad * (180 / Math.PI);
+
+        const wheelEl = document.getElementById('wheel');
+        wheelEl.style.transform = `rotate(${totalRotDeg}deg)`;
+
+        // Aguardar animação de rotação (6 segundos configurado no CSS)
+        setTimeout(() => {
+          // Mostrar modal de vitória
+          document.getElementById('winEmoji').textContent = sectors[targetIndex].label.includes('🪙') ? '💰' : '⚡';
+          document.getElementById('winTitle').textContent = `Ganhaste na Roda!`;
+          document.getElementById('winValue').textContent = `${data.amount} 🪙`;
+          document.getElementById('winDesc').textContent = `Bónus diário recolhido! Streak atual: ${data.streak} dias seguidos (Bónus extra de streak: +${data.bonus} 🪙).`;
+          document.getElementById('winOverlay').style.display = 'flex';
+
+          isSpinning = false;
+        }, 6000);
+
+      } catch (err) {
+        alert('Erro ao ligar ao servidor.');
+        btn.disabled = false;
+        isSpinning = false;
+      }
+    }
+
+    function closeWinModal() {
+      document.getElementById('winOverlay').style.display = 'none';
+      window.location.href = '/dashboard.html';
+    }
+
+    // Verificar cooldown ao carregar
+    async function checkState() {
+      try {
+        const res = await fetch('/api/dashboard/data');
+        if (res.ok) {
+          const data = await res.json();
+          if (data.cooldowns.daily > 0) {
+            const btn = document.getElementById('spinBtn');
+            btn.disabled = true;
+            const hours = Math.floor(data.cooldowns.daily / (3600 * 1000));
+            const minutes = Math.floor((data.cooldowns.daily % (3600 * 1000)) / 60000);
+            btn.textContent = `Aguardar ${hours}h ${minutes}m`;
+          }
+        }
+      } catch (err) {}
+    }
+    checkState();
+  </script>
+</body>
+</html>
