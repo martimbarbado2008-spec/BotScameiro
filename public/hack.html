@@ -1,0 +1,437 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Hackear o Banco — Trabalho do Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --neon-green: #39ff14;
+    --neon-green-glow: rgba(57, 255, 20, 0.2);
+    --ruby: #ED4245;
+    --charcoal: #e5f3eb;
+    --sun: #FACA2B;
+    --panel-bg: rgba(10, 25, 17, 0.6);
+    --border-glow: rgba(57, 255, 20, 0.25);
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    background: radial-gradient(circle, #091a10 0%, #030805 100%);
+    color: var(--charcoal);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    overflow: hidden;
+  }
+  header {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .eyebrow {
+    display: inline-block;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    color: var(--neon-green);
+    text-shadow: 0 0 5px var(--neon-green);
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 11px;
+    letter-spacing: .12em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 4px;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 24px; color: var(--charcoal); margin: 0 0 6px; font-weight: 800; letter-spacing: -0.01em; }
+  header p { font-size: 13px; color: #7fa68b; margin: 0; line-height: 1.4; }
+  
+  .hud { display: flex; gap: 12px; margin-bottom: 20px; justify-content: center; width: 100%; max-width: 380px; }
+  .hud-card {
+    background: var(--panel-bg);
+    border: 1px solid rgba(57, 255, 20, 0.1);
+    border-radius: 8px;
+    padding: 10px 16px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    flex: 1;
+    font-family: 'Share Tech Mono', monospace;
+  }
+  .hud-card .label { font-size: 10px; text-transform: uppercase; color: #7fa68b; }
+  .hud-card .value { font-size: 20px; color: var(--neon-green); text-shadow: 0 0 6px var(--neon-green-glow); font-weight: 700; margin-top: 4px; }
+  
+  .game-frame {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 380px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+
+  .terminal-output {
+    width: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(57, 255, 20, 0.15);
+    border-radius: 6px;
+    padding: 12px;
+    font-family: 'Share Tech Mono', monospace;
+    font-size: 13px;
+    color: var(--neon-green);
+    margin-bottom: 20px;
+    min-height: 54px;
+    text-shadow: 0 0 3px var(--neon-green-glow);
+    line-height: 1.4;
+  }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    width: 100%;
+    margin-bottom: 20px;
+  }
+
+  .node-btn {
+    aspect-ratio: 1.4;
+    border-radius: 8px;
+    border: 2px solid rgba(57, 255, 20, 0.2);
+    background: rgba(57, 255, 20, 0.02);
+    color: var(--neon-green);
+    font-size: 24px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: inset 0 0 10px rgba(57,255,20,0.01);
+    transition: all 0.1s ease;
+  }
+
+  /* Node Colors when lit up */
+  .node-btn.lit-0 { background: #39ff14 !important; box-shadow: 0 0 25px #39ff14 !important; border-color: #39ff14 !important; }
+  .node-btn.lit-1 { background: #00e5ff !important; box-shadow: 0 0 25px #00e5ff !important; border-color: #00e5ff !important; }
+  .node-btn.lit-2 { background: #ff007f !important; box-shadow: 0 0 25px #ff007f !important; border-color: #ff007f !important; }
+  .node-btn.lit-3 { background: #ffea00 !important; box-shadow: 0 0 25px #ffea00 !important; border-color: #ffea00 !important; }
+
+  .node-btn:active {
+    transform: scale(0.96);
+  }
+
+  .btn-start {
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--neon-green);
+    color: var(--neon-green);
+    font-family: 'Share Tech Mono', monospace;
+    font-weight: 700;
+    font-size: 16px;
+    text-transform: uppercase;
+    padding: 14px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 0 10px var(--neon-green-glow);
+    transition: all 0.2s ease;
+  }
+
+  .btn-start:hover {
+    background: var(--neon-green);
+    color: #000;
+    box-shadow: 0 0 20px rgba(57, 255, 20, 0.4);
+  }
+  
+  .result {
+    display: none;
+    text-align: center;
+    margin-top: 18px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    color: var(--charcoal);
+    border-radius: 12px;
+    padding: 20px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: var(--shadow);
+  }
+  .result.show { display: block; }
+  .result h2 { margin: 0 0 8px; color: var(--sun); font-size: 20px; font-weight: 800; }
+  .result p { margin: 0; font-size: 13px; color: #8ead9e; line-height: 1.4; }
+  
+  .btn-back {
+    display: inline-block;
+    margin-top: 14px;
+    background: linear-gradient(135deg, var(--sun), #b08915);
+    border: none;
+    color: #09130e;
+    font-weight: 700;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .note { max-width: 380px; font-size: 11px; color: #436952; text-align: center; margin-top: 16px; line-height: 1.6; font-family: 'Share Tech Mono', monospace; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="eyebrow">BYPASS SECURE LOGIC</span>
+  <h1>Infiltração de Sistema</h1>
+  <p>Replica a sequência de luzes e sons da consola. Se falhares uma única vez, o alarme toca!</p>
+</header>
+
+<div class="hud">
+  <div class="hud-card"><div class="label">Nível Bypassed</div><div class="value" id="roundValue">0/5</div></div>
+  <div class="hud-card"><div class="label">Comprimento Link</div><div class="value" id="seqLength">3</div></div>
+</div>
+
+<div class="game-frame" id="gameFrame">
+  <div class="terminal-output" id="terminal">
+    SYSTEM SHUTDOWN: READY.<br>CLICK "INICIAR PROCESSO" TO OVERRIDE.
+  </div>
+
+  <div class="grid" id="nodeGrid" style="pointer-events: none; opacity: 0.6;">
+    <button class="node-btn" id="node-0" onclick="handleNodeClick(0)">⚡</button>
+    <button class="node-btn" id="node-1" onclick="handleNodeClick(1)">🔌</button>
+    <button class="node-btn" id="node-2" onclick="handleNodeClick(2)">🔒</button>
+    <button class="node-btn" id="node-3" onclick="handleNodeClick(3)">📡</button>
+  </div>
+
+  <button class="btn-start" id="btnStart" onclick="startGame()">Iniciar Processo</button>
+</div>
+
+<div class="result" id="result">
+  <h2 id="resultTitle">A processar...</h2>
+  <p id="resultText"></p>
+  <a href="/dashboard.html" class="btn-back" id="btnBack">Voltar ao Painel</a>
+</div>
+
+<p class="note">Acesso restrito. Não saias da página durante o override de encriptação.</p>
+
+<script>
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  
+  // Tones para os 4 botões (Simon Says)
+  const NODE_TONES = [261.63, 329.63, 392.00, 523.25]; // C4, E4, G4, C5
+
+  function playTone(nodeIdx, duration = 300) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(NODE_TONES[nodeIdx], audioCtx.currentTime);
+    gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + duration / 1000);
+    osc.start();
+    osc.stop(audioCtx.currentTime + duration / 1000);
+  }
+
+  function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    if (type === 'alarm') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(120, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(80, audioCtx.currentTime + 0.4);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'win') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(440, audioCtx.currentTime);
+      osc.frequency.setValueAtTime(554.37, audioCtx.currentTime + 0.1);
+      osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.2);
+      osc.frequency.setValueAtTime(880, audioCtx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.6);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.6);
+    } else if (type === 'lose') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(80, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(40, audioCtx.currentTime + 0.8);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.8);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.8);
+    }
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const JOB_TOKEN = urlParams.get('jobToken');
+
+  let sequence = [];
+  let userSequence = [];
+  let currentRound = 1; // Ronda 1 a 5
+  let isPlayingSeq = false;
+  let finished = false;
+
+  const terminal = document.getElementById('terminal');
+  const nodeGrid = document.getElementById('nodeGrid');
+  const btnStart = document.getElementById('btnStart');
+  const roundValueEl = document.getElementById('roundValue');
+  const seqLengthEl = document.getElementById('seqLength');
+  const gameFrame = document.getElementById('gameFrame');
+  const resultBox = document.getElementById('result');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultText = document.getElementById('resultText');
+
+  function getSequenceLength(round) {
+    return round + 2; // R1:3, R2:4, R3:5, R4:6, R5:7
+  }
+
+  function startGame() {
+    btnStart.style.display = 'none';
+    nodeGrid.style.opacity = '1';
+    currentRound = 1;
+    sequence = [];
+    roundValueEl.textContent = '0/5';
+    startRound();
+  }
+
+  function startRound() {
+    userSequence = [];
+    seqLengthEl.textContent = getSequenceLength(currentRound);
+    
+    // Adiciona mais um nó aleatório à sequência
+    const lengthNeeded = getSequenceLength(currentRound);
+    while (sequence.length < lengthNeeded) {
+      sequence.push(Math.floor(Math.random() * 4));
+    }
+
+    terminal.innerHTML = `RONDA ${currentRound}/5<br>A REPRODUZIR CÓDIGO DE ACESSO...`;
+    nodeGrid.style.pointerEvents = 'none';
+    isPlayingSeq = true;
+
+    playSequence();
+  }
+
+  async function playSequence() {
+    const delay = 450 - (currentRound * 30); // Fica mais rápido a cada ronda
+    for (let i = 0; i < sequence.length; i++) {
+      if (finished) return;
+      await sleep(150);
+      lightUpNode(sequence[i], delay);
+      await sleep(delay);
+    }
+    
+    if (!finished) {
+      isPlayingSeq = false;
+      nodeGrid.style.pointerEvents = 'auto';
+      terminal.innerHTML = `RONDA ${currentRound}/5<br>SUA VEZ: REPLICA A SEQUÊNCIA!`;
+    }
+  }
+
+  function lightUpNode(nodeIdx, duration) {
+    const btn = document.getElementById(`node-${nodeIdx}`);
+    btn.classList.add(`lit-${nodeIdx}`);
+    playTone(nodeIdx, duration);
+    setTimeout(() => {
+      btn.classList.remove(`lit-${nodeIdx}`);
+    }, duration);
+  }
+
+  function handleNodeClick(nodeIdx) {
+    if (isPlayingSeq || finished) return;
+    
+    lightUpNode(nodeIdx, 250);
+    userSequence.push(nodeIdx);
+
+    // Valida o clique
+    const currentStep = userSequence.length - 1;
+    if (userSequence[currentStep] !== sequence[currentStep]) {
+      // FALHOU!
+      playSound('alarm');
+      terminal.innerHTML = `!! SISTEMA BLOQUEADO !!<br>CÓDIGO INCORRETO DETETADO!`;
+      finish(false);
+      return;
+    }
+
+    if (userSequence.length === sequence.length) {
+      // Completou ronda com sucesso!
+      nodeGrid.style.pointerEvents = 'none';
+      roundValueEl.textContent = `${currentRound}/5`;
+      
+      if (currentRound === 5) {
+        // Hacking completo!
+        playSound('win');
+        terminal.innerHTML = `OVERRIDE CONCLUÍDO COM SUCESSO!<br>SISTEMA DO BANCO HACKEADO.`;
+        finish(true);
+      } else {
+        terminal.innerHTML = `CORRETO!<br>A CARREGAR PRÓXIMO PROTOCOLO...`;
+        currentRound++;
+        setTimeout(startRound, 1200);
+      }
+    }
+  }
+
+  async function finish(success) {
+    finished = true;
+    nodeGrid.style.pointerEvents = 'none';
+    gameFrame.style.opacity = '0.4';
+    resultBox.style.display = 'block';
+    resultTitle.textContent = 'A processar...';
+    resultText.textContent = '';
+
+    const score = success ? 5 : (currentRound - 1);
+
+    try {
+      const res = await fetch('/api/jobs/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ jobToken: JOB_TOKEN, score })
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        playSound('lose');
+        resultTitle.textContent = 'Ups!';
+        resultText.textContent = data.error || 'Erro ao processar bypass de sistema.';
+      } else {
+        if (data.reward > 0) {
+          playSound('win');
+          resultTitle.textContent = success ? 'Hacking Completo!' : 'Hacking Parcial!';
+          resultText.textContent = `Bypass efetuado em **${score}/5** níveis. Recebeste **${data.reward} moedas**!`;
+        } else {
+          playSound('lose');
+          resultTitle.textContent = 'Override Falhou!';
+          resultText.textContent = 'Foste detetado pela firewall no nível 1 e ganhaste 0 moedas. Tenta outra vez!';
+        }
+      }
+    } catch (err) {
+      playSound('lose');
+      resultTitle.textContent = 'Erro!';
+      resultText.textContent = 'Falha ao gravar os dados.';
+    }
+  }
+
+  function sleep(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+  }
+</script>
+</body>
+</html>

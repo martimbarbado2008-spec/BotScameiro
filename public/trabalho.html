@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Faxina Rápida — Trabalho do Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mint: #57F287;
+    --mint-deep: #21a347;
+    --pine: #09130e;
+    --bubble: #6FB8D9;
+    --sun: #FACA2B;
+    --charcoal: #e5f3eb;
+    --dirty: #B08968;
+    --dirty-dark: #8A6A4F;
+    --clean: rgba(255,255,255,0.06);
+    --trap: #ED4245;
+    --trap-dark: #a62426;
+    --border-glow: rgba(250, 202, 43, 0.2);
+    --panel-bg: rgba(18, 38, 29, 0.45);
+    --shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    background: linear-gradient(135deg, #09130e 0%, #0d1e16 100%);
+    color: var(--charcoal);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+  }
+  header {
+    width: 100%;
+    max-width: 420px;
+    text-align: center;
+    margin-bottom: 20px;
+  }
+  .eyebrow {
+    display: inline-block;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    color: var(--sun);
+    font-weight: 700;
+    font-size: 11px;
+    letter-spacing: .08em;
+    text-transform: uppercase;
+    padding: 6px 14px;
+    border-radius: 999px;
+    margin-bottom: 12px;
+  }
+  h1 { font-size: 24px; color: var(--charcoal); margin: 0 0 6px; font-weight: 800; }
+  header p { font-size: 13px; color: #8ead9e; margin: 0; line-height: 1.4; }
+  
+  .hud { display: flex; gap: 12px; margin-bottom: 20px; justify-content: center; width: 100%; max-width: 380px; }
+  .hud-card {
+    background: var(--panel-bg);
+    border: 1px solid rgba(255,255,255,0.05);
+    border-radius: 14px;
+    padding: 12px 20px;
+    box-shadow: var(--shadow);
+    text-align: center;
+    flex: 1;
+  }
+  .hud-card .label { font-size: 9px; text-transform: uppercase; letter-spacing: .08em; color: #8ead9e; font-weight: 700; }
+  .hud-card .value { font-size: 22px; color: var(--sun); font-weight: 800; margin-top: 4px; }
+  
+  .room-frame {
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    border-radius: 24px;
+    padding: 20px;
+    box-shadow: var(--shadow);
+    width: 100%;
+    max-width: 380px;
+    transition: transform .15s ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+  .room-frame.shake { animation: shake .35s ease; }
+  @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-8px)} 40%{transform:translateX(8px)} 60%{transform:translateX(-6px)} 80%{transform:translateX(6px)} }
+  
+  .timer-track { width: 100%; height: 8px; background: rgba(255,255,255,0.05); border-radius: 999px; overflow: hidden; margin-bottom: 16px; border: 1px solid rgba(255,255,255,0.05); }
+  .timer-fill { height: 100%; background: linear-gradient(90deg, var(--bubble), var(--mint)); border-radius: 999px; transition: width .2s linear; }
+  
+  .grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+  .tile {
+    position: relative;
+    aspect-ratio: 1;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.05);
+    cursor: pointer;
+    font-size: 22px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--dirty);
+    box-shadow: inset 0 -4px 0 var(--dirty-dark);
+    transition: transform .08s ease, background .25s ease;
+    user-select: none;
+  }
+  .tile:active { transform: scale(.95); }
+  .tile.clean { background: var(--clean); box-shadow: none; border-color: rgba(255,255,255,0.03); cursor: default; pointer-events: none; }
+  .tile.trap { background: var(--trap); box-shadow: inset 0 -4px 0 var(--trap-dark); }
+  .tile.trap.sprung { background: var(--clean); box-shadow: none; border-color: rgba(255,255,255,0.03); cursor: default; pointer-events: none; }
+  
+  .sparkle { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 18px; opacity: 0; animation: pop .5s ease forwards; pointer-events: none; }
+  @keyframes pop { 0%{opacity:1;transform:scale(.6)} 100%{opacity:0;transform:scale(1.5) translateY(-16px)} }
+  
+  .result {
+    display: none;
+    text-align: center;
+    margin-top: 18px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border-glow);
+    color: var(--charcoal);
+    border-radius: 18px;
+    padding: 20px;
+    max-width: 380px;
+    width: 100%;
+    box-shadow: var(--shadow);
+  }
+  .result.show { display: block; }
+  .result h2 { margin: 0 0 8px; color: var(--sun); font-size: 20px; font-weight: 800; }
+  .result p { margin: 0; font-size: 13px; color: #8ead9e; line-height: 1.4; }
+  
+  .btn-back {
+    display: inline-block;
+    margin-top: 14px;
+    background: linear-gradient(135deg, var(--sun), #b08915);
+    border: none;
+    color: #09130e;
+    font-weight: 700;
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 12px;
+    text-transform: uppercase;
+    text-decoration: none;
+  }
+
+  .note { max-width: 380px; font-size: 11px; color: #5c6f61; text-align: center; margin-top: 16px; line-height: 1.6; }
+</style>
+</head>
+<body>
+
+<header>
+  <span class="eyebrow">Faxina Rápida</span>
+  <h1>Hora de limpar a casa!</h1>
+  <p>Limpa a sujidade. Cuidado com os 🐭 (roubam tempo). A sujidade reaparece se demorares!</p>
+</header>
+
+<div class="hud">
+  <div class="hud-card"><div class="label">Limpo</div><div class="value" id="cleanedValue">0/14</div></div>
+  <div class="hud-card"><div class="label">Tempo</div><div class="value" id="timeValue">20s</div></div>
+</div>
+
+<div class="room-frame" id="roomFrame">
+  <div class="timer-track"><div class="timer-fill" id="timerFill" style="width:100%"></div></div>
+  <div class="grid" id="grid"></div>
+</div>
+
+<div class="result" id="result">
+  <h2 id="resultTitle">A processar...</h2>
+  <p id="resultText"></p>
+  <a href="/dashboard.html" class="btn-back" id="btnBack" style="display:none;">Voltar ao Painel</a>
+</div>
+
+<p class="note">Não feches a página enquanto gravas as moedas no teu saldo.</p>
+
+<script>
+  // Som sintético com Web Audio API
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function playSound(type) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+    
+    if (type === 'clean') {
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(800, audioCtx.currentTime + 0.15);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.15);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.15);
+    } else if (type === 'trap') {
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(50, audioCtx.currentTime + 0.3);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.3);
+    } else if (type === 'win') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, audioCtx.currentTime); // C5
+      osc.frequency.setValueAtTime(659.25, audioCtx.currentTime + 0.1); // E5
+      osc.frequency.setValueAtTime(783.99, audioCtx.currentTime + 0.2); // G5
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.4);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.4);
+    } else if (type === 'lose') {
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(200, audioCtx.currentTime);
+      osc.frequency.linearRampToValueAtTime(100, audioCtx.currentTime + 0.5);
+      gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.5);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.5);
+    }
+  }
+
+  const urlParams = new URLSearchParams(window.location.search);
+  const TOKEN = urlParams.get('token');
+  const JOB_TOKEN = urlParams.get('jobToken');
+
+  const DIRTY_COUNT = 14;
+  const TOTAL_TILES = 16;
+  const TIME_LIMIT = 20;
+  const TRAP_COUNT = 2;
+  const TRAP_PENALTY = 3;
+  const RESPAWN_INTERVAL_MS = 3200;
+  const MAX_RESPAWNS = 5;
+  const DIRT_EMOJI = ['🧹','🧽','🪣','🧼'];
+
+  let progress = 0;
+  let finished = false;
+  let timeLeft = TIME_LIMIT;
+  let timerInterval = null;
+  let respawnInterval = null;
+  let respawnsUsed = 0;
+  let dirtyTileEls = [];
+
+  const grid = document.getElementById('grid');
+  const cleanedValueEl = document.getElementById('cleanedValue');
+  const timeValueEl = document.getElementById('timeValue');
+  const timerFillEl = document.getElementById('timerFill');
+  const roomFrame = document.getElementById('roomFrame');
+  const resultBox = document.getElementById('result');
+  const resultTitle = document.getElementById('resultTitle');
+  const resultText = document.getElementById('resultText');
+  const btnBack = document.getElementById('btnBack');
+
+  cleanedValueEl.textContent = `0/${DIRTY_COUNT}`;
+
+  function buildGrid() {
+    grid.innerHTML = '';
+    dirtyTileEls = [];
+    const indices = [...Array(TOTAL_TILES).keys()];
+    for (let i = indices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [indices[i], indices[j]] = [indices[j], indices[i]];
+    }
+    const dirtyIdx = new Set(indices.slice(0, DIRTY_COUNT));
+    const trapIdx = new Set(indices.slice(DIRTY_COUNT, DIRTY_COUNT + TRAP_COUNT));
+
+    for (let i = 0; i < TOTAL_TILES; i++) {
+      const tile = document.createElement('button');
+      tile.className = 'tile';
+      if (dirtyIdx.has(i)) {
+        markDirty(tile);
+        dirtyTileEls.push(tile);
+      } else if (trapIdx.has(i)) {
+        tile.classList.add('trap');
+        tile.textContent = '🐭';
+        tile.addEventListener('click', () => springTrap(tile));
+      } else {
+        tile.classList.add('clean');
+      }
+      grid.appendChild(tile);
+    }
+  }
+
+  function markDirty(tile) {
+    tile.classList.remove('clean');
+    tile.textContent = DIRT_EMOJI[Math.floor(Math.random() * DIRT_EMOJI.length)];
+    tile.onclick = () => cleanTile(tile);
+  }
+
+  function sparkleOn(tile, emoji) {
+    const sparkle = document.createElement('span');
+    sparkle.className = 'sparkle';
+    sparkle.textContent = emoji;
+    tile.appendChild(sparkle);
+    setTimeout(() => sparkle.remove(), 500);
+  }
+
+  function cleanTile(tile) {
+    if (finished || tile.classList.contains('clean')) return;
+    playSound('clean');
+    tile.textContent = '';
+    tile.classList.add('clean');
+    tile.onclick = null;
+    sparkleOn(tile, '✨');
+
+    progress++;
+    cleanedValueEl.textContent = Math.max(progress, 0) + '/' + DIRTY_COUNT;
+    if (progress >= DIRTY_COUNT) finish();
+  }
+
+  function springTrap(tile) {
+    if (finished || tile.classList.contains('sprung')) return;
+    playSound('trap');
+    tile.classList.add('sprung');
+    tile.textContent = '💥';
+    tile.onclick = null;
+    sparkleOn(tile, '💢');
+    roomFrame.classList.remove('shake');
+    void roomFrame.offsetWidth;
+    roomFrame.classList.add('shake');
+
+    timeLeft = Math.max(timeLeft - TRAP_PENALTY, 0);
+    timeValueEl.textContent = timeLeft + 's';
+    timerFillEl.style.width = Math.max((timeLeft / TIME_LIMIT) * 100, 0) + '%';
+    if (timeLeft <= 0) finish();
+  }
+
+  function respawnDirt() {
+    if (finished || respawnsUsed >= MAX_RESPAWNS || timeLeft <= 5) return;
+    const cleanedOriginals = dirtyTileEls.filter(t => t.classList.contains('clean'));
+    if (cleanedOriginals.length === 0) return;
+    const tile = cleanedOriginals[Math.floor(Math.random() * cleanedOriginals.length)];
+    markDirty(tile);
+    respawnsUsed++;
+    progress--;
+    cleanedValueEl.textContent = Math.max(progress, 0) + '/' + DIRTY_COUNT;
+  }
+
+  function startTimer() {
+    timerInterval = setInterval(() => {
+      timeLeft--;
+      timeValueEl.textContent = Math.max(timeLeft, 0) + 's';
+      timerFillEl.style.width = Math.max((timeLeft / TIME_LIMIT) * 100, 0) + '%';
+      if (timeLeft <= 0) finish();
+    }, 1000);
+    respawnInterval = setInterval(respawnDirt, RESPAWN_INTERVAL_MS);
+  }
+
+  async function finish() {
+    if (finished) return;
+    finished = true;
+    clearInterval(timerInterval);
+    clearInterval(respawnInterval);
+    roomFrame.style.opacity = '0.4';
+    resultBox.style.display = 'block';
+    resultTitle.textContent = 'A processar...';
+    resultText.textContent = '';
+
+    const score = Math.max(progress, 0);
+
+    // Seleciona endpoint baseado no tipo de login (painel ou bot direto)
+    let url = '/api/jobs/complete';
+    let payload = { jobToken: JOB_TOKEN, score };
+
+    if (TOKEN) {
+      url = '/api/trabalho/completar';
+      payload = { token: TOKEN, cleaned: score };
+    }
+
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      
+      if (!res.ok) {
+        playSound('lose');
+        resultTitle.textContent = 'Ups!';
+        resultText.textContent = data.error || 'Ocorreu um erro ao registar o trabalho.';
+      } else {
+        const reward = data.reward !== undefined ? data.reward : data.cleaned;
+        if (reward > 0) {
+          playSound('win');
+          resultTitle.textContent = 'Trabalho Concluído!';
+          resultText.textContent = `Limpaste a casa com sucesso e recebeste **${reward} moedas**!`;
+        } else {
+          playSound('lose');
+          resultTitle.textContent = 'Tempo Esgotado!';
+          resultText.textContent = `Não conseguiste limpar o suficiente e ganhaste 0 moedas. Tenta de novo!`;
+        }
+      }
+    } catch (err) {
+      playSound('lose');
+      resultTitle.textContent = 'Erro!';
+      resultText.textContent = 'Erro de ligação com o servidor.';
+    }
+
+    // Exibe botão de voltar apenas se veio do painel web
+    if (JOB_TOKEN) {
+      btnBack.style.display = 'inline-block';
+    }
+  }
+
+  buildGrid();
+  startTimer();
+</script>
+</body>
+</html>
