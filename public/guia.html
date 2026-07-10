@@ -327,6 +327,87 @@
 
     .empty-state h3 { font-size: 18px; margin-bottom: 6px; color: var(--text); }
     .empty-state p { font-size: 14px; color: var(--text-muted); }
+
+    /* Tutorial Styling */
+    .tutorial-card {
+      background: linear-gradient(135deg, rgba(250, 202, 43, 0.05) 0%, rgba(18, 38, 29, 0.65) 100%);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 24px;
+      margin-bottom: 30px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    .tutorial-header {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      margin-bottom: 20px;
+    }
+    .tutorial-emoji {
+      font-size: 32px;
+      filter: drop-shadow(0 0 10px rgba(250, 202, 43, 0.3));
+    }
+    .tutorial-header h2 {
+      font-size: 20px;
+      font-weight: 800;
+      color: var(--gold);
+      text-shadow: 0 0 10px rgba(250, 202, 43, 0.1);
+      margin-bottom: 4px;
+    }
+    .tutorial-header p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin: 0;
+    }
+    .steps-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 12px;
+    }
+    .step-card {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 12px;
+      padding: 16px;
+      position: relative;
+      transition: var(--transition);
+    }
+    .step-card:hover {
+      border-color: rgba(250, 202, 43, 0.15);
+      background: rgba(0, 0, 0, 0.3);
+      transform: translateY(-1px);
+    }
+    .step-num {
+      position: absolute;
+      top: 12px;
+      right: 12px;
+      font-size: 24px;
+      font-weight: 800;
+      color: rgba(250, 202, 43, 0.15);
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .step-card h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 6px;
+      color: var(--mint);
+    }
+    .step-card p {
+      font-size: 12px;
+      color: var(--text-muted);
+      line-height: 1.4;
+      margin: 0;
+    }
+    .step-card code {
+      font-family: 'Share Tech Mono', monospace;
+      color: var(--gold);
+      background: rgba(250,202,43,0.06);
+      padding: 2px 4px;
+      border-radius: 4px;
+      font-size: 11px;
+    }
   </style>
 </head>
 <body>
@@ -340,6 +421,44 @@
       <h1>Comandos do Casino Bot</h1>
       <p>Explora a lista completa de comandos disponíveis no bot de Discord. Usa a pesquisa para encontrar o que precisas.</p>
     </header>
+
+    <!-- Guia de Início Rápido -->
+    <div class="tutorial-card">
+      <div class="tutorial-header">
+        <span class="tutorial-emoji">🚀</span>
+        <div>
+          <h2>Guia de Início Rápido</h2>
+          <p>És novo no Casino? Segue estes 5 passos simples para começares a dominar a economia!</p>
+        </div>
+      </div>
+      <div class="steps-grid">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <h3>Claim Diário</h3>
+          <p>Usa <code>/diario</code> no Discord para receberes moedas iniciais gratuitas.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <h3>Protege o Saldo</h3>
+          <p>Usa <code>/banco depositar</code>. Evita assaltos de outros membros e ganha juros passivos.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <h3>Trabalha e Joga</h3>
+          <p>Usa <code>/trabalhar</code>, <code>/pescar</code> ou <code>/hackear</code> para ganhar moedas no site.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">4</div>
+          <h3>Compra VIP</h3>
+          <p>Acede à <code>/loja</code> e compra o plano VIP Bronze para teres bónus diários aumentados.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">5</div>
+          <h3>Multiplica</h3>
+          <p>Experimenta a sorte em <code>/slots</code>, <code>/blackjack</code> ou <code>/mines</code> com moderação.</p>
+        </div>
+      </div>
+    </div>
 
     <div class="controls-wrapper">
       <div class="search-box">
