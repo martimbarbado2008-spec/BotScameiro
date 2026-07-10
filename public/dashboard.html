@@ -907,6 +907,20 @@
           </table>
         </div>
 
+        <!-- Painel de Futebol -->
+        <div class="panel">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 18px;">
+            <h2 class="panel-title" style="margin-bottom: 0; border: none; padding: 0;"><span class="emoji">⚽</span> Apostas Desportivas (Futebol)</h2>
+            <a href="/futebol.html" class="btn-play" style="text-decoration: none; display: inline-block; background: var(--mint); color: #000; border-color: var(--mint-glow);">Apostar em Jogos ⚽</a>
+          </div>
+          <div style="margin-bottom: 12px; font-size: 13px; color: var(--text-muted); text-align: left;">
+            Bilhetes de Apostas Ativos:
+          </div>
+          <div id="dashboardFootballBets">
+            <!-- Renderizado dinamicamente -->
+          </div>
+        </div>
+
         <!-- Painel de Conquistas -->
         <div class="panel">
           <h2 class="panel-title"><span class="emoji">🏅</span> Conquistas e Badges</h2>
@@ -965,6 +979,7 @@
         }
         appData = await res.json();
         renderDashboard();
+        loadDashboardFootballBets();
       } catch (err) {
         document.getElementById('unauthScreen').style.display = 'block';
       }
@@ -1565,6 +1580,50 @@
         }
       } catch (err) {
         console.error(err);
+      }
+    }
+
+    async function loadDashboardFootballBets() {
+      try {
+        const res = await fetch('/api/football/bets');
+        if (!res.ok) return;
+        const bets = await res.json();
+        const container = document.getElementById('dashboardFootballBets');
+        if (!container) return;
+        container.innerHTML = '';
+        
+        const pendingBets = bets.filter(b => b.status === 'pending');
+        if (pendingBets.length === 0) {
+          container.innerHTML = '<p style="font-size:11px; color:var(--text-muted); text-align:center; padding:10px;">Sem apostas ativas em aberto.</p>';
+          return;
+        }
+
+        pendingBets.slice(0, 3).forEach(b => {
+          const predMap = { '1': b.homeTeam, 'X': 'Empate', '2': b.awayTeam };
+          const div = document.createElement('div');
+          div.style.display = 'flex';
+          div.style.justifyContent = 'space-between';
+          div.style.alignItems = 'center';
+          div.style.background = 'rgba(255,255,255,0.02)';
+          div.style.border = '1px solid rgba(255,255,255,0.04)';
+          div.style.padding = '8px 12px';
+          div.style.borderRadius = '8px';
+          div.style.marginBottom = '8px';
+          div.style.fontSize = '12px';
+          div.innerHTML = `
+            <div style="text-align: left;">
+              <div style="font-weight:700;">${b.homeTeam} vs ${b.awayTeam}</div>
+              <div style="font-size:10px; color:var(--text-muted);">${b.league} | Palpite: ${predMap[b.prediction] || b.prediction}</div>
+            </div>
+            <div style="text-align:right;">
+              <div style="font-weight:700; color:var(--gold);">${fmt(b.amount)}</div>
+              <div style="font-size:10px; color:var(--mint);">Odds: x${b.odds.toFixed(2)}</div>
+            </div>
+          `;
+          container.appendChild(div);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar apostas de futebol na dashboard:", err);
       }
     }
 
