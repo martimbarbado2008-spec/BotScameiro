@@ -657,8 +657,12 @@ app.get('/api/dashboard/data', async (req, res) => {
       const guild = discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch(() => null);
       if (guild) {
         const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
-        if (member && member.permissions.has('Administrator')) {
-          isAdmin = true;
+        if (member) {
+          const hasPerm = member.permissions.has('Administrator');
+          const hasRole = member.roles.cache.some(r => r.name.toLowerCase() === 'administrador');
+          if (hasPerm || hasRole) {
+            isAdmin = true;
+          }
         }
       }
     }
@@ -1227,8 +1231,15 @@ async function checkAdmin(req, res, next) {
     if (!guild) return res.status(404).json({ error: 'Servidor Guilda não encontrado.' });
 
     const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
-    if (!member || !member.permissions.has('Administrator')) {
-      return res.status(403).json({ error: 'Acesso negado. Apenas administradores do servidor podem realizar esta ação.' });
+    if (!member) {
+      return res.status(403).json({ error: 'Membro não encontrado no servidor.' });
+    }
+
+    const hasPerm = member.permissions.has('Administrator');
+    const hasRole = member.roles.cache.some(r => r.name.toLowerCase() === 'administrador');
+
+    if (!hasPerm && !hasRole) {
+      return res.status(403).json({ error: 'Acesso negado. Precisas de ter cargo Administrador no Discord para aceder a esta página.' });
     }
     next();
   } catch (err) {

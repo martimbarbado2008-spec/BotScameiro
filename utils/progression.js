@@ -121,6 +121,26 @@ async function applyProgressionFor(ctx, { game, bet, net, won }) {
 
   if (xpResult.leveledUp) {
     await syncLevelRoles(ctx, xpResult.level).catch(() => {});
+    
+    // Anúncio público no chat (apaga após 1 minuto)
+    const cfg = db.getGuildConfig(guildId);
+    const targetChannelId = ctx.channelId || cfg.logChannelId;
+    if (ctx.client && targetChannelId) {
+      try {
+        const channel = await ctx.client.channels.fetch(targetChannelId).catch(() => null);
+        if (channel && typeof channel.send === 'function') {
+          const lvlEmbed = baseEmbed('⭐ SUBIDA DE NÍVEL! ⭐', COLORS.gold)
+            .setDescription(`🎉 Parabéns ${ctx.user}!\n\nSubiste para o **Nível ${xpResult.level}**! Continua a jogar para dominares o casino! 🚀\n\n*(Esta mensagem auto-destrói-se em 1 minuto)*`);
+          
+          const annMsg = await channel.send({ embeds: [lvlEmbed] });
+          setTimeout(() => {
+            annMsg.delete().catch(() => {});
+          }, 60000);
+        }
+      } catch (err) {
+        console.error('Erro ao anunciar subida de nível no chat:', err.message);
+      }
+    }
   }
   await syncBalanceRoles(ctx).catch(() => {});
 
