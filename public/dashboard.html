@@ -754,8 +754,13 @@
     </div>
     <div class="chat-footer">
       <input type="text" class="chat-input" id="chatInput" placeholder="Digita uma mensagem..." onkeydown="handleChatKey(event)">
-      <button class="chat-send-btn" onclick="sendChatMessage()">➔</button>
-    </div>
+  </div>
+
+  <!-- Context Menu do Chat -->
+  <div id="chatContextMenu" style="display:none; position:fixed; background:#0c1c14; border:1px solid var(--mint); border-radius:8px; box-shadow:var(--shadow); z-index:20000; min-width:160px; padding:6px 0;">
+    <button onclick="challengeUserFromMenu()" style="width:100%; text-align:left; background:transparent; border:none; color:#fff; padding:8px 12px; cursor:pointer; font-size:12px; font-weight:700; display:flex; align-items:center; gap:8px;">
+      ⚔️ Desafiar para Duelo
+    </button>
   </div>
     <header>
       <div class="profile-section">
@@ -1398,11 +1403,32 @@
       bubble.className = 'chat-message-bubble';
       
       const avatarUrl = msg.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+      
+      let actionButtonsHTML = '';
+      if (msg.duel) {
+        const duelId = msg.duel.id;
+        if (msg.duel.opponentId === appData.userId) {
+          actionButtonsHTML = `
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button onclick="resolveDuel(event, '${duelId}', 'accept')" style="background:var(--mint); color:#000; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:800; cursor:pointer;">Aceitar</button>
+              <button onclick="resolveDuel(event, '${duelId}', 'decline')" style="background:var(--ruby); color:#fff; border:none; padding:4px 8px; border-radius:4px; font-size:10px; font-weight:800; cursor:pointer;">Recusar</button>
+            </div>
+          `;
+        } else if (msg.duel.challengerId === appData.userId) {
+          actionButtonsHTML = `
+            <div style="display:flex; gap:8px; margin-top:8px;">
+              <button onclick="resolveDuel(event, '${duelId}', 'decline')" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.2); padding:4px 8px; border-radius:4px; font-size:10px; font-weight:800; cursor:pointer;">Cancelar</button>
+            </div>
+          `;
+        }
+      }
+
       bubble.innerHTML = `
-        <img src="${avatarUrl}" alt="Avatar">
+        <img src="${avatarUrl}" alt="Avatar" style="cursor:pointer;" oncontextmenu="handleAvatarContextMenu(event, '${msg.userId}', '${msg.username}')">
         <div class="chat-msg-content">
-          <div class="chat-msg-user">${msg.username}</div>
+          <div class="chat-msg-user" style="cursor:pointer;" oncontextmenu="handleAvatarContextMenu(event, '${msg.userId}', '${msg.username}')">${msg.username}</div>
           <div class="chat-msg-text">${escapeHTML(msg.message)}</div>
+          ${actionButtonsHTML}
         </div>
       `;
       container.appendChild(bubble);
@@ -1452,6 +1478,79 @@
       return str.replace(/[&<>'"]/g, 
         tag => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[tag] || tag)
       );
+    }
+
+    // --- Sistema de Duelos por Context Menu ---
+    let menuTargetUserId = null;
+    let menuTargetUsername = null;
+
+    function handleAvatarContextMenu(e, userId, username) {
+      if (userId === 'system' || userId === appData.userId) return;
+      e.preventDefault();
+      
+      const menu = document.getElementById('chatContextMenu');
+      menu.style.left = e.clientX + 'px';
+      menu.style.top = e.clientY + 'px';
+      menu.style.display = 'block';
+      
+      menuTargetUserId = userId;
+      menuTargetUsername = username;
+    }
+
+    // Close menu on click anywhere
+    document.addEventListener('click', (e) => {
+      const menu = document.getElementById('chatContextMenu');
+      if (menu) menu.style.display = 'none';
+    });
+
+    async function challengeUserFromMenu() {
+      const amountStr = prompt(`Quantas moedas queres apostar no duelo contra @${menuTargetUsername}?`);
+      if (!amountStr) return;
+      const amount = parseInt(amountStr, 10);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Aposta inválida!");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/chat/duel/invite', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ opponentUserId: menuTargetUserId, amount })
+        });
+        if (res.ok) {
+          loadDashboard(); // Refresh balance
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Erro ao desafiar.');
+        }
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function resolveDuel(e, duelId, action) {
+      if (e && e.target && e.target.parentElement) {
+        e.target.parentElement.innerHTML = '<span style="font-size:10px; color:var(--text-muted);">A enviar...</span>';
+      }
+
+      try {
+        const endpoint = action === 'accept' ? '/api/chat/duel/accept' : '/api/chat/duel/decline';
+        const res = await fetch(endpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ duelId })
+        });
+        if (res.ok) {
+          loadDashboard(); // Refresh balance
+        } else {
+          const data = await res.json().catch(() => ({}));
+          alert(data.error || 'Erro ao responder ao duelo.');
+          loadDashboard();
+        }
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     loadDashboard();

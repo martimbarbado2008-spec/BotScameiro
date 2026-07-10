@@ -4,6 +4,7 @@ const webTokens = require('./webTokens');
  
 const chatHistory = [];
 const chatClients = new Set();
+const activeDuels = new Map();
 const DIRTY_COUNT = 14;
 const TOTAL_TILES = 16;
 const TIME_LIMIT_SECONDS = 20;
@@ -1660,6 +1661,242 @@ app.post('/api/chat/send', async (req, res) => {
     return res.json({ success: true, entry: chatEntry });
   } catch (err) {
     console.error('Erro ao enviar mensagem de chat:', err);
+    res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+app.post('/api/chat/duel/invite', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { opponentUserId, amount } = req.body;
+
+    if (!opponentUserId || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Parâmetros de duelo inválidos.' });
+    }
+
+    if (userId === opponentUserId) {
+      return res.status(400).json({ error: 'Não podes desafiar-te a ti próprio!' });
+    }
+
+    const challenger = db.getUser(guildId, userId);
+    const opponent = db.getUser(guildId, opponentUserId);
+
+    if (!opponent) {
+      return res.status(404).json({ error: 'Oponente não encontrado.' });
+    }
+
+    if (challenger.balance < amount) {
+      return res.status(400).json({ error: 'Não tens saldo suficiente na carteira.' });
+    }
+
+    // Bloquear moedas do desafiante
+    challenger.balance -= amount;
+    db.saveUser(guildId, userId, challenger);
+
+    let opponentName = opponent.username || 'Jogador';
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(opponentUserId) || await discordClient.users.fetch(opponentUserId).catch(() => null);
+      if (uObj) opponentName = uObj.username;
+    }
+
+    let challengerName = challenger.username || 'Jogador';
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+      if (uObj) challengerName = uObj.username;
+    }
+
+    const duelId = 'd_' + Math.random().toString(36).substr(2, 9);
+    const duel = {
+      id: duelId,
+      guildId,
+      challengerId: userId,
+      challengerName,
+      opponentId: opponentUserId,
+      opponentName,
+      amount,
+      status: 'pending'
+    };
+
+    activeDuels.set(duelId, duel);
+
+    const systemEntry = {
+      id: Date.now() + Math.random().toString(),
+      userId: 'system',
+      username: '⚔️ Duelos Casino',
+      avatar: 'https://cdn-icons-png.flaticon.com/512/1069/1069800.png',
+      message: `⚔️ [DESAFIO] @${challengerName} desafiou @${opponentName} para um duelo de Coinflip de ${amount.toLocaleString('pt-PT')} 🪙!`,
+      duel: {
+        id: duelId,
+        challengerId: userId,
+        opponentId: opponentUserId,
+        amount
+      },
+      timestamp: Date.now()
+    };
+
+    chatHistory.push(systemEntry);
+    if (chatHistory.length > 50) chatHistory.shift();
+
+    // Broadcast
+    const ssePayload = `event: message\ndata: ${JSON.stringify(systemEntry)}\n\n`;
+    chatClients.forEach(client => {
+      try {
+        client.write(ssePayload);
+      } catch (err) {
+        chatClients.delete(client);
+      }
+    });
+
+    return res.json({ success: true, duelId });
+  } catch (err) {
+    console.error('Erro ao convidar para duelo:', err);
+    res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+app.post('/api/chat/duel/accept', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { duelId } = req.body;
+
+    const duel = activeDuels.get(duelId);
+    if (!duel) {
+      return res.status(404).json({ error: 'Duelo não encontrado.' });
+    }
+
+    if (duel.status !== 'pending') {
+      return res.status(400).json({ error: 'Este duelo já não está pendente.' });
+    }
+
+    if (duel.opponentId !== userId) {
+      return res.status(403).json({ error: 'Apenas o oponente desafiado pode aceitar o duelo.' });
+    }
+
+    const opponent = db.getUser(guildId, userId);
+    if (opponent.balance < duel.amount) {
+      return res.status(400).json({ error: 'Não tens saldo suficiente na carteira.' });
+    }
+
+    // Deduzir moedas do oponente
+    opponent.balance -= duel.amount;
+    db.saveUser(guildId, userId, opponent);
+
+    // Coinflip
+    const win = Math.random() < 0.5; // true -> challenger ganha, false -> opponent ganha
+    const winnerId = win ? duel.challengerId : duel.opponentId;
+    const winnerName = win ? duel.challengerName : duel.opponentName;
+    const loserName = win ? duel.opponentName : duel.challengerName;
+    const payout = duel.amount * 2;
+
+    const winner = db.getUser(guildId, winnerId);
+    winner.balance += payout;
+    db.saveUser(guildId, winnerId, winner);
+
+    duel.status = 'accepted';
+    activeDuels.delete(duelId);
+
+    // Remover a opção de botão limpando a aposta na mensagem anterior do histórico
+    const oldEntry = chatHistory.find(h => h.duel && h.duel.id === duelId);
+    if (oldEntry) oldEntry.duel = null;
+
+    // Mensagem de sistema com resultado
+    const systemEntry = {
+      id: Date.now() + Math.random().toString(),
+      userId: 'system',
+      username: '⚔️ Duelos Casino',
+      avatar: 'https://cdn-icons-png.flaticon.com/512/1069/1069800.png',
+      message: `🏆 [VENCEDOR] @${duel.opponentName} aceitou o desafio! A moeda rodou... e deu vitória para @${winnerName}! Ganhou ${payout.toLocaleString('pt-PT')} 🪙! (Derrotado: @${loserName})`,
+      timestamp: Date.now()
+    };
+
+    chatHistory.push(systemEntry);
+    if (chatHistory.length > 50) chatHistory.shift();
+
+    // Broadcast
+    const ssePayload = `event: message\ndata: ${JSON.stringify(systemEntry)}\n\n`;
+    chatClients.forEach(client => {
+      try {
+        client.write(ssePayload);
+      } catch (err) {
+        chatClients.delete(client);
+      }
+    });
+
+    db.pushHistory(guildId, duel.challengerId, { game: 'Duelo Coinflip Web', bet: duel.amount, net: win ? duel.amount : -duel.amount });
+    db.pushHistory(guildId, duel.opponentId, { game: 'Duelo Coinflip Web', bet: duel.amount, net: !win ? duel.amount : -duel.amount });
+
+    return res.json({ success: true, winnerName });
+  } catch (err) {
+    console.error('Erro ao aceitar duelo:', err);
+    res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+app.post('/api/chat/duel/decline', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { duelId } = req.body;
+
+    const duel = activeDuels.get(duelId);
+    if (!duel) {
+      return res.status(404).json({ error: 'Duelo não encontrado.' });
+    }
+
+    if (duel.status !== 'pending') {
+      return res.status(400).json({ error: 'Duelo já resolvido.' });
+    }
+
+    if (duel.opponentId !== userId && duel.challengerId !== userId) {
+      return res.status(403).json({ error: 'Apenas os envolvidos podem cancelar ou recusar.' });
+    }
+
+    // Devolver moedas do desafiante
+    const challenger = db.getUser(guildId, duel.challengerId);
+    challenger.balance += duel.amount;
+    db.saveUser(guildId, duel.challengerId, challenger);
+
+    duel.status = 'declined';
+    activeDuels.delete(duelId);
+
+    // Limpar o objeto duel da mensagem do histórico para tirar os botões
+    const oldEntry = chatHistory.find(h => h.duel && h.duel.id === duelId);
+    if (oldEntry) oldEntry.duel = null;
+
+    const actionText = (userId === duel.opponentId) ? 'recusou' : 'cancelou';
+    const systemEntry = {
+      id: Date.now() + Math.random().toString(),
+      userId: 'system',
+      username: '⚔️ Duelos Casino',
+      avatar: 'https://cdn-icons-png.flaticon.com/512/1069/1069800.png',
+      message: `❌ [DUELO] O duelo de ${duel.amount.toLocaleString('pt-PT')} 🪙 entre @${duel.challengerName} e @${duel.opponentName} foi ${actionText}.`,
+      timestamp: Date.now()
+    };
+
+    chatHistory.push(systemEntry);
+    if (chatHistory.length > 50) chatHistory.shift();
+
+    // Broadcast
+    const ssePayload = `event: message\ndata: ${JSON.stringify(systemEntry)}\n\n`;
+    chatClients.forEach(client => {
+      try {
+        client.write(ssePayload);
+      } catch (err) {
+        chatClients.delete(client);
+      }
+    });
+
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Erro ao recusar duelo:', err);
     res.status(500).json({ error: 'Erro no servidor.' });
   }
 });
