@@ -771,6 +771,32 @@ app.post('/api/daily/claim', async (req, res) => {
   }
 });
 
+app.get('/api/admin/reset-daily', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) {
+      return res.status(401).send("<h2>Não autorizado. Faz login primeiro acedendo ao painel.</h2>");
+    }
+
+    const { guildId, userId } = session;
+    const user = db.getUser(guildId, userId);
+    user.lastDaily = 0;
+    db.saveUser(guildId, userId, user);
+
+    return res.send(`
+      <div style="font-family:'Outfit',sans-serif; background:#090e0c; color:#fff; min-height:100vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center;">
+        <h2 style="color:#57f287;">✨ Daily Cooldown Resetado!</h2>
+        <p style="color:#9ca3af;">O teu lastDaily foi definido como 0. Já podes voltar a girar a roleta!</p>
+        <br>
+        <a href="/dashboard.html" style="background:#57f287; color:#050e08; padding:10px 20px; border-radius:8px; text-decoration:none; font-weight:800;">Ir para a Roleta 🎡</a>
+      </div>
+    `);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send("Erro ao resetar.");
+  }
+});
+
 app.post('/api/shop/buy', async (req, res) => {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Não autorizado.' });
