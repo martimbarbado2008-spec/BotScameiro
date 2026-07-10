@@ -27,12 +27,47 @@ function stateEmbed(deck, player, dealer, hideDealer, footer) {
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('blackjack')
-    .setDescription('Joga blackjack contra o dealer')
-    .addIntegerOption(o => o.setName('aposta').setDescription('Quantidade a apostar').setRequired(true).setMinValue(1)),
+    .setDescription('Comandos do jogo de Blackjack')
+    .addSubcommand(sub =>
+      sub.setName('jogar')
+         .setDescription('Joga uma partida individual clássica contra o dealer no Discord')
+         .addIntegerOption(o => o.setName('aposta').setDescription('Quantidade a apostar').setRequired(true).setMinValue(1))
+    )
+    .addSubcommand(sub =>
+      sub.setName('mesa')
+         .setDescription('Mostra o link para entrar na mesa de Blackjack Online Multiplayer no site')
+    ),
 
   async execute(interaction) {
+    const subcommand = interaction.options.getSubcommand();
     const guildId = interaction.guildId;
     const userId = interaction.user.id;
+
+    if (subcommand === 'mesa') {
+      const baseUrl = process.env.WEB_BASE_URL;
+      if (!baseUrl) {
+        return interaction.reply({ content: 'O servidor web do casino ainda não está configurado (falta WEB_BASE_URL no .env).', ephemeral: true });
+      }
+
+      const link = `${baseUrl.replace(/\/$/, '')}/blackjack.html`;
+
+      const embed = baseEmbed('🃏 Blackjack Online Multiplayer', COLORS.gold)
+        .setDescription('Clica no botão abaixo para te sentares à mesa de **Blackjack Online**!\nPodes jogar em tempo real, apostar e interagir no chat com todos os outros membros conectados à mesa!')
+        .addFields({
+          name: '✨ Como funciona?',
+          value: '• Entra na mesa utilizando o teu saldo da carteira\n• Define a tua aposta e espera a rodada iniciar\n• Toma decisões rápidas (Pedir Carta ou Parar) junto com os outros jogadores\n• Chat em tempo real incluído na mesa!'
+        });
+
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('Entrar na Mesa de Blackjack 🌐')
+          .setStyle(ButtonStyle.Link)
+          .setURL(link)
+      );
+
+      return interaction.reply({ embeds: [embed], components: [row] });
+    }
+
     const cfg = db.getGuildConfig(guildId);
     const bet = interaction.options.getInteger('aposta');
     const user = db.getUser(guildId, userId);
