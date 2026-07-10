@@ -64,9 +64,9 @@ async function fetchRealMatches(guildId) {
       
       if (response.data && Array.isArray(response.data)) {
         response.data.forEach(match => {
-          // Apenas jogos que comecem nas próximas 72 horas
+          // Apenas jogos que comecem nos próximos 35 dias (1 mês e pouco)
           const startTime = Date.parse(match.commence_time);
-          if (startTime - Date.now() > 3 * 24 * 60 * 60 * 1000 || startTime < Date.now()) {
+          if (startTime - Date.now() > 35 * 24 * 60 * 60 * 1000 || startTime < Date.now()) {
             return;
           }
 
