@@ -548,7 +548,7 @@
   <div id="unauthScreen">
     <h2>🔒 Sessão Expirada ou Inválida</h2>
     <p>Tens de aceder ao site através do link gerado no Discord.</p>
-    <p>Volta ao teu servidor e digita o comando <code>/painel</code> para obteres um link pessoal ativo.</p>
+    <p>Volta ao teu servidor e digita o comando <code>/perfil</code> para obteres um link pessoal ativo.</p>
   </div>
 
   <!-- Interface Principal -->
@@ -560,7 +560,7 @@
         </div>
         <div class="profile-info">
           <h1 id="userTag">...</h1>
-          <p>Nível <span id="userLevel">0</span></p>
+          <p>Nível <span id="userLevel">0</span> | VIP: <span id="userVip" style="color:var(--gold); font-weight:700;">Nenhum</span></p>
           <div class="xp-bar-container">
             <div class="xp-labels">
               <span>XP: <span id="userXp">0</span>/<span id="xpNeeded">0</span></span>
@@ -587,6 +587,37 @@
     <div class="main-grid">
       <!-- Coluna Esquerda -->
       <div>
+        <!-- Painel de Estatísticas -->
+        <div class="panel">
+          <h2 class="panel-title"><span class="emoji">📊</span> Estatísticas de Jogo</h2>
+          <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; text-align: center;">
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Vitórias</div>
+              <div class="val" id="statsWins" style="color: var(--mint); font-size: 15px;">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Derrotas</div>
+              <div class="val" id="statsLosses" style="color: var(--ruby); font-size: 15px;">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Win Rate</div>
+              <div class="val" id="statsWinRate" style="font-size: 15px;">0%</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Total Apostado</div>
+              <div class="val" id="statsWagered" style="font-size: 13px; color: var(--gold);">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Moedas Ganhas</div>
+              <div class="val" id="statsWonCoins" style="color: var(--mint); font-size: 13px;">0</div>
+            </div>
+            <div class="hud-card" style="text-align: center; min-width: 0; padding: 10px;">
+              <div class="lbl" style="font-size: 8px;">Moedas Perdidas</div>
+              <div class="val" id="statsLostCoins" style="color: var(--ruby); font-size: 13px;">0</div>
+            </div>
+          </div>
+        </div>
+
         <!-- Painel de Trabalhos -->
         <div class="panel">
           <h2 class="panel-title"><span class="emoji">🧹</span> Mini-jogos de Trabalho</h2>
@@ -732,12 +763,28 @@
       document.getElementById('userXp').textContent = appData.xp;
       document.getElementById('xpNeeded').textContent = appData.xpNeeded;
       
+      const VIP_NAMES = { 0: 'Nenhum', 1: 'Bronze', 2: 'Prata', 3: 'Ouro' };
+      document.getElementById('userVip').textContent = VIP_NAMES[appData.vipLevel || 0];
+
       const xpPercent = Math.min(100, (appData.xp / appData.xpNeeded) * 100);
       document.getElementById('xpFill').style.width = xpPercent + '%';
 
       // Balanços
       document.getElementById('walletBalance').textContent = fmt(appData.balance);
       document.getElementById('bankBalance').textContent = fmt(appData.bank);
+
+      // Estatísticas
+      const wins = appData.stats.wins || 0;
+      const losses = appData.stats.losses || 0;
+      const totalGames = wins + losses;
+      const winRate = totalGames > 0 ? ((wins / totalGames) * 100).toFixed(1) : '0.0';
+      
+      document.getElementById('statsWins').textContent = wins;
+      document.getElementById('statsLosses').textContent = losses;
+      document.getElementById('statsWinRate').textContent = winRate + '%';
+      document.getElementById('statsWagered').textContent = fmt(appData.stats.wagered || 0);
+      document.getElementById('statsWonCoins').textContent = fmt(appData.stats.wonCoins || 0);
+      document.getElementById('statsLostCoins').textContent = fmt(appData.stats.lostCoins || 0);
 
       // Cooldowns Trabalhos
       setupCooldown('work', appData.cooldowns.work, 'Limpar');

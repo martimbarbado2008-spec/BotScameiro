@@ -5,8 +5,8 @@ const { baseEmbed, COLORS } = require('../utils/embeds');
 
 module.exports = {
   data: new SlashCommandBuilder()
-    .setName('painel')
-    .setDescription('Recebe um link pessoal para acederes ao teu Painel de Controlo no site'),
+    .setName('perfil')
+    .setDescription('Recebe um link pessoal para veres o teu Perfil e Painel de Controlo no site'),
 
   async execute(interaction) {
     const guildId = interaction.guildId;
@@ -21,12 +21,12 @@ module.exports = {
     const token = webTokens.createToken(guildId, userId);
     const link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}`;
 
-    const embed = baseEmbed('📊 Painel de Controlo Web', COLORS.gold)
-      .setDescription('Abre o link abaixo para acederes ao teu painel pessoal do casino. Lá podes ver a tua carteira, badges, classificação, comprar itens na loja e jogar mini-jogos!\n\n**O link é pessoal e expira em 10 minutos.**');
+    const embed = baseEmbed('🎴 Perfil e Painel Web', COLORS.gold)
+      .setDescription('Abre o link abaixo para acederes ao teu perfil do casino. Lá podes ver as tuas estatísticas detalhadas, carteira, cotações crypto, badges, comprar itens na loja e jogar mini-jogos!\n\n**O link é pessoal e expira em 10 minutos.**');
 
     const row = new ActionRowBuilder().addComponents(
       new ButtonBuilder()
-        .setLabel('Abrir o meu Painel 📊')
+        .setLabel('Abrir o meu Perfil 🎴')
         .setStyle(ButtonStyle.Link)
         .setURL(link)
     );

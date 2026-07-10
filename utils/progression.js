@@ -105,6 +105,12 @@ async function applyProgressionFor(ctx, { game, bet, net, won }) {
   const xpResult = db.addXp(guildId, userId, xpForGame(won));
 
   const u = db.getUser(guildId, userId);
+  if (net > 0) {
+    u.stats.wonCoins = (u.stats.wonCoins || 0) + net;
+  } else if (net < 0) {
+    u.stats.lostCoins = (u.stats.lostCoins || 0) + Math.abs(net);
+  }
+
   const newBadges = [];
   for (const ach of ACHIEVEMENTS) {
     if (!u.badges.includes(ach.id) && ach.check(u)) {
@@ -125,6 +131,8 @@ async function applyProgressionFor(ctx, { game, bet, net, won }) {
   if (cfg.logChannelId) {
     await logPlay(ctx, { game, bet, net }).catch(() => {});
   }
+
+  db.saveUser(guildId, userId, u);
 
   return { xpResult, newBadges };
 }

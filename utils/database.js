@@ -64,7 +64,7 @@ function defaultUser() {
     vipLevel: 0,
     inventory: [],
     cooldowns: {},
-    stats: { wins: 0, losses: 0, wagered: 0 },
+    stats: { wins: 0, losses: 0, wagered: 0, wonCoins: 0, lostCoins: 0 },
     xp: 0,
     level: 1,
     badges: [],
@@ -89,6 +89,10 @@ function getUser(guildId, userId) {
   let migrated = false;
   for (const field of Object.keys(d)) {
     if (u[field] === undefined) { u[field] = d[field]; migrated = true; }
+  }
+  if (u.stats) {
+    if (u.stats.wonCoins === undefined) { u.stats.wonCoins = 0; migrated = true; }
+    if (u.stats.lostCoins === undefined) { u.stats.lostCoins = 0; migrated = true; }
   }
   if (migrated) persist();
   return u;

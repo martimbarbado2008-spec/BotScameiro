@@ -313,6 +313,178 @@ app.get('/trabalho/:token', (req, res) => {
   res.redirect(`/trabalho.html?token=${token}`);
 });
 
+app.get('/pescar', (req, res) => {
+  const token = req.query.token;
+  if (!token || !webTokens.peekToken(token)) {
+    return res.send(renderInvalidPage());
+  }
+  const entry = webTokens.consumeToken(token);
+  if (!entry) return res.send(renderInvalidPage());
+
+  const { guildId, userId } = entry;
+  const cooldown = db.getCooldown(guildId, userId, 'pescar');
+  if (cooldown > 0) {
+    return res.send(`<!DOCTYPE html>
+<html lang="pt-PT"><head><meta charset="UTF-8"><title>Cooldown</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: 'Nunito', sans-serif; background:#0d1e16; color:#DCEEE3; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; text-align:center; margin:0; padding:24px; }
+  .box { max-width:360px; }
+  h1 { font-size:22px; margin-bottom:8px; color:#FACA2B; }
+  p { color:#a9c7b7; font-size:14px; }
+</style></head>
+<body><div class="box">
+  <h1>⏳ Em Cooldown</h1>
+  <p>Já pescaste recentemente. Volta mais tarde.</p>
+</div></body></html>`);
+  }
+
+  const crypto = require('crypto');
+  const jobToken = crypto.randomBytes(16).toString('hex');
+  activeJobs.set(jobToken, {
+    guildId,
+    userId,
+    job: 'pesca',
+    startedAt: Date.now()
+  });
+
+  res.redirect(`/pesca.html?jobToken=${jobToken}`);
+});
+
+app.get('/pescar/:token', (req, res) => {
+  const token = req.params.token;
+  if (!token || !webTokens.peekToken(token)) {
+    return res.send(renderInvalidPage());
+  }
+  const entry = webTokens.consumeToken(token);
+  if (!entry) return res.send(renderInvalidPage());
+
+  const { guildId, userId } = entry;
+  const cooldown = db.getCooldown(guildId, userId, 'pescar');
+  if (cooldown > 0) {
+    return res.send(`<!DOCTYPE html>
+<html lang="pt-PT"><head><meta charset="UTF-8"><title>Cooldown</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: 'Nunito', sans-serif; background:#0d1e16; color:#DCEEE3; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; text-align:center; margin:0; padding:24px; }
+  .box { max-width:360px; }
+  h1 { font-size:22px; margin-bottom:8px; color:#FACA2B; }
+  p { color:#a9c7b7; font-size:14px; }
+</style></head>
+<body><div class="box">
+  <h1>⏳ Em Cooldown</h1>
+  <p>Já pescaste recentemente. Volta mais tarde.</p>
+</div></body></html>`);
+  }
+
+  const crypto = require('crypto');
+  const jobToken = crypto.randomBytes(16).toString('hex');
+  activeJobs.set(jobToken, {
+    guildId,
+    userId,
+    job: 'pesca',
+    startedAt: Date.now()
+  });
+
+  res.redirect(`/pesca.html?jobToken=${jobToken}`);
+});
+
+app.get('/pesca', (req, res) => {
+  res.redirect(`/pescar?token=${req.query.token || ''}`);
+});
+
+app.get('/pesca/:token', (req, res) => {
+  res.redirect(`/pescar/${req.params.token}`);
+});
+
+app.get('/hackear', (req, res) => {
+  const token = req.query.token;
+  if (!token || !webTokens.peekToken(token)) {
+    return res.send(renderInvalidPage());
+  }
+  const entry = webTokens.consumeToken(token);
+  if (!entry) return res.send(renderInvalidPage());
+
+  const { guildId, userId } = entry;
+  const cooldown = db.getCooldown(guildId, userId, 'hackear');
+  if (cooldown > 0) {
+    return res.send(`<!DOCTYPE html>
+<html lang="pt-PT"><head><meta charset="UTF-8"><title>Cooldown</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: 'Nunito', sans-serif; background:#0d1e16; color:#DCEEE3; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; text-align:center; margin:0; padding:24px; }
+  .box { max-width:360px; }
+  h1 { font-size:22px; margin-bottom:8px; color:#39ff14; }
+  p { color:#a9c7b7; font-size:14px; }
+</style></head>
+<body><div class="box">
+  <h1>⏳ Em Cooldown</h1>
+  <p>Já hackeaste recentemente. Volta mais tarde.</p>
+</div></body></html>`);
+  }
+
+  const crypto = require('crypto');
+  const jobToken = crypto.randomBytes(16).toString('hex');
+  activeJobs.set(jobToken, {
+    guildId,
+    userId,
+    job: 'hack',
+    startedAt: Date.now()
+  });
+
+  res.redirect(`/hack.html?jobToken=${jobToken}`);
+});
+
+app.get('/hackear/:token', (req, res) => {
+  const token = req.params.token;
+  if (!token || !webTokens.peekToken(token)) {
+    return res.send(renderInvalidPage());
+  }
+  const entry = webTokens.consumeToken(token);
+  if (!entry) return res.send(renderInvalidPage());
+
+  const { guildId, userId } = entry;
+  const cooldown = db.getCooldown(guildId, userId, 'hackear');
+  if (cooldown > 0) {
+    return res.send(`<!DOCTYPE html>
+<html lang="pt-PT"><head><meta charset="UTF-8"><title>Cooldown</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+  body { font-family: 'Nunito', sans-serif; background:#0d1e16; color:#DCEEE3; min-height:100vh;
+    display:flex; align-items:center; justify-content:center; text-align:center; margin:0; padding:24px; }
+  .box { max-width:360px; }
+  h1 { font-size:22px; margin-bottom:8px; color:#39ff14; }
+  p { color:#a9c7b7; font-size:14px; }
+</style></head>
+<body><div class="box">
+  <h1>⏳ Em Cooldown</h1>
+  <p>Já hackeaste recentemente. Volta mais tarde.</p>
+</div></body></html>`);
+  }
+
+  const crypto = require('crypto');
+  const jobToken = crypto.randomBytes(16).toString('hex');
+  activeJobs.set(jobToken, {
+    guildId,
+    userId,
+    job: 'hack',
+    startedAt: Date.now()
+  });
+
+  res.redirect(`/hack.html?jobToken=${jobToken}`);
+});
+
+app.get('/hack', (req, res) => {
+  res.redirect(`/hackear?token=${req.query.token || ''}`);
+});
+
+app.get('/hack/:token', (req, res) => {
+  res.redirect(`/hackear/${req.params.token}`);
+});
+
 app.get('/api/login-dashboard', (req, res) => {
   const token = req.query.token;
   if (!token) {
@@ -393,6 +565,8 @@ app.get('/api/dashboard/data', async (req, res) => {
       level: user.level,
       xp: user.xp,
       xpNeeded: db.xpForLevel(user.level),
+      vipLevel: user.vipLevel || 0,
+      stats: user.stats || { wins: 0, losses: 0, wagered: 0, wonCoins: 0, lostCoins: 0 },
       badges: user.badges || [],
       inventory: user.inventory || [],
       history: db.getHistory(guildId, userId, 10),
