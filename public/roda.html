@@ -350,28 +350,12 @@
           return;
         }
 
-        // Determinar qual o setor correspondente ao prémio
-        // O servidor devolve: { success, balance, amount, base, bonus, streak }
-        // Mapeamos a recompensa base/bónus para os setores
-        let targetIndex = 0;
-        
-        // Determinar prémio com base na resposta da API
-        // Mapeamento simples de acordo com o total de moedas ganho
-        const total = data.amount;
-        if (total >= 5000) targetIndex = 5;
-        else if (total >= 2500) targetIndex = 4;
-        else if (total >= 1000) targetIndex = 3;
-        else if (total >= 500) targetIndex = 2;
-        else if (total >= 300) targetIndex = 1;
-        else targetIndex = 0;
+        // Determinar qual o setor correspondente ao prémio a partir do servidor
+        const targetIndex = data.sectorIndex;
 
-        // Calcular rotação
-        // O ponteiro está no topo (ângulo = -90 graus / -PI/2)
-        // Para alinhar o setor targetIndex com o topo, o ângulo da roda deve ser:
-        // totalRot = (voltas completas) + (ângulo para alinhar o setor)
-        // O setor i ocupa de (i * arc) a ((i+1) * arc). O centro é (i + 0.5) * arc.
+        // Calcular rotação alinhando o centro do setor com o ponteiro do topo (1.5 * PI)
         const sectorAngle = (targetIndex + 0.5) * arc;
-        const targetRotRad = (2.5 * Math.PI) - sectorAngle; // alinha com o topo
+        const targetRotRad = (1.5 * Math.PI) - sectorAngle; // alinha com o topo
         
         // Adiciona 5 voltas completas para o efeito visual dramático
         const totalRotRad = (10 * Math.PI) + targetRotRad;
@@ -400,11 +384,26 @@
           if (typeof window.playSFX === 'function') {
             window.playSFX('win');
           }
-          // Mostrar modal de vitória
-          document.getElementById('winEmoji').textContent = sectors[targetIndex].label.includes('🪙') ? '💰' : '⚡';
-          document.getElementById('winTitle').textContent = `Ganhaste na Roda!`;
-          document.getElementById('winValue').textContent = `${data.amount} 🪙`;
-          document.getElementById('winDesc').textContent = `Bónus diário recolhido! Streak atual: ${data.streak} dias seguidos (Bónus extra de streak: +${data.bonus} 🪙).`;
+          
+          // Mostrar modal de vitória adaptado ao tipo de prémio
+          const emojiEl = document.getElementById('winEmoji');
+          const valueEl = document.getElementById('winValue');
+          const descEl = document.getElementById('winDesc');
+
+          if (data.type === 'coins') {
+            emojiEl.textContent = '💰';
+            valueEl.textContent = `+${data.amount} 🪙`;
+            descEl.textContent = `Bónus diário recolhido! Streak atual: ${data.streak} dias seguidos (Bónus extra de streak: +${data.bonus} 🪙).`;
+          } else if (data.type === 'xp') {
+            emojiEl.textContent = '⚡';
+            valueEl.textContent = `+150 XP`;
+            descEl.textContent = `Bónus diário de XP atribuído com sucesso! Streak atual: ${data.streak} dias seguidos.`;
+          } else if (data.type === 'reset') {
+            emojiEl.textContent = '🧹';
+            valueEl.textContent = `Reset Cooldowns`;
+            descEl.textContent = `Todos os teus cooldowns de trabalho foram zerados! Podes voltar a trabalhar imediatamente. Streak atual: ${data.streak} dias seguidos.`;
+          }
+
           document.getElementById('winOverlay').style.display = 'flex';
 
           isSpinning = false;

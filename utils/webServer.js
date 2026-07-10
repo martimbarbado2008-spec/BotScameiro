@@ -768,20 +768,71 @@ app.post('/api/daily/claim', async (req, res) => {
     }
     user.lastDaily = now;
 
-    const streakBonus = Math.min(user.dailyStreak * 20, 500);
-    const total = cfg.dailyAmount + streakBonus;
-    user.balance += total;
-    db.saveUser(guildId, userId, user);
+    // --- Sorteio da Roda da Fortuna ---
+    const r = Math.random() * 100;
+    let sectorIndex = 0;
+    let type = 'coins';
+    let rewardAmount = 0;
+    let streakBonus = 0;
 
-    db.pushHistory(guildId, userId, { game: 'Bónus Diário Web', bet: 0, net: total });
+    if (r < 35) {
+      sectorIndex = 0; // 150 🪙
+      rewardAmount = 150;
+    } else if (r < 60) {
+      sectorIndex = 1; // 300 🪙
+      rewardAmount = 300;
+    } else if (r < 78) {
+      sectorIndex = 2; // 500 🪙
+      rewardAmount = 500;
+    } else if (r < 88) {
+      sectorIndex = 3; // 1000 🪙
+      rewardAmount = 1000;
+    } else if (r < 93) {
+      sectorIndex = 4; // 2500 🪙
+      rewardAmount = 2500;
+    } else if (r < 95) {
+      sectorIndex = 5; // 5000 🪙
+      rewardAmount = 5000;
+    } else if (r < 98) {
+      sectorIndex = 6; // XP ⚡
+      type = 'xp';
+      rewardAmount = 150;
+    } else {
+      sectorIndex = 7; // Trabalho 🧹
+      type = 'reset';
+      rewardAmount = 0;
+    }
+
+    if (type === 'coins') {
+      streakBonus = Math.min(user.dailyStreak * 20, 500);
+      const totalCoins = rewardAmount + streakBonus;
+      user.balance += totalCoins;
+      db.pushHistory(guildId, userId, { game: 'Roda da Fortuna (Moedas)', bet: 0, net: totalCoins });
+    } else if (type === 'xp') {
+      user.xp = (user.xp || 0) + rewardAmount;
+      const xpNeeded = (user.level || 1) * 100;
+      if (user.xp >= xpNeeded) {
+        user.xp -= xpNeeded;
+        user.level = (user.level || 1) + 1;
+      }
+      db.pushHistory(guildId, userId, { game: 'Roda da Fortuna (XP)', bet: 0, net: 0 });
+    } else if (type === 'reset') {
+      user.lastWork = 0;
+      user.lastPesca = 0;
+      user.lastHack = 0;
+      db.pushHistory(guildId, userId, { game: 'Roda da Fortuna (Reset)', bet: 0, net: 0 });
+    }
+
+    db.saveUser(guildId, userId, user);
 
     return res.json({
       success: true,
-      balance: user.balance,
-      amount: total,
-      base: cfg.dailyAmount,
+      sectorIndex,
+      type,
+      amount: rewardAmount + streakBonus,
       bonus: streakBonus,
       streak: user.dailyStreak,
+      balance: user.balance,
       cooldown: DAY_MS
     });
   } catch (err) {
