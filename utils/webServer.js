@@ -2,7 +2,6 @@ const express = require('express');
 const db = require('./database');
 const webTokens = require('./webTokens');
  
-const chatHistory = [];
 const chatClients = new Set();
 const activeDuels = new Map();
 const DIRTY_COUNT = 14;
@@ -1536,7 +1535,7 @@ app.get('/api/chat/stream', async (req, res) => {
   res.flushHeaders();
 
   // Enviar histórico inicial
-  res.write(`event: history\ndata: ${JSON.stringify(chatHistory)}\n\n`);
+  res.write(`event: history\ndata: ${JSON.stringify(db.getChatHistory())}\n\n`);
 
   chatClients.add(res);
 
@@ -1636,8 +1635,7 @@ app.post('/api/chat/send', async (req, res) => {
         timestamp: Date.now()
       };
 
-      chatHistory.push(systemEntry);
-      if (chatHistory.length > 50) chatHistory.shift();
+      db.addChatMessage(systemEntry);
       broadcast(systemEntry);
 
       return res.json({ success: true, entry: systemEntry });
@@ -1653,8 +1651,7 @@ app.post('/api/chat/send', async (req, res) => {
       timestamp: Date.now()
     };
 
-    chatHistory.push(chatEntry);
-    if (chatHistory.length > 50) chatHistory.shift();
+    db.addChatMessage(chatEntry);
 
     broadcast(chatEntry);
 
@@ -1737,8 +1734,7 @@ app.post('/api/chat/duel/invite', async (req, res) => {
       timestamp: Date.now()
     };
 
-    chatHistory.push(systemEntry);
-    if (chatHistory.length > 50) chatHistory.shift();
+    db.addChatMessage(systemEntry);
 
     // Broadcast
     const ssePayload = `event: message\ndata: ${JSON.stringify(systemEntry)}\n\n`;
@@ -1802,7 +1798,7 @@ app.post('/api/chat/duel/accept', async (req, res) => {
     activeDuels.delete(duelId);
 
     // Remover a opção de botão limpando a aposta na mensagem anterior do histórico
-    const oldEntry = chatHistory.find(h => h.duel && h.duel.id === duelId);
+    const oldEntry = db.getChatHistory().find(h => h.duel && h.duel.id === duelId);
     if (oldEntry) oldEntry.duel = null;
 
     // Mensagem de sistema com resultado
@@ -1815,8 +1811,7 @@ app.post('/api/chat/duel/accept', async (req, res) => {
       timestamp: Date.now()
     };
 
-    chatHistory.push(systemEntry);
-    if (chatHistory.length > 50) chatHistory.shift();
+    db.addChatMessage(systemEntry);
 
     // Broadcast
     const ssePayload = `event: message\ndata: ${JSON.stringify(systemEntry)}\n\n`;
@@ -1868,7 +1863,7 @@ app.post('/api/chat/duel/decline', async (req, res) => {
     activeDuels.delete(duelId);
 
     // Limpar o objeto duel da mensagem do histórico para tirar os botões
-    const oldEntry = chatHistory.find(h => h.duel && h.duel.id === duelId);
+    const oldEntry = db.getChatHistory().find(h => h.duel && h.duel.id === duelId);
     if (oldEntry) oldEntry.duel = null;
 
     const actionText = (userId === duel.opponentId) ? 'recusou' : 'cancelou';
@@ -1881,8 +1876,7 @@ app.post('/api/chat/duel/decline', async (req, res) => {
       timestamp: Date.now()
     };
 
-    chatHistory.push(systemEntry);
-    if (chatHistory.length > 50) chatHistory.shift();
+    db.addChatMessage(systemEntry);
 
     // Broadcast
     const ssePayload = `event: message\ndata: ${JSON.stringify(systemEntry)}\n\n`;

@@ -14,6 +14,7 @@ let lotteries = {};
 let cryptoPrices = {};
 let footballMatches = {};
 let footballBets = {};
+let chatHistory = [];
 
 // Função para descarregar os dados da nuvem assim que o bot liga
 async function initDatabase() {
@@ -26,6 +27,7 @@ async function initDatabase() {
     cryptoPrices = (await redis.get("casino:crypto")) || { BTC: 50000, ETH: 3000, SOL: 150, DOGE: 0.1 };
     footballMatches = (await redis.get("casino:football:matches")) || {};
     footballBets = (await redis.get("casino:football:bets")) || {};
+    chatHistory = (await redis.get("casino:chat:history")) || [];
     console.log("Dados carregados com sucesso da Nuvem!");
   } catch (err) {
     console.error("Erro ao carregar dados do Redis:", err);
@@ -46,6 +48,7 @@ function persist() {
       await redis.set("casino:crypto", cryptoPrices);
       await redis.set("casino:football:matches", footballMatches);
       await redis.set("casino:football:bets", footballBets);
+      await redis.set("casino:chat:history", chatHistory);
       console.log("Dados salvos na Nuvem com sucesso!");
     } catch (err) {
       console.error("Erro ao persistir dados no Redis Remoto:", err);
@@ -464,6 +467,19 @@ function saveFootballBets(guildId, bets) {
   persist();
 }
 
+function getChatHistory() {
+  const now = Date.now();
+  chatHistory = chatHistory.filter(msg => now - msg.timestamp < 24 * 60 * 60 * 1000);
+  return chatHistory;
+}
+
+function addChatMessage(msg) {
+  chatHistory.push(msg);
+  const now = Date.now();
+  chatHistory = chatHistory.filter(msg => now - msg.timestamp < 24 * 60 * 60 * 1000);
+  persist();
+}
+
 module.exports = {
   getUser, saveUser, addBalance, addBank, tickBankInterest, setCooldown, getCooldown,
   recordResult, pushHistory, getHistory, getLeaderboard, resetUser, resetAllUsers,
@@ -474,5 +490,6 @@ module.exports = {
   getLottery, saveLottery, buyLotteryTickets, drawLottery,
   getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild,
   getFootballMatches, saveFootballMatches, getFootballBets, saveFootballBets,
+  getChatHistory, addChatMessage,
   getUsersData: () => users
 };
