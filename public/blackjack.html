@@ -544,9 +544,23 @@
 
   <!-- Ecrã Bloqueado por Não Autenticado -->
   <div class="unauth-modal" id="unauthScreen" style="display: none;">
-    <div style="background: var(--panel); border: 1px solid var(--panel-border); padding: 40px; border-radius: 20px; max-width: 400px;">
-      <h2 style="color: var(--ruby); margin-bottom: 12px;">Sessão Não Iniciada</h2>
-      <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px;">Inicia sessão no bot através do link seguro gerado pelo Discord.</p>
+    <div style="background: var(--panel); border: 1px solid var(--panel-border); padding: 40px; border-radius: 20px; max-width: 460px; text-align: center;">
+      <h2 style="color: var(--ruby); margin-bottom: 16px; font-weight: 800; font-size: 24px;">Sessão Não Iniciada</h2>
+      <p style="color: var(--text-muted); margin-bottom: 20px; font-size: 14px; line-height: 1.6;">
+        Não estás autenticado para aceder a esta mesa de jogo.
+      </p>
+      
+      <div style="background: rgba(241, 196, 15, 0.1); border: 1px solid rgba(241, 196, 15, 0.2); border-radius: 10px; padding: 12px 16px; font-size: 13px; text-align: left; margin-bottom: 24px; color: var(--gold); line-height: 1.5;">
+        ⚠️ **Atenção**: Os links de login gerados pelo Discord são **pessoais, seguros e de uso único**. Se partilhares o teu link com amigos, eles não conseguirão entrar na mesa ou dar-lhes-á erro de token!
+      </div>
+      
+      <p style="color: #fff; font-size: 13px; line-height: 1.6; margin-bottom: 8px; text-align: left;">
+        **Para que os teus amigos possam jogar contigo na mesa:**
+      </p>
+      <p style="color: var(--text-muted); font-size: 13px; line-height: 1.6; text-align: left; margin-bottom: 20px;">
+        Cada amigo deve ir ao Discord e digitar o seu próprio comando para gerar o seu respetivo botão de entrada seguro:<br>
+        <strong style="color: var(--mint); font-size: 14px; background: rgba(87, 242, 135, 0.1); border: 1px solid var(--mint-glow); padding: 6px 12px; border-radius: 6px; display: inline-block; margin-top: 8px; width: 100%; text-align: center; font-family: monospace;">/blackjack mesa</strong>
+      </p>
     </div>
   </div>
 
