@@ -317,6 +317,28 @@
         </select>
       </div>
 
+      <div class="input-grid-2">
+        <div class="form-group">
+          <label class="form-label">🖼️ Moldura do Avatar</label>
+          <select id="fieldFrame">
+            <option value="none">Nenhuma</option>
+            <option value="frame_gold">Dourada</option>
+            <option value="frame_neon">Néon</option>
+            <option value="frame_ruby">Rubi</option>
+            <option value="frame_rainbow">RGB Arco-íris</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">🌌 Tema de Fundo</label>
+          <select id="fieldBg">
+            <option value="none">Nenhum</option>
+            <option value="bg_matrix">Matrix Code Rain</option>
+            <option value="bg_casino">Las Vegas Néon</option>
+            <option value="bg_space">Espaço Profundo</option>
+          </select>
+        </div>
+      </div>
+
       <div class="form-group">
         <label class="form-label">📈 Holdings Crypto (Opções Binárias)</label>
         <div class="crypto-grid">
@@ -441,6 +463,8 @@
       document.getElementById('fieldLevel').value = user.level || 1;
       document.getElementById('fieldXp').value = user.xp || 0;
       document.getElementById('fieldVip').value = user.vipLevel || 0;
+      document.getElementById('fieldFrame').value = user.equippedFrame || 'none';
+      document.getElementById('fieldBg').value = user.equippedBg || 'none';
 
       const crypto = user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 };
       document.getElementById('cryptoBTC').value = crypto.BTC || 0;
@@ -464,6 +488,8 @@
       const level = parseInt(document.getElementById('fieldLevel').value);
       const xp = parseInt(document.getElementById('fieldXp').value);
       const vipLevel = parseInt(document.getElementById('fieldVip').value);
+      const equippedFrame = document.getElementById('fieldFrame').value;
+      const equippedBg = document.getElementById('fieldBg').value;
 
       const crypto = {
         BTC: parseFloat(document.getElementById('cryptoBTC').value) || 0,
@@ -483,6 +509,8 @@
             level,
             xp,
             vipLevel,
+            equippedFrame,
+            equippedBg,
             crypto
           })
         });

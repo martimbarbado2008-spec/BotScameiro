@@ -1404,7 +1404,9 @@ app.get('/api/admin/users', checkAdmin, async (req, res) => {
           level: uData.level || 1,
           xp: uData.xp || 0,
           crypto: uData.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
-          lastDaily: uData.lastDaily || 0
+          lastDaily: uData.lastDaily || 0,
+          equippedFrame: uData.equippedFrame || null,
+          equippedBg: uData.equippedBg || null
         };
       })
     );
@@ -1420,7 +1422,7 @@ app.post('/api/admin/user/update', checkAdmin, async (req, res) => {
   try {
     const session = getSession(req);
     const { guildId } = session;
-    const { targetUserId, balance, bank, level, xp, vipLevel, crypto } = req.body;
+    const { targetUserId, balance, bank, level, xp, vipLevel, crypto, equippedFrame, equippedBg } = req.body;
 
     if (!targetUserId) return res.status(400).json({ error: 'targetUserId em falta.' });
 
@@ -1440,6 +1442,12 @@ app.post('/api/admin/user/update', checkAdmin, async (req, res) => {
     if (typeof vipLevel === 'number') uData.vipLevel = vipLevel;
     if (crypto && typeof crypto === 'object') {
       uData.crypto = { ...uData.crypto, ...crypto };
+    }
+    if (typeof equippedFrame === 'string') {
+      uData.equippedFrame = equippedFrame === 'none' ? null : equippedFrame;
+    }
+    if (typeof equippedBg === 'string') {
+      uData.equippedBg = equippedBg === 'none' ? null : equippedBg;
     }
 
     db.saveUser(guildId, targetUserId, uData);
