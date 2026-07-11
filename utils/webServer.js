@@ -706,6 +706,28 @@ app.get('/api/dashboard/data', async (req, res) => {
     const sinceLastDaily = now - (user.lastDaily || 0);
     const dailyCooldown = Math.max(0, (24 * 60 * 60 * 1000) - sinceLastDaily);
 
+    const userTournament = db.getTournament(guildId);
+    const rawTournamentLeaderboard = db.getTournamentLeaderboard(guildId, 10);
+    const tournamentLeaderboard = await Promise.all(
+      rawTournamentLeaderboard.map(async (entry, index) => {
+        let uName = `Jogador #${index + 1}`;
+        let uAvatar = null;
+        if (discordClient) {
+          const uObj = discordClient.users.cache.get(entry.userId) || await discordClient.users.fetch(entry.userId).catch(() => null);
+          if (uObj) {
+            uName = uObj.username;
+            uAvatar = uObj.displayAvatarURL({ size: 64 }) || uObj.defaultAvatarURL;
+          }
+        }
+        return {
+          userId: entry.userId,
+          username: uName,
+          avatar: uAvatar,
+          score: entry.score
+        };
+      })
+    );
+
     return res.json({
       guildId,
       userId,
@@ -723,6 +745,13 @@ app.get('/api/dashboard/data', async (req, res) => {
       inventory: user.inventory || [],
       history: db.getHistory(guildId, userId, 10),
       leaderboard,
+      tournament: {
+        active: db.isTournamentActive(guildId),
+        name: userTournament?.name || 'Sem Torneio Ativo',
+        endTime: userTournament?.endTime || 0,
+        prize: userTournament?.prize || 0,
+        leaderboard: tournamentLeaderboard
+      },
       cryptoPrices: prices,
       cryptoHoldings: user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
       contracts: user.contracts || [],

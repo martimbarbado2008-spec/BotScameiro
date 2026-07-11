@@ -1055,6 +1055,41 @@
 
       <!-- Coluna Direita -->
       <div>
+        <!-- Torneio Ativo -->
+        <div class="panel" id="tournamentPanel" style="display: none;">
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 12px;">
+            <h2 class="panel-title" style="margin-bottom: 0; border: none; padding: 0;"><span class="emoji">🏆</span> Torneio Ativo</h2>
+            <span id="tournamentBadge" style="background: rgba(241,196,15,0.1); border: 1px solid rgba(241,196,15,0.2); color: var(--gold); font-size: 10px; font-weight:800; padding:2px 8px; border-radius:12px; text-transform: uppercase;">A Decorrer</span>
+          </div>
+          
+          <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 14px; margin-bottom: 14px;">
+            <h3 id="tournamentName" style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 6px;">Torneio Semanal</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 12px; font-weight: 600;">
+              <div>
+                <span style="opacity: 0.6;">💰 Prémio:</span> <span id="tournamentPrize" style="color: var(--mint);">0 🪙</span>
+              </div>
+              <div style="text-align: right;">
+                <span style="opacity: 0.6;">⏳ Fim:</span> <span id="tournamentTimer" style="color: var(--gold);">--:--:--</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="font-size: 11px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 8px;">Tabela Classificativa</div>
+          <div id="tournamentLeaderboard" class="leaderboard-list" style="max-height: 250px; overflow-y: auto;">
+            <!-- Renderizado dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Sem Torneio -->
+        <div class="panel" id="noTournamentPanel">
+          <h2 class="panel-title"><span class="emoji">🏆</span> Torneios do Casino</h2>
+          <div style="text-align: center; padding: 24px 12px; color: var(--text-muted); font-size: 13px; line-height: 1.5;">
+            <div style="font-size: 24px; margin-bottom: 8px;">🏆</div>
+            Não há nenhum torneio ativo neste momento.<br>
+            <span style="font-size: 11px; opacity:0.6;">Fica atento aos anúncios no Discord do bot!</span>
+          </div>
+        </div>
+
         <!-- Leaderboard -->
         <div class="panel">
           <h2 class="panel-title" style="margin-bottom: 12px;"><span class="emoji">🏆</span> Classificação Global</h2>
@@ -1093,6 +1128,30 @@
     let appData = null;
     let selectedCoin = '';
     let tradeAction = '';
+    let tournamentTimerInterval = null;
+    let tournamentEndTime = 0;
+
+    function startTournamentCountdown(endTime) {
+      tournamentEndTime = endTime;
+      if (tournamentTimerInterval) clearInterval(tournamentTimerInterval);
+      
+      function updateTimer() {
+        const diff = tournamentEndTime - Date.now();
+        if (diff <= 0) {
+          document.getElementById('tournamentTimer').textContent = 'Terminado';
+          clearInterval(tournamentTimerInterval);
+          return;
+        }
+        
+        const h = Math.floor(diff / 3600000);
+        const m = Math.floor((diff % 3600000) / 60000);
+        const s = Math.floor((diff % 60000) / 1000);
+        document.getElementById('tournamentTimer').textContent = `${h}h ${m}m ${s}s`;
+      }
+      
+      updateTimer();
+      tournamentTimerInterval = setInterval(updateTimer, 1000);
+    }
 
     async function loadDashboard() {
       try {
@@ -1338,6 +1397,73 @@
           `;
           histList.appendChild(item);
         });
+      }
+
+      // Torneio Ativo
+      const tour = appData.tournament;
+      if (tour && tour.active) {
+        document.getElementById('noTournamentPanel').style.display = 'none';
+        document.getElementById('tournamentPanel').style.display = 'block';
+        
+        document.getElementById('tournamentName').textContent = tour.name;
+        document.getElementById('tournamentPrize').textContent = fmt(tour.prize);
+        
+        startTournamentCountdown(tour.endTime);
+        
+        const tourList = document.getElementById('tournamentLeaderboard');
+        tourList.innerHTML = '';
+        
+        if (tour.leaderboard.length === 0) {
+          tourList.innerHTML = '<div style="font-size:11px; color:var(--text-muted); text-align:center; padding:15px;">Ainda ninguém pontuou. Joga qualquer jogo do casino para entrares na classificação!</div>';
+        } else {
+          tour.leaderboard.forEach((user, index) => {
+            const row = document.createElement('div');
+            row.className = 'leaderboard-item';
+            row.style.cursor = 'pointer';
+            row.style.transition = 'background 0.2s ease, transform 0.15s ease';
+            row.onclick = () => {
+              window.location.href = `/perfil.html?userId=${user.userId}`;
+            };
+            row.onmouseover = () => {
+              row.style.background = 'rgba(255,255,255,0.02)';
+              row.style.transform = 'translateX(4px)';
+            };
+            row.onmouseout = () => {
+              row.style.background = 'transparent';
+              row.style.transform = 'translateX(0)';
+            };
+            
+            let medal = '';
+            if (index === 0) medal = '🥇 ';
+            else if (index === 1) medal = '🥈 ';
+            else if (index === 2) medal = '🥉 ';
+            else medal = `<span style="color:var(--text-muted); font-size:10px; width:16px; display:inline-block;">#${index+1}</span> `;
+            
+            const sign = user.score >= 0 ? '+' : '';
+            const scoreColor = user.score >= 0 ? 'var(--mint)' : 'var(--ruby)';
+            
+            row.innerHTML = `
+              <div class="leaderboard-left">
+                <span style="font-family: 'Outfit'; font-weight:700;">${medal}</span>
+                <img class="lead-avatar" src="${user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png'}">
+                <div>
+                  <div class="lead-name">${user.username}</div>
+                </div>
+              </div>
+              <div class="lead-right">
+                <div class="lead-val" style="color: ${scoreColor}; font-weight: 800;">${sign}${fmt(user.score)}</div>
+              </div>
+            `;
+            tourList.appendChild(row);
+          });
+        }
+      } else {
+        document.getElementById('noTournamentPanel').style.display = 'block';
+        document.getElementById('tournamentPanel').style.display = 'none';
+        if (tournamentTimerInterval) {
+          clearInterval(tournamentTimerInterval);
+          tournamentTimerInterval = null;
+        }
       }
     }
 
