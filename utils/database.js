@@ -153,7 +153,13 @@ function tickBankInterest() {
 
 function setCooldown(guildId, userId, command, ms) {
   const u = getUser(guildId, userId);
-  u.cooldowns[command] = Date.now() + ms;
+  let finalMs = ms;
+  if (u.vipLevel === 2) {
+    finalMs = Math.round(ms * 0.65); // -35% cooldown
+  } else if (u.vipLevel === 3) {
+    finalMs = Math.round(ms * 0.25); // -75% cooldown (mínimo)
+  }
+  u.cooldowns[command] = Date.now() + finalMs;
   persist();
 }
 
@@ -388,6 +394,7 @@ function buyLotteryTickets(guildId, userId, quantity, pricePerTicket) {
   const u = getUser(guildId, userId);
   if (u.balance < cost) return null;
   u.balance -= cost;
+  addTournamentScore(guildId, userId, -cost);
   const l = getLottery(guildId);
   l.tickets[userId] = (l.tickets[userId] || 0) + quantity;
   l.jackpot += Math.round(cost * 0.8);
@@ -407,6 +414,7 @@ function drawLottery(guildId) {
     winnerId = pool[Math.floor(Math.random() * pool.length)];
     prize = l.jackpot;
     addBalance(guildId, winnerId, prize);
+    addTournamentScore(guildId, winnerId, prize);
   }
   const totalTickets = pool.length;
   lotteries[guildId] = { jackpot: 0, tickets: {}, drawsCompleted: (l.drawsCompleted || 0) + 1, lastDrawAt: Date.now() };

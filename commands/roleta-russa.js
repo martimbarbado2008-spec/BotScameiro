@@ -41,31 +41,41 @@ module.exports = {
     let round = 1; // Ronda 1 a 5
 
     function getRows() {
-      return [
-        new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId('russa_trigger')
-            .setStyle(ButtonStyle.Danger)
-            .setLabel('💥 Premir Gatilho'),
+      const buttons = [
+        new ButtonBuilder()
+          .setCustomId('russa_trigger')
+          .setStyle(ButtonStyle.Danger)
+          .setLabel('💥 Premir Gatilho')
+      ];
+      if (round > 1) {
+        buttons.push(
           new ButtonBuilder()
             .setCustomId('russa_cashout')
             .setStyle(ButtonStyle.Success)
-            .setLabel(`💰 Levantar ${fmt(bet * MULTIPLIERS[round - 1])}`)
-        )
-      ];
+            .setLabel(`💰 Levantar ${fmt(bet * MULTIPLIERS[round - 2])}`)
+        );
+      }
+      return [new ActionRowBuilder().addComponents(buttons)];
     }
 
     function getGameEmbed() {
-      const mult = MULTIPLIERS[round - 1];
-      const nextMult = MULTIPLIERS[round] || 'Máximo atingido';
+      const currentMult = round > 1 ? MULTIPLIERS[round - 2] : 0;
+      const nextMult = MULTIPLIERS[round - 1];
+      const nextNextMult = MULTIPLIERS[round] || 'Máximo';
       const deathChance = DEATH_CHANCES[round - 1];
       
+      let desc = `Meteste **${fmt(bet)}** no tambor. O revólver tem 6 câmaras e 1 bala.\nEstás na **Ronda ${round}/5**.\n\n`;
+      if (round === 1) {
+        desc += `• Risco de disparo nesta ronda: **${deathChance}**\n` +
+                `• Sobrevive a esta ronda para poderes levantar **${nextMult}x** ou continuar para **${nextNextMult}x**!`;
+      } else {
+        desc += `• Multiplicador Garantido: **${currentMult}x** (Retirada: ${fmt(bet * currentMult)})\n` +
+                `• Risco de disparo nesta ronda: **${deathChance}**\n` +
+                `• Se sobreviveres, o multiplicador sobe para: **${nextMult}x** (Próxima: ${nextNextMult}x)`;
+      }
+      
       return baseEmbed('🔫 Roleta Russa', COLORS.gold)
-        .setDescription(`Meteste **${fmt(bet)}** no tambor. O revólver tem 6 câmaras e 1 bala.\nEstás na **Ronda ${round}/5**.\n\n` + 
-          `• Multiplicador Atual: **${mult}x**\n` +
-          `• Se levantares agora: **${fmt(bet * mult)}**\n` +
-          `• Risco de disparo nesta ronda: **${deathChance}**\n` +
-          `• Próxima ronda: **${nextMult}x**`)
+        .setDescription(desc)
         .addFields(
           { name: 'Câmara atual', value: `👉 [ ${currentChamber + 1} / 6 ]`, inline: true },
           { name: 'Saldo Restante', value: fmt(db.getUser(guildId, userId).balance), inline: true }
@@ -89,6 +99,7 @@ module.exports = {
 
       if (type === 'dead') {
         const net = -bet;
+        db.addTournamentScore(guildId, userId, net);
         const { xpResult, newBadges } = await afterGame(interaction, { game: 'Roleta Russa', bet, net, won: false });
 
         const embed = baseEmbed('💥 *BOOM!* Disparou!', COLORS.lose)
@@ -106,16 +117,17 @@ module.exports = {
         }
         await notify(interaction, xpResult, newBadges);
       } else if (type === 'cashout') {
-        const mult = MULTIPLIERS[round - 1];
+        const mult = MULTIPLIERS[round - 2];
         const prize = Math.round(bet * mult);
         const net = prize - bet;
 
         db.addBalance(guildId, userId, prize);
+        db.addTournamentScore(guildId, userId, net);
 
         const { xpResult, newBadges } = await afterGame(interaction, { game: 'Roleta Russa', bet, net, won: true });
 
         const embed = baseEmbed('💰 Retirada segura!', COLORS.win)
-          .setDescription(`Decidiste não arriscar mais e retiraste-te na ronda ${round}.\nGanhaste **${fmt(prize)}** (${mult}x aposta).`)
+          .setDescription(`Decidiste não arriscar mais e retiraste-te na ronda ${round - 1}.\nGanhaste **${fmt(prize)}** (${mult}x aposta).`)
           .addFields(
             { name: 'Aposta', value: fmt(bet), inline: true },
             { name: 'Prémio total', value: fmt(prize), inline: true },
@@ -142,8 +154,8 @@ module.exports = {
         } else {
           // Sobreviveu!
           if (round === 5) {
-            // Completou a última ronda com sucesso, cashout automático
-            round = 5;
+            // Completou a última ronda com sucesso, cashout automático do multiplicador final
+            round = 6; // Para dar MULTIPLIERS[4] = 5.0x
             await finishGame(i, 'cashout');
           } else {
             currentChamber++;
@@ -159,8 +171,18 @@ module.exports = {
 
     collector.on('end', async (collected, reason) => {
       if (reason === 'time') {
-        // Se der timeout, faz cashout automático do multiplicador atual
-        await finishGame(null, 'cashout', true);
+        if (round > 1) {
+          await finishGame(null, 'cashout', true);
+        } else {
+          // Se não premeu o gatilho sequer uma vez, perde a aposta
+          const net = -bet;
+          db.addTournamentScore(guildId, userId, net);
+          const { xpResult, newBadges } = await afterGame(interaction, { game: 'Roleta Russa', bet, net, won: false });
+          const embed = baseEmbed('💥 Expirou sem atividade', COLORS.lose)
+            .setDescription(`Não premiste o gatilho a tempo e perdeste a tua aposta.`);
+          await interaction.editReply({ embeds: [embed], components: [] }).catch(() => {});
+          await notify(interaction, xpResult, newBadges);
+        }
       }
     });
   }

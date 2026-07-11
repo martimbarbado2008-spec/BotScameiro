@@ -475,10 +475,61 @@
       border-radius: 8px;
     }
 
-    .chat-bubble img {
+    .chat-avatar-wrapper {
+      position: relative;
       width: 28px;
       height: 28px;
       border-radius: 50%;
+      padding: 1.5px;
+      background: transparent;
+      display: inline-block;
+      flex-shrink: 0;
+      transition: all 0.3s ease;
+    }
+    
+    .chat-avatar-wrapper img {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      object-fit: cover;
+    }
+
+    /* Molduras no Chat */
+    .chat-avatar-wrapper.frame-none {
+      border: none;
+      background: transparent;
+      animation: none;
+    }
+    .chat-avatar-wrapper.frame-gold {
+      background: linear-gradient(135deg, #ffd700, #b8860b) !important;
+      border: 1px solid #ffd700 !important;
+      animation: none !important;
+    }
+    .chat-avatar-wrapper.frame-neon {
+      background: linear-gradient(135deg, #57f287, #00ff00) !important;
+      border: 1px solid #57f287 !important;
+      animation: pulseNeonFrame 1.5s infinite alternate !important;
+    }
+    .chat-avatar-wrapper.frame-ruby {
+      background: linear-gradient(135deg, #ff4d4d, #e74c3c) !important;
+      border: 1px solid #ff4d4d !important;
+      animation: none !important;
+    }
+    .chat-avatar-wrapper.frame-rainbow {
+      background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+      background-size: 400% 400% !important;
+      animation: rotateRainbowFrame 6s linear infinite !important;
+      border: none !important;
+    }
+
+    @keyframes pulseNeonFrame {
+      0% { box-shadow: 0 0 10px rgba(87, 242, 135, 0.5); }
+      100% { box-shadow: 0 0 25px rgba(87, 242, 135, 1); }
+    }
+    @keyframes rotateRainbowFrame {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
     }
 
     .chat-bubble-user {
@@ -895,8 +946,12 @@
       const bubble = document.createElement('div');
       bubble.className = 'chat-bubble';
       const avatarUrl = msg.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+      const frameClass = msg.equippedFrame ? msg.equippedFrame.replace('frame_', 'frame-') : 'frame-none';
+
       bubble.innerHTML = `
-        <img src="${avatarUrl}" alt="Avatar">
+        <div class="chat-avatar-wrapper ${frameClass}">
+          <img src="${avatarUrl}" alt="Avatar">
+        </div>
         <div>
           <div class="chat-bubble-user">${msg.username}</div>
           <div class="chat-bubble-text">${escapeHTML(msg.message)}</div>

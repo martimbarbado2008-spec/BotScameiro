@@ -143,8 +143,10 @@ module.exports = {
         won = true;
         net = winAmount - COST;
         db.addBalance(guildId, userId, winAmount);
+        db.addTournamentScore(guildId, userId, net);
         resultText = `🎉 **Ganhaste!** Encontraste 3x ${winSymbol} (${SYMBOLS_INFO[winSymbol].name}) e levaste **${fmt(winAmount)}**!`;
       } else {
+        db.addTournamentScore(guildId, userId, net);
         resultText = `😢 **Não foi desta vez!** Não encontraste nenhum conjunto de 3. Tenta a tua sorte outra vez!`;
       }
 

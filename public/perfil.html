@@ -69,6 +69,78 @@
       padding: 3px;
       background: linear-gradient(135deg, var(--gold), var(--mint));
       box-shadow: 0 0 15px rgba(250, 202, 43, 0.3);
+      transition: all 0.3s ease;
+    }
+
+    /* Estilos das Molduras de Perfil */
+    .avatar-wrapper.frame-none {
+      background: linear-gradient(135deg, var(--gold), var(--mint));
+      box-shadow: 0 0 15px rgba(250, 202, 43, 0.3);
+      border: none;
+      animation: none;
+    }
+    .avatar-wrapper.frame-gold {
+      background: linear-gradient(135deg, #ffd700, #b8860b) !important;
+      box-shadow: 0 0 20px rgba(255, 215, 0, 0.8) !important;
+      border: 2px solid #ffd700 !important;
+      animation: none !important;
+    }
+    .avatar-wrapper.frame-neon {
+      background: linear-gradient(135deg, #57f287, #00ff00) !important;
+      box-shadow: 0 0 20px rgba(87, 242, 135, 0.9) !important;
+      border: 2px solid #57f287 !important;
+      animation: pulseNeonFrame 1.5s infinite alternate !important;
+    }
+    .avatar-wrapper.frame-ruby {
+      background: linear-gradient(135deg, #ff4d4d, #e74c3c) !important;
+      box-shadow: 0 0 20px rgba(231, 76, 60, 0.8) !important;
+      border: 2px solid #ff4d4d !important;
+      animation: none !important;
+    }
+    .avatar-wrapper.frame-rainbow {
+      background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
+      background-size: 400% 400% !important;
+      box-shadow: 0 0 20px rgba(255,255,255,0.4) !important;
+      animation: rotateRainbowFrame 6s linear infinite !important;
+      border: none !important;
+    }
+
+    @keyframes pulseNeonFrame {
+      0% { box-shadow: 0 0 10px rgba(87, 242, 135, 0.5); }
+      100% { box-shadow: 0 0 25px rgba(87, 242, 135, 1); }
+    }
+    @keyframes rotateRainbowFrame {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+
+    /* Estilos dos Fundos Cosméticos de Página */
+    body.bg-none {
+      background-color: var(--bg);
+      background-image: none;
+    }
+    body.bg-matrix {
+      background-color: #000000 !important;
+      background-image: radial-gradient(circle at center, #051608 0%, #000000 100%) !important;
+    }
+    body.bg-casino {
+      background-color: #0c0214 !important;
+      background-image: radial-gradient(circle at top, #27063a 0%, #030a06 100%) !important;
+    }
+    body.bg-space {
+      background-color: #000a16 !important;
+      background-image: radial-gradient(circle at bottom right, #0b1a30 0%, #020805 100%) !important;
+    }
+
+    body.bg-matrix .mouse-glow-bg {
+      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(0, 255, 70, 0.06), transparent 80%) !important;
+    }
+    body.bg-casino .mouse-glow-bg {
+      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(224, 86, 253, 0.08), transparent 80%) !important;
+    }
+    body.bg-space .mouse-glow-bg {
+      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(52, 152, 219, 0.08), transparent 80%) !important;
     }
 
     .avatar-wrapper img {
@@ -447,6 +519,28 @@
 
       // Avatar e Perfil info
       document.getElementById('userAvatar').src = data.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+      
+      // Aplicar moldura do avatar
+      const wrapper = document.querySelector('.avatar-wrapper');
+      if (wrapper) {
+        wrapper.className = 'avatar-wrapper'; // reset
+        if (data.equippedFrame) {
+          const frameClass = data.equippedFrame.replace('frame_', 'frame-');
+          wrapper.classList.add(frameClass);
+        } else {
+          wrapper.classList.add('frame-none');
+        }
+      }
+
+      // Aplicar fundo cosmético da página
+      document.body.className = ''; // reset
+      if (data.equippedBg) {
+        const bgClass = data.equippedBg.replace('bg_', 'bg-');
+        document.body.classList.add(bgClass);
+      } else {
+        document.body.classList.add('bg-none');
+      }
+
       document.getElementById('userTag').textContent = data.username;
       document.getElementById('userLevel').textContent = data.level;
       document.getElementById('userXp').textContent = data.xp;

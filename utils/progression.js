@@ -100,11 +100,24 @@ async function announceBigWin(ctx, net, game) {
 // ctx = { guildId, userId, member, client, channelId, user } — "user" só é usado nas mensagens de log/alerta.
 async function applyProgressionFor(ctx, { game, bet, net, won }) {
   const { guildId, userId } = ctx;
+  const u = db.getUser(guildId, userId);
+
+  // Calcular e aplicar bónus VIP se houver lucro líquido positivo
+  let vipBonus = 0;
+  if (net > 0 && u.vipLevel > 0) {
+    const vipPercent = u.vipLevel === 1 ? 0.10 : (u.vipLevel === 2 ? 0.20 : (u.vipLevel === 3 ? 0.35 : 0));
+    vipBonus = Math.round(net * vipPercent);
+    if (vipBonus > 0) {
+      db.addBalance(guildId, userId, vipBonus);
+      db.addTournamentScore(guildId, userId, vipBonus);
+      net += vipBonus; // aumenta o net total para históricos e logs
+    }
+  }
 
   db.pushHistory(guildId, userId, { game, bet, net });
   const xpResult = db.addXp(guildId, userId, xpForGame(won));
+  xpResult.vipBonus = vipBonus;
 
-  const u = db.getUser(guildId, userId);
   if (net > 0) {
     u.stats.wonCoins = (u.stats.wonCoins || 0) + net;
   } else if (net < 0) {
@@ -193,10 +206,11 @@ function recordJackpot(guildId, userId, hit) {
 
 // envia um followUp discreto se o jogador subiu de nível ou desbloqueou conquistas
 async function notify(interaction, xpResult, newBadges) {
-  if (!xpResult.leveledUp && (!newBadges || newBadges.length === 0)) return;
+  if (!xpResult.leveledUp && (!newBadges || newBadges.length === 0) && (!xpResult.vipBonus || xpResult.vipBonus <= 0)) return;
   const lines = [];
   if (xpResult.leveledUp) lines.push(`⬆️ Subiste para o **nível ${xpResult.level}**!`);
   for (const b of newBadges || []) lines.push(`🏅 Nova conquista: **${b.name}** — ${b.desc}`);
+  if (xpResult.vipBonus > 0) lines.push(`👑 Recebeste **+${fmt(xpResult.vipBonus)}** de Bónus VIP extra por esta vitória!`);
   try {
     await interaction.followUp({ content: lines.join('\n'), ephemeral: true });
   } catch {}

@@ -198,18 +198,27 @@ async function resolveRealMatches(guildId, client) {
               const isWin = b.choice === result;
               if (isWin) {
                 const winnings = Math.round(b.amount * b.odds);
-                db.addBalance(guildId, b.userId, winnings);
+                let net = winnings - b.amount;
+
+                const u = db.getUser(guildId, b.userId);
+                const vipPercent = u.vipLevel === 1 ? 0.10 : (u.vipLevel === 2 ? 0.20 : (u.vipLevel === 3 ? 0.35 : 0));
+                const vipBonus = Math.round(net * vipPercent);
+                const finalWinnings = winnings + vipBonus;
+                net += vipBonus;
+
+                db.addBalance(guildId, b.userId, finalWinnings);
                 db.pushHistory(guildId, b.userId, {
                   game: `Aposta Futebol Real: ${m.homeTeam} x ${m.awayTeam}`,
                   bet: b.amount,
-                  net: winnings - b.amount
+                  net: net
                 });
+                db.addTournamentScore(guildId, b.userId, net);
                 b.status = 'won';
-                b.payout = winnings;
+                b.payout = finalWinnings;
 
                 if (client) {
                   client.users.fetch(b.userId).then(uObj => {
-                    uObj.send(`🏆 **Aposta Real Ganha!** O jogo real **${m.homeTeam} vs ${m.awayTeam}** terminou com o resultado **${result === '1' ? m.homeTeam : (result === '2' ? m.awayTeam : 'Empate')}** (${homeScore}-${awayScore}). Recebeste **${winnings} 🪙**!`).catch(() => {});
+                    uObj.send(`🏆 **Aposta Real Ganha!** O jogo real **${m.homeTeam} vs ${m.awayTeam}** terminou com o resultado **${result === '1' ? m.homeTeam : (result === '2' ? m.awayTeam : 'Empate')}** (${homeScore}-${awayScore}). Recebeste **${finalWinnings} 🪙**!${vipBonus > 0 ? ` (Inclui bónus VIP de +${vipBonus} 🪙)` : ''}`).catch(() => {});
                   }).catch(() => {});
                 }
               } else {
@@ -218,6 +227,7 @@ async function resolveRealMatches(guildId, client) {
                   bet: b.amount,
                   net: -b.amount
                 });
+                db.addTournamentScore(guildId, b.userId, -b.amount);
                 b.status = 'lost';
                 b.payout = 0;
 
@@ -351,18 +361,27 @@ function resolveVirtualMatches(guildId, client) {
           const isWin = b.choice === result;
           if (isWin) {
             const winnings = Math.round(b.amount * b.odds);
-            db.addBalance(guildId, b.userId, winnings);
+            let net = winnings - b.amount;
+
+            const u = db.getUser(guildId, b.userId);
+            const vipPercent = u.vipLevel === 1 ? 0.10 : (u.vipLevel === 2 ? 0.20 : (u.vipLevel === 3 ? 0.35 : 0));
+            const vipBonus = Math.round(net * vipPercent);
+            const finalWinnings = winnings + vipBonus;
+            net += vipBonus;
+
+            db.addBalance(guildId, b.userId, finalWinnings);
             db.pushHistory(guildId, b.userId, {
               game: `Aposta Futebol: ${m.homeTeam} x ${m.awayTeam}`,
               bet: b.amount,
-              net: winnings - b.amount
+              net: net
             });
+            db.addTournamentScore(guildId, b.userId, net);
             b.status = 'won';
-            b.payout = winnings;
+            b.payout = finalWinnings;
             
             if (client) {
               client.users.fetch(b.userId).then(uObj => {
-                uObj.send(`🏆 **Aposta Desportiva Ganha!** O jogo **${m.homeTeam} vs ${m.awayTeam}** terminou com o resultado **${result === '1' ? m.homeTeam : (result === '2' ? m.awayTeam : 'Empate')}**. Apostaste **${b.amount} 🪙** e ganhaste **${winnings} 🪙**!`).catch(() => {});
+                uObj.send(`🏆 **Aposta Desportiva Ganha!** O jogo **${m.homeTeam} vs ${m.awayTeam}** terminou com o resultado **${result === '1' ? m.homeTeam : (result === '2' ? m.awayTeam : 'Empate')}**. Apostaste **${b.amount} 🪙** e ganhaste **${finalWinnings} 🪙**!${vipBonus > 0 ? ` (Inclui bónus VIP de +${vipBonus} 🪙)` : ''}`).catch(() => {});
               }).catch(() => {});
             }
           } else {
@@ -371,6 +390,7 @@ function resolveVirtualMatches(guildId, client) {
               bet: b.amount,
               net: -b.amount
             });
+            db.addTournamentScore(guildId, b.userId, -b.amount);
             b.status = 'lost';
             b.payout = 0;
 

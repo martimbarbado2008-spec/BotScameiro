@@ -550,6 +550,8 @@ app.get('/api/profile/data', async (req, res) => {
       history: db.getHistory(guildId, targetUserId, 10),
       cryptoPrices: prices,
       cryptoHoldings: user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },
+      equippedFrame: user.equippedFrame || null,
+      equippedBg: user.equippedBg || null,
       allAchievements: ACHIEVEMENTS.map(a => ({ id: a.id, name: a.name, desc: a.desc }))
     });
   } catch (err) {
@@ -1641,14 +1643,15 @@ app.post('/api/chat/send', async (req, res) => {
       return res.json({ success: true, entry: systemEntry });
     }
 
-    // --- Envio de mensagem normal ---
+    const userObj = db.getUser(guildId, userId);
     const chatEntry = {
       id: Date.now() + Math.random().toString(),
       userId,
       username,
       avatar,
       message: cleanMessage,
-      timestamp: Date.now()
+      timestamp: Date.now(),
+      equippedFrame: userObj.equippedFrame || null
     };
 
     db.addChatMessage(chatEntry);
@@ -2006,12 +2009,14 @@ function resolvePayouts() {
       }
     }
 
+    const net = p.payoutResult - p.bet;
     if (p.payoutResult > 0) {
       const u = db.getUser(p.guildId, p.userId);
       u.balance += p.payoutResult;
       db.saveUser(p.guildId, p.userId, u);
-      db.pushHistory(p.guildId, p.userId, { game: 'Blackjack Online Web', bet: p.bet, net: p.payoutResult - p.bet });
     }
+    db.pushHistory(p.guildId, p.userId, { game: 'Blackjack Online Web', bet: p.bet, net });
+    db.addTournamentScore(p.guildId, p.userId, net);
   });
 }
 
