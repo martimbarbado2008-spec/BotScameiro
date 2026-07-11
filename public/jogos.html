@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Lobby de Jogos — Casino Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #09130e 0%, #0d1e16 50%, #050b08 100%);
+      --panel-bg: rgba(18, 38, 29, 0.45);
+      --border-glow: rgba(250, 202, 43, 0.15);
+      --gold: #FACA2B;
+      --gold-dark: #b08915;
+      --mint: #57F287;
+      --ruby: #ED4245;
+      --glass: rgba(255, 255, 255, 0.03);
+      --text: #E5F3EB;
+      --text-muted: #8fa096;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      overflow-x: hidden;
+    }
+
+    /* Background animations matching index/dashboard */
+    body::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 50%, rgba(87, 242, 135, 0.03) 0%, transparent 70%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 1100px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 15px 30px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .logo-area h1 {
+      font-size: 20px;
+      font-weight: 800;
+      letter-spacing: 1px;
+      background: linear-gradient(135deg, var(--gold), #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .nav-btn {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      color: var(--text);
+      padding: 8px 18px;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 700;
+      text-decoration: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--gold);
+      box-shadow: 0 0 10px rgba(250, 202, 43, 0.2);
+    }
+
+    .hud-balances {
+      display: flex;
+      gap: 15px;
+    }
+
+    .hud-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 8px 15px;
+      text-align: right;
+      min-width: 120px;
+    }
+
+    .hud-card .lbl {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .hud-card .val {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    /* Main layout grid */
+    .game-grid {
+      display: grid;
+      grid-template-columns: 1.4fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 850px) {
+      .game-grid { grid-template-columns: 1fr; }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-title {
+      font-size: 18px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Slots Machine Styles */
+    .slots-machine {
+      background: rgba(0, 0, 0, 0.45);
+      border: 2px solid rgba(250, 202, 43, 0.25);
+      border-radius: 20px;
+      padding: 30px 20px;
+      text-align: center;
+      box-shadow: 0 0 25px rgba(250, 202, 43, 0.05);
+      position: relative;
+    }
+
+    .reels-container {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+      margin: 25px 0;
+    }
+
+    .reel {
+      width: 90px;
+      height: 100px;
+      background: #06110b;
+      border: 3px solid var(--mint);
+      border-radius: 16px;
+      font-size: 56px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: inset 0 0 15px rgba(0, 255, 100, 0.2), 0 0 10px rgba(0, 0, 0, 0.5);
+      transition: transform 0.1s ease;
+      text-shadow: 0 0 15px rgba(87, 242, 135, 0.6);
+    }
+
+    .control-row {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 20px;
+      margin-top: 25px;
+    }
+
+    .bet-input-box {
+      text-align: left;
+    }
+
+    .bet-input-box label {
+      font-size: 10px;
+      color: var(--text-muted);
+      display: block;
+      margin-bottom: 5px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .bet-input-box input {
+      width: 130px;
+      padding: 12px;
+      background: rgba(0, 0, 0, 0.5);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 10px;
+      color: #fff;
+      font-weight: 800;
+      font-size: 16px;
+      text-align: center;
+    }
+
+    .btn-spin {
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      font-weight: 900;
+      font-size: 16px;
+      padding: 12px 45px;
+      border-radius: 12px;
+      border: none;
+      box-shadow: 0 0 20px rgba(250, 202, 43, 0.4);
+      cursor: pointer;
+      transition: all 0.2s ease;
+    }
+
+    .btn-spin:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 0 30px rgba(250, 202, 43, 0.6);
+    }
+
+    .btn-spin:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+
+    .result-text {
+      margin-top: 25px;
+      font-size: 15px;
+      font-weight: 800;
+      min-height: 24px;
+      color: var(--text-muted);
+    }
+
+    /* Lobby Items list */
+    .lobby-list {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .lobby-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 16px;
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+      text-decoration: none;
+      color: inherit;
+    }
+
+    .lobby-item:hover:not(.locked) {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(250, 202, 43, 0.3);
+      transform: translateX(4px);
+    }
+
+    .lobby-item.locked {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .lobby-info {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .lobby-icon {
+      font-size: 28px;
+      background: rgba(0, 0, 0, 0.25);
+      width: 50px;
+      height: 50px;
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid rgba(255, 255, 255, 0.05);
+    }
+
+    .lobby-detail h3 {
+      font-size: 14px;
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .lobby-detail p {
+      font-size: 11px;
+      color: var(--text-muted);
+    }
+
+    .lobby-action-btn {
+      background: rgba(250, 202, 43, 0.15);
+      border: 1px solid var(--gold);
+      color: var(--gold);
+      padding: 6px 14px;
+      border-radius: 8px;
+      font-size: 11px;
+      font-weight: 800;
+    }
+
+    .lobby-action-btn.soon {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(255, 255, 255, 0.1);
+      color: var(--text-muted);
+    }
+
+    /* Restricted error screen */
+    #unauthScreen {
+      display: none;
+      text-align: center;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      margin: 100px auto;
+    }
+
+    #unauthScreen h2 {
+      font-size: 24px;
+      color: var(--ruby);
+      margin-bottom: 15px;
+    }
+
+    #unauthScreen p {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Restricted Screen -->
+  <div id="unauthScreen">
+    <h2>🔒 Acesso Restrito</h2>
+    <p>Não foi possível autenticar a tua sessão.</p>
+    <p>Por favor, volta ao Discord e usa o botão no canal para abrires o painel.</p>
+  </div>
+
+  <div id="jogosApp" class="container" style="display: none;">
+    <header>
+      <div class="logo-area">
+        <a href="/dashboard.html" class="nav-btn">⬅️ Dashboard</a>
+        <h1>🎮 SALA DE JOGOS</h1>
+      </div>
+      
+      <div class="hud-balances">
+        <div class="hud-card">
+          <div class="lbl">Carteira</div>
+          <div class="val" id="userBalance">...</div>
+        </div>
+        <div class="hud-card">
+          <div class="lbl">Banco</div>
+          <div class="val" id="userBank">...</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="game-grid">
+      <!-- Coluna Slots -->
+      <div class="panel">
+        <h2 class="panel-title"><span class="emoji">🎰</span> Máquina de Slots Arena</h2>
+        
+        <div class="slots-machine">
+          <!-- Reels display -->
+          <div class="reels-container">
+            <div id="reel1" class="reel">🍒</div>
+            <div id="reel2" class="reel">🍒</div>
+            <div id="reel3" class="reel">🍒</div>
+          </div>
+          
+          <!-- Controls -->
+          <div class="control-row">
+            <div class="bet-input-box">
+              <label>Aposta (🪙)</label>
+              <input type="number" id="slotsBet" value="100" min="1">
+            </div>
+            <button id="btnSpin" class="btn-spin" onclick="spinSlotsWeb()">GIRAR 🎰</button>
+          </div>
+          
+          <!-- Result text -->
+          <div id="slotsResult" class="result-text">
+            Escolhe a tua aposta e clica em girar!
+          </div>
+        </div>
+      </div>
+
+      <!-- Outros Jogos -->
+      <div class="panel">
+        <h2 class="panel-title"><span class="emoji">🎲</span> Outros Jogos Web</h2>
+        
+        <div class="lobby-list">
+          <!-- Blackjack -->
+          <a href="/blackjack.html" class="lobby-item">
+            <div class="lobby-info">
+              <div class="lobby-icon">🃏</div>
+              <div class="lobby-detail">
+                <h3>Blackjack Online</h3>
+                <p>Desafia o dealer ou outros jogadores em tempo real</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn">JOGAR</span>
+          </a>
+
+          <!-- Mines -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault()">
+            <div class="lobby-info">
+              <div class="lobby-icon">💣</div>
+              <div class="lobby-detail">
+                <h3>Campo Minado (Mines)</h3>
+                <p>Evita as minas e resgata tesouros com multiplicador</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">EM BREVE</span>
+          </a>
+
+          <!-- Crash -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault()">
+            <div class="lobby-info">
+              <div class="lobby-icon">📈</div>
+              <div class="lobby-detail">
+                <h3>Crash Crypto</h3>
+                <p>Retira a aposta antes que o multiplicador colapse</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">EM BREVE</span>
+          </a>
+
+          <!-- Roulette -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault()">
+            <div class="lobby-info">
+              <div class="lobby-icon">🎡</div>
+              <div class="lobby-detail">
+                <h3>Roleta Europeia</h3>
+                <p>Aposta no vermelho, preto ou nos teus números da sorte</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">EM BREVE</span>
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Sobrecarga do fetch global para incluir o token de autorização automaticamente
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) {
+        localStorage.setItem('token', tokenParam);
+      }
+      
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          if (!options.headers) options.headers = {};
+          if (options.headers instanceof Headers) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          } else if (Array.isArray(options.headers)) {
+            if (!options.headers.some(h => h[0].toLowerCase() === 'authorization')) {
+              options.headers.push(['Authorization', `Bearer ${token}`]);
+            }
+          } else {
+            if (!options.headers['Authorization'] && !options.headers['authorization']) {
+              options.headers['Authorization'] = `Bearer ${token}`;
+            }
+          }
+        }
+        return originalFetch(url, options);
+      };
+    })();
+
+    // Sincronizar links
+    function syncLinksWithToken() {
+      const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+      if (token) {
+        document.querySelectorAll('a').forEach(a => {
+          if (a.href && (a.href.includes('.html') || a.href.startsWith('/'))) {
+            try {
+              const u = new URL(a.href, window.location.origin);
+              u.searchParams.set('token', token);
+              a.href = u.pathname + u.search;
+            } catch(e) {}
+          }
+        });
+      }
+    }
+
+    async function loadLobbyData() {
+      try {
+        const res = await fetch('/api/dashboard/data');
+        if (!res.ok) throw new Error('Não autorizado');
+        const data = await res.json();
+        
+        document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('userBank').textContent = Math.round(data.bank).toLocaleString('pt-PT') + ' 🪙';
+        
+        document.getElementById('jogosApp').style.display = 'block';
+        syncLinksWithToken();
+      } catch (err) {
+        document.getElementById('unauthScreen').style.display = 'block';
+      }
+    }
+
+    let spinningSlots = false;
+    const slotsEmojis = ['🍒', '🍋', '🍇', '💎', '🔔', '7️⃣'];
+
+    async function spinSlotsWeb() {
+      if (spinningSlots) return;
+      
+      const betInput = document.getElementById('slotsBet');
+      const bet = parseInt(betInput.value, 10);
+      if (isNaN(bet) || bet <= 0) {
+        alert("Introduz uma aposta válida maior que 0.");
+        return;
+      }
+      
+      spinningSlots = true;
+      const btn = document.getElementById('btnSpin');
+      const resultDiv = document.getElementById('slotsResult');
+      
+      btn.disabled = true;
+      btn.style.opacity = 0.5;
+      resultDiv.innerHTML = "A girar os cilindros... 🍀";
+      resultDiv.style.color = "var(--text-muted)";
+      
+      const reel1 = document.getElementById('reel1');
+      const reel2 = document.getElementById('reel2');
+      const reel3 = document.getElementById('reel3');
+      
+      reel1.parentElement.style.boxShadow = "none";
+      
+      const shuffleInterval = setInterval(() => {
+        reel1.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+        reel2.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+        reel3.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+      }, 70);
+      
+      try {
+        const res = await fetch('/api/games/slots', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bet })
+        });
+        
+        const data = await res.json();
+        clearInterval(shuffleInterval);
+        
+        if (!res.ok) {
+          resultDiv.textContent = data.error || "Erro no jogo.";
+          resultDiv.style.color = "var(--ruby)";
+          spinningSlots = false;
+          btn.disabled = false;
+          btn.style.opacity = 1;
+          loadLobbyData();
+          return;
+        }
+        
+        setTimeout(() => {
+          reel1.textContent = data.reels[0];
+          setTimeout(() => {
+            reel2.textContent = data.reels[1];
+            setTimeout(() => {
+              reel3.textContent = data.reels[2];
+              
+              spinningSlots = false;
+              btn.disabled = false;
+              btn.style.opacity = 1;
+              
+              if (data.win) {
+                resultDiv.innerHTML = `🎉 GANHASTE! Recebeste <span style="color:var(--mint); font-weight:900;">+${data.netReward.toLocaleString('pt-PT')} 🪙</span>!`;
+                resultDiv.style.color = "var(--mint)";
+                reel1.parentElement.style.boxShadow = "0 0 35px rgba(87, 242, 135, 0.45)";
+              } else {
+                resultDiv.innerHTML = `❌ Perdeu... Perdeste <span style="color:var(--ruby); font-weight:900;">-${bet.toLocaleString('pt-PT')} 🪙</span>.`;
+                resultDiv.style.color = "var(--ruby)";
+                reel1.parentElement.style.boxShadow = "0 0 25px rgba(231, 76, 60, 0.15)";
+              }
+              
+              loadLobbyData();
+            }, 250);
+          }, 250);
+        }, 500);
+      } catch (err) {
+        clearInterval(shuffleInterval);
+        spinningSlots = false;
+        btn.disabled = false;
+        btn.style.opacity = 1;
+        resultDiv.textContent = "Erro de rede ao jogar slots.";
+        resultDiv.style.color = "var(--ruby)";
+      }
+    }
+
+    let sseSource = null;
+    function initRealTimeUpdates() {
+      const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+      if (!token) return;
+      
+      if (sseSource) sseSource.close();
+      sseSource = new EventSource(`/api/stream?token=${encodeURIComponent(token)}`);
+      
+      sseSource.addEventListener('message', (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          if (payload.type === 'balance_update') {
+            const uData = payload.data;
+            const balanceEl = document.getElementById('userBalance');
+            const bankEl = document.getElementById('userBank');
+            
+            if (balanceEl) balanceEl.textContent = Math.round(uData.balance).toLocaleString('pt-PT') + ' 🪙';
+            if (bankEl) bankEl.textContent = Math.round(uData.bank).toLocaleString('pt-PT') + ' 🪙';
+          }
+        } catch (err) {
+          console.error("Erro ao processar dados SSE no lobby:", err);
+        }
+      });
+    }
+
+    loadLobbyData();
+    initRealTimeUpdates();
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>

@@ -535,11 +535,25 @@ app.get('/api/profile/data', async (req, res) => {
 
     let username = 'Utilizador';
     let avatar = null;
+    let isStaff = false;
+
     if (discordClient) {
       const uObj = discordClient.users.cache.get(targetUserId) || await discordClient.users.fetch(targetUserId).catch(() => null);
       if (uObj) {
         username = uObj.username;
         avatar = uObj.displayAvatarURL({ size: 128 }) || uObj.defaultAvatarURL;
+      }
+
+      const guild = discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch(() => null);
+      if (guild) {
+        const member = guild.members.cache.get(targetUserId) || await guild.members.fetch(targetUserId).catch(() => null);
+        if (member) {
+          const hasPerm = member.permissions.has('Administrator');
+          const hasRole = member.roles.cache.some(r => r.name.toLowerCase() === 'administrador');
+          if (hasPerm || hasRole) {
+            isStaff = true;
+          }
+        }
       }
     }
 
@@ -550,6 +564,7 @@ app.get('/api/profile/data', async (req, res) => {
       userId: targetUserId,
       username,
       avatar,
+      isStaff,
       balance: user.balance,
       bank: user.bank,
       level: user.level,

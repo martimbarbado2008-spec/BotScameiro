@@ -441,7 +441,10 @@
           <img id="userAvatar" src="" alt="Avatar">
         </div>
         <div class="profile-info">
-          <h1 id="userTag">...</h1>
+          <h1 style="display:flex; align-items:center; gap:10px;">
+            <span id="userTag">...</span>
+            <span id="staffTag" style="display:none; background: linear-gradient(135deg, #ff3366, #ff0055); color:#fff; font-size:10px; font-weight:900; padding:3px 8px; border-radius:6px; text-transform:uppercase; box-shadow:0 0 10px rgba(255,51,102,0.4); border:1px solid rgba(255,255,255,0.15); letter-spacing:1px; line-height:1.2;">🛡️ Staff</span>
+          </h1>
           <p>Nível <span id="userLevel">0</span> | VIP: <span id="userVip" style="color:var(--gold); font-weight:700;">Nenhum</span></p>
           <div class="xp-bar-container">
             <div class="xp-labels">
@@ -545,6 +548,35 @@
   </div>
 
   <script>
+    // Sobrecarga do fetch global para incluir o token de autorização automaticamente
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) {
+        localStorage.setItem('token', tokenParam);
+      }
+      
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          if (!options.headers) options.headers = {};
+          if (options.headers instanceof Headers) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          } else if (Array.isArray(options.headers)) {
+            if (!options.headers.some(h => h[0].toLowerCase() === 'authorization')) {
+              options.headers.push(['Authorization', `Bearer ${token}`]);
+            }
+          } else {
+            if (!options.headers['Authorization'] && !options.headers['authorization']) {
+              options.headers['Authorization'] = `Bearer ${token}`;
+            }
+          }
+        }
+        return originalFetch(url, options);
+      };
+    })();
+
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('userId');
 
@@ -561,6 +593,19 @@
         }
         const data = await res.json();
         renderProfile(data);
+        
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          document.querySelectorAll('a').forEach(a => {
+            if (a.href && (a.href.includes('.html') || a.href.startsWith('/'))) {
+              try {
+                const u = new URL(a.href, window.location.origin);
+                u.searchParams.set('token', token);
+                a.href = u.pathname + u.search;
+              } catch(e) {}
+            }
+          });
+        }
       } catch (err) {
         document.getElementById('unauthScreen').style.display = 'block';
       }
@@ -599,6 +644,12 @@
       }
 
       document.getElementById('userTag').textContent = data.username;
+      
+      const staffEl = document.getElementById('staffTag');
+      if (staffEl) {
+        staffEl.style.display = data.isStaff ? 'inline-block' : 'none';
+      }
+      
       document.getElementById('userLevel').textContent = data.level;
       document.getElementById('userXp').textContent = data.xp;
       document.getElementById('xpNeeded').textContent = data.xpNeeded;

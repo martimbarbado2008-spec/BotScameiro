@@ -693,6 +693,35 @@
   </div>
 
   <script>
+    // Sobrecarga do fetch global para incluir o token de autorização automaticamente
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) {
+        localStorage.setItem('token', tokenParam);
+      }
+      
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          if (!options.headers) options.headers = {};
+          if (options.headers instanceof Headers) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          } else if (Array.isArray(options.headers)) {
+            if (!options.headers.some(h => h[0].toLowerCase() === 'authorization')) {
+              options.headers.push(['Authorization', `Bearer ${token}`]);
+            }
+          } else {
+            if (!options.headers['Authorization'] && !options.headers['authorization']) {
+              options.headers['Authorization'] = `Bearer ${token}`;
+            }
+          }
+        }
+        return originalFetch(url, options);
+      };
+    })();
+
     let appData = null;
     let userId = null;
     let pollInterval = null;
@@ -711,6 +740,19 @@
         
         initChatStream();
         startPolling();
+        
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          document.querySelectorAll('a').forEach(a => {
+            if (a.href && (a.href.includes('.html') || a.href.startsWith('/'))) {
+              try {
+                const u = new URL(a.href, window.location.origin);
+                u.searchParams.set('token', token);
+                a.href = u.pathname + u.search;
+              } catch(e) {}
+            }
+          });
+        }
       } catch (err) {
         document.getElementById('unauthScreen').style.display = 'flex';
       }
