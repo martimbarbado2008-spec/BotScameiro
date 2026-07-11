@@ -405,6 +405,62 @@
         </div>
       </div>
     </div>
+
+    <!-- Gestão de Torneios Panel -->
+    <div class="panel" style="grid-column: span 2; margin-top: 10px;">
+      <h2 class="panel-title"><span class="emoji">🏆</span> Gestão e Criação de Torneios</h2>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1.2fr; gap: 30px; margin-top: 20px; align-items: start;">
+        <!-- Left Side: Active tournament status / end button -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 20px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 12px; display: flex; align-items: center; gap: 8px;">
+            <span>ℹ️</span> Estado do Torneio
+          </h3>
+          <div id="adminTourActiveState" style="margin-bottom: 20px;">
+            <!-- Renderizado dinamicamente -->
+          </div>
+          <div id="adminTourActionArea" style="display: none;">
+            <button class="btn-action" style="background: var(--ruby); color: #fff; width: 100%; border: none;" onclick="endTournament()">
+              🏁 Terminar Torneio & Apurar Vencedor
+            </button>
+          </div>
+        </div>
+
+        <!-- Right Side: Create tournament form -->
+        <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.05); border-radius: 14px; padding: 20px;">
+          <h3 style="font-size: 15px; font-weight: 800; color: #fff; margin-bottom: 15px; display: flex; align-items: center; gap: 8px;">
+            <span>➕</span> Iniciar Novo Torneio
+          </h3>
+          
+          <div class="form-group">
+            <label class="form-label">📝 Nome do Torneio</label>
+            <input type="text" id="tourName" placeholder="Ex: Grande Torneio de Fim de Semana" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
+          </div>
+
+          <div class="input-grid-2" style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">⏳ Duração (horas)</label>
+              <input type="number" id="tourDuration" min="1" max="720" value="24" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
+            </div>
+            <div class="form-group" style="margin-bottom: 0;">
+              <label class="form-label">💰 Pote de Prémio (🪙)</label>
+              <input type="number" id="tourPrize" min="0" value="10000" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">💬 Canal de Anúncio no Discord</label>
+            <select id="tourChannel" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
+              <option value="">A carregar canais...</option>
+            </select>
+          </div>
+
+          <button class="btn-action" style="background: var(--gold); color: #000; width: 100%; font-weight: 800; border: none; margin-top: 10px;" onclick="startTournament()">
+            🏆 Iniciar Torneio Agora
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <script>
@@ -614,10 +670,121 @@
         console.error("Erro ao carregar estatísticas:", err);
       }
     }
+    async function loadChannels() {
+      try {
+        const res = await fetch('/api/admin/channels');
+        if (!res.ok) return;
+        const channels = await res.json();
+        const select = document.getElementById('tourChannel');
+        select.innerHTML = '';
+        
+        if (channels.length === 0) {
+          select.innerHTML = '<option value="">Sem canais ou sem permissão</option>';
+          return;
+        }
+        
+        channels.forEach(c => {
+          const opt = document.createElement('option');
+          opt.value = c.id;
+          opt.textContent = `#${c.name}`;
+          select.appendChild(opt);
+        });
+      } catch (err) {
+        console.error("Erro ao carregar canais:", err);
+      }
+    }
+
+    async function updateTournamentStatusCard() {
+      try {
+        const res = await fetch('/api/admin/tournament/status');
+        if (!res.ok) return;
+        const status = await res.json();
+        
+        const stateArea = document.getElementById('adminTourActiveState');
+        const actionArea = document.getElementById('adminTourActionArea');
+        
+        if (status.active) {
+          const end = new Date(status.endTime);
+          stateArea.innerHTML = `
+            <div style="font-size: 15px; font-weight: 800; color: var(--gold); margin-bottom: 8px;">🏆 ${status.name}</div>
+            <div style="font-size: 12px; display: grid; gap: 6px;">
+              <div>💰 <span style="opacity:0.6;">Prémio:</span> <strong>${status.prize.toLocaleString('pt-PT')} moedas</strong></div>
+              <div>⏳ <span style="opacity:0.6;">Fim:</span> <strong>${end.toLocaleString('pt-PT')}</strong></div>
+            </div>
+          `;
+          actionArea.style.display = 'block';
+        } else {
+          stateArea.innerHTML = `
+            <div style="text-align: center; padding: 25px 0; color: var(--text-muted); font-size: 13px;">
+              ❌ Nenhum torneio ativo neste servidor
+            </div>
+          `;
+          actionArea.style.display = 'none';
+        }
+      } catch (err) {
+        console.error("Erro ao carregar estado do torneio:", err);
+      }
+    }
+
+    async function startTournament() {
+      const name = document.getElementById('tourName').value.trim();
+      const durationHours = parseInt(document.getElementById('tourDuration').value, 10);
+      const prize = parseInt(document.getElementById('tourPrize').value, 10) || 0;
+      const channelId = document.getElementById('tourChannel').value;
+
+      if (!name) {
+        alert("Por favor, introduz um nome para o torneio.");
+        return;
+      }
+      if (isNaN(durationHours) || durationHours <= 0) {
+        alert("Por favor, introduz uma duração válida maior que 0 horas.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/tournament/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ durationHours, name, prize, channelId })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao iniciar torneio.");
+          return;
+        }
+
+        showToast("Torneio iniciado com sucesso! 🏆");
+        document.getElementById('tourName').value = '';
+        await updateTournamentStatusCard();
+      } catch (err) {
+        alert("Erro de rede ao iniciar torneio.");
+      }
+    }
+
+    async function endTournament() {
+      if (!confirm("Tem a certeza que deseja terminar o torneio atual e apurar o vencedor imediatamente?")) return;
+      
+      try {
+        const res = await fetch('/api/admin/tournament/end', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao terminar torneio.");
+          return;
+        }
+
+        showToast("Torneio terminado e vencedor apurado! 🏁");
+        await updateTournamentStatusCard();
+      } catch (err) {
+        alert("Erro de rede ao terminar torneio.");
+      }
+    }
 
     async function initAdminPanel() {
       await loadUsers();
       await loadStats();
+      await loadChannels();
+      await updateTournamentStatusCard();
     }
 
     initAdminPanel();

@@ -1485,6 +1485,101 @@ app.post('/api/admin/user/clear-cooldowns', checkAdmin, async (req, res) => {
   }
 });
 
+app.get('/api/admin/channels', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    if (!discordClient) return res.json([]);
+    
+    const guild = discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch(() => null);
+    if (!guild) return res.json([]);
+    
+    const channels = guild.channels.cache
+      .filter(c => c.type === 0) // GuildText channels
+      .map(c => ({ id: c.id, name: c.name }));
+    
+    return res.json(channels);
+  } catch (err) {
+    return res.json([]);
+  }
+});
+
+app.get('/api/admin/tournament/status', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const t = db.getTournament(guildId);
+    return res.json({
+      active: db.isTournamentActive(guildId),
+      name: t?.name || 'Nenhum',
+      endTime: t?.endTime || 0,
+      prize: t?.prize || 0,
+      startedBy: t?.startedBy || null
+    });
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao ler estado do torneio.' });
+  }
+});
+
+app.post('/api/admin/tournament/start', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId, userId } = session;
+    const { durationHours, name, prize, channelId } = req.body;
+    
+    const existing = db.getTournament(guildId);
+    if (existing && existing.active) {
+      return res.status(400).json({ error: 'Já existe um torneio ativo.' });
+    }
+    
+    const hours = parseInt(durationHours, 10);
+    if (isNaN(hours) || hours <= 0) {
+      return res.status(400).json({ error: 'Duração inválida.' });
+    }
+    
+    db.startTournament(guildId, {
+      durationMs: hours * 60 * 60 * 1000,
+      name: name || 'Torneio do casino',
+      prize: parseInt(prize, 10) || 0,
+      channelId: channelId || null,
+      startedBy: userId
+    });
+    
+    // Envia anúncio se configurado
+    if (discordClient && channelId) {
+      const channel = await discordClient.channels.fetch(channelId).catch(() => null);
+      if (channel) {
+        const { baseEmbed, COLORS } = require('./embeds');
+        const embed = baseEmbed(`🏆 ${name} — começou!`, COLORS.gold)
+          .setDescription(`Um novo torneio foi iniciado a partir do Painel Web!\nQuem ganhar mais moedas líquidas em qualquer jogo do casino nas próximas **${hours}h** vence.\nUsa \`/torneio\` no Discord ou consulta a Dashboard do site para veres a classificação!`);
+        await channel.send({ embeds: [embed] }).catch(() => {});
+      }
+    }
+    
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao iniciar torneio.' });
+  }
+});
+
+app.post('/api/admin/tournament/end', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const t = db.getTournament(guildId);
+    if (!t || !t.active) {
+      return res.status(400).json({ error: 'Nenhum torneio ativo.' });
+    }
+    const { concludeTournament } = require('./tournamentEngine');
+    await concludeTournament(discordClient, guildId);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao terminar torneio.' });
+  }
+});
+
 app.get('/api/admin/stats', checkAdmin, async (req, res) => {
   try {
     const session = getSession(req);
