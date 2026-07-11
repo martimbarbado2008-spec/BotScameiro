@@ -1,10 +1,11 @@
 const { Redis } = require("@upstash/redis");
 
 // Liga à base de dados na nuvem usando as variáveis de ambiente do Render
-const redis = new Redis({
+const hasRedisCreds = process.env.REDIS_URL && process.env.REDIS_TOKEN;
+const redis = hasRedisCreds ? new Redis({
   url: process.env.REDIS_URL,
   token: process.env.REDIS_TOKEN
-});
+}) : null;
 
 // Variáveis locais para que o bot continue a ler os dados instantaneamente
 let users = {};
@@ -18,6 +19,10 @@ let chatHistory = [];
 
 // Função para descarregar os dados da nuvem assim que o bot liga
 async function initDatabase() {
+  if (!redis) {
+    console.warn("⚠️ REDIS_URL ou REDIS_TOKEN ausentes no ambiente. O bot funcionará com base de dados vazia em memória.");
+    return;
+  }
   try {
     console.log("A carregar dados do Upstash Redis...");
     users = (await redis.get("casino:users")) || {};
@@ -37,6 +42,7 @@ initDatabase();
 
 let saveTimeout = null;
 function persist() {
+  if (!redis) return;
   // Agrupa as escritas para não sobrecarregar a rede a cada jogada
   if (saveTimeout) return;
   saveTimeout = setTimeout(async () => {

@@ -361,9 +361,10 @@
         </div>
       </div>
 
-      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:15px; margin-top:30px;">
-        <button class="btn-action btn-secondary" onclick="clearCooldowns()">⚡ Limpar Cooldowns</button>
-        <button class="btn-action" onclick="saveUser()">Guardar Alterações 💾</button>
+      <div style="display:grid; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-top:30px;">
+        <button class="btn-action btn-secondary" onclick="clearCooldowns()" title="Limpa todos os cooldowns e tempos de diário">⚡ Cooldowns</button>
+        <button class="btn-action" style="background:#e74c3c; color:#fff;" onclick="resetPlayerBalance()" title="Redefine o saldo deste jogador para o valor inicial">🔄 Reset Saldo</button>
+        <button class="btn-action" onclick="saveUser()">Guardar 💾</button>
       </div>
     </div>
 
@@ -460,6 +461,138 @@
           </button>
         </div>
       </div>
+    </div>
+
+    <!-- Configurações do Casino Panel -->
+    <div class="panel" style="grid-column: span 2; margin-top: 10px;">
+      <h2 class="panel-title"><span class="emoji">⚙️</span> Configurações Globais do Casino</h2>
+      
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 30px; margin-top: 20px;">
+        <!-- Left Column: Economy Parameters -->
+        <div>
+          <h3 style="font-size: 14px; font-weight: 800; color: var(--gold); margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">🎮 Parâmetros da Economia</h3>
+          
+          <div class="input-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">💰 Saldo Inicial</label>
+              <input type="number" id="cfgStartingBalance">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🎡 Bónus Diário</label>
+              <input type="number" id="cfgDailyAmount">
+            </div>
+          </div>
+
+          <div class="input-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">📉 Aposta Mínima</label>
+              <input type="number" id="cfgMinBet">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">📈 Aposta Máxima</label>
+              <input type="number" id="cfgMaxBet">
+            </div>
+          </div>
+
+          <div class="input-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🧹 Ganho Mín. Trabalho</label>
+              <input type="number" id="cfgWorkMin">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🧹 Ganho Máx. Trabalho</label>
+              <input type="number" id="cfgWorkMax">
+            </div>
+          </div>
+
+          <div class="input-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🏦 Juro do Banco (%)</label>
+              <input type="number" id="cfgBankInterest">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🏥 Limite Empréstimo</label>
+              <input type="number" id="cfgLoanMax">
+            </div>
+          </div>
+
+          <div class="input-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🎟️ Preço Lotaria</label>
+              <input type="number" id="cfgTicketPrice">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">📢 Limiar Prémio Grande</label>
+              <input type="number" id="cfgBigWin">
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Column: Security, Logs, Robs and Tournaments -->
+        <div>
+          <h3 style="font-size: 14px; font-weight: 800; color: var(--gold); margin-bottom: 15px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px;">🛡️ Roubos, Logs e Torneios Auto</h3>
+          
+          <div class="input-grid-2" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🏠 Vantagem da Casa (%)</label>
+              <input type="number" id="cfgHouseEdge" min="0" max="100">
+            </div>
+            <div class="form-group" style="margin-bottom:0;">
+              <label class="form-label">🥷 Chance Roubo (%)</label>
+              <input type="number" id="cfgRobChance" min="0" max="100">
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">🚨 Multa Falha de Roubo (%)</label>
+            <input type="number" id="cfgRobFine" min="0" max="100">
+          </div>
+
+          <div class="form-group">
+            <label class="form-label">📋 Canal de Logs do Discord</label>
+            <select id="cfgLogChannel" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
+              <option value="none">Nenhum</option>
+            </select>
+          </div>
+
+          <div style="background:rgba(255,255,255,0.02); border:1px solid rgba(255,255,255,0.05); border-radius:10px; padding:15px;">
+            <label class="form-label" style="display:flex; align-items:center; gap:8px; cursor:pointer; margin-bottom:0;">
+              <input type="checkbox" id="cfgAutoTourEnabled" style="width:18px; height:18px;" onchange="toggleAutoTourFields()">
+              <span>🏆 Ativar Torneios Automáticos Semanais</span>
+            </label>
+            
+            <div id="cfgAutoTourDetails" style="display:none; grid-template-columns: 1fr 1fr 1fr; gap:12px; margin-top:12px;">
+              <div>
+                <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:4px;">Dia da Semana</label>
+                <select id="cfgAutoTourDay" style="width:100%; padding:6px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:6px; color:#fff; font-size:11px;">
+                  <option value="0">Domingo</option>
+                  <option value="1">Segunda</option>
+                  <option value="2">Terça</option>
+                  <option value="3">Quarta</option>
+                  <option value="4">Quinta</option>
+                  <option value="5">Sexta</option>
+                  <option value="6">Sábado</option>
+                </select>
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:4px;">Hora Início</label>
+                <input type="number" id="cfgAutoTourHour" min="0" max="23" style="width:100%; padding:6px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:6px; color:#fff; font-size:11px;">
+              </div>
+              <div>
+                <label style="font-size:10px; color:var(--text-muted); display:block; margin-bottom:4px;">Duração (horas)</label>
+                <input type="number" id="cfgAutoTourDuration" min="1" style="width:100%; padding:6px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:6px; color:#fff; font-size:11px;">
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn-action" style="background: var(--mint); color:#000; width:100%; font-weight:800; border:none; margin-top:25px;" onclick="saveCasinoConfig()">
+        Guardar Configurações Globais do Casino ⚙️
+      </button>
+      <button class="btn-action" style="background: #c0392b; color:#fff; width:100%; font-weight:800; border:none; margin-top:12px;" onclick="resetAllBalances()">
+        ⚠️ Resetar Saldo de TODOS os Jogadores para o Inicial
+      </button>
     </div>
   </div>
 
@@ -675,19 +808,30 @@
         const res = await fetch('/api/admin/channels');
         if (!res.ok) return;
         const channels = await res.json();
-        const select = document.getElementById('tourChannel');
-        select.innerHTML = '';
+        
+        const tourSelect = document.getElementById('tourChannel');
+        const configSelect = document.getElementById('cfgLogChannel');
+        
+        tourSelect.innerHTML = '';
+        configSelect.innerHTML = '<option value="none">Nenhum</option>';
         
         if (channels.length === 0) {
-          select.innerHTML = '<option value="">Sem canais ou sem permissão</option>';
+          tourSelect.innerHTML = '<option value="">Sem canais ou sem permissão</option>';
           return;
         }
         
         channels.forEach(c => {
-          const opt = document.createElement('option');
-          opt.value = c.id;
-          opt.textContent = `#${c.name}`;
-          select.appendChild(opt);
+          // Opção para canal de torneio
+          const opt1 = document.createElement('option');
+          opt1.value = c.id;
+          opt1.textContent = `#${c.name}`;
+          tourSelect.appendChild(opt1);
+          
+          // Opção para canal de logs
+          const opt2 = document.createElement('option');
+          opt2.value = c.id;
+          opt2.textContent = `#${c.name}`;
+          configSelect.appendChild(opt2);
         });
       } catch (err) {
         console.error("Erro ao carregar canais:", err);
@@ -780,11 +924,147 @@
       }
     }
 
+    function toggleAutoTourFields() {
+      const enabled = document.getElementById('cfgAutoTourEnabled').checked;
+      document.getElementById('cfgAutoTourDetails').style.display = enabled ? 'grid' : 'none';
+    }
+
+    async function loadCasinoConfig() {
+      try {
+        const res = await fetch('/api/admin/config');
+        if (!res.ok) return;
+        const cfg = await res.json();
+        
+        document.getElementById('cfgStartingBalance').value = cfg.startingBalance || 0;
+        document.getElementById('cfgDailyAmount').value = cfg.dailyAmount || 0;
+        document.getElementById('cfgMinBet').value = cfg.minBet || 0;
+        document.getElementById('cfgMaxBet').value = cfg.maxBet || 0;
+        document.getElementById('cfgWorkMin').value = cfg.workMin || 0;
+        document.getElementById('cfgWorkMax').value = cfg.workMax || 0;
+        document.getElementById('cfgBankInterest').value = cfg.bankInterestPercent || 0;
+        document.getElementById('cfgLoanMax').value = cfg.loanMaxAmount || 0;
+        document.getElementById('cfgTicketPrice').value = cfg.lotteryTicketPrice || 0;
+        document.getElementById('cfgBigWin').value = cfg.bigWinThreshold || 0;
+        document.getElementById('cfgHouseEdge').value = cfg.houseEdgePercent || 0;
+        document.getElementById('cfgRobChance').value = cfg.robSuccessChance || 0;
+        document.getElementById('cfgRobFine').value = cfg.robFailFinePercent || 0;
+        
+        if (cfg.logChannelId) {
+          document.getElementById('cfgLogChannel').value = cfg.logChannelId;
+        } else {
+          document.getElementById('cfgLogChannel').value = 'none';
+        }
+        
+        const autoTourCheckbox = document.getElementById('cfgAutoTourEnabled');
+        autoTourCheckbox.checked = !!cfg.autoTournamentEnabled;
+        
+        document.getElementById('cfgAutoTourDay').value = cfg.autoTournamentDay !== undefined ? cfg.autoTournamentDay : 0;
+        document.getElementById('cfgAutoTourHour').value = cfg.autoTournamentHour !== undefined ? cfg.autoTournamentHour : 20;
+        document.getElementById('cfgAutoTourDuration').value = cfg.autoTournamentDurationHours !== undefined ? cfg.autoTournamentDurationHours : 24;
+        
+        toggleAutoTourFields();
+      } catch (err) {
+        console.error("Erro ao carregar configurações do casino:", err);
+      }
+    }
+
+    async function saveCasinoConfig() {
+      const startingBalance = parseInt(document.getElementById('cfgStartingBalance').value, 10) || 0;
+      const dailyAmount = parseInt(document.getElementById('cfgDailyAmount').value, 10) || 0;
+      const minBet = parseInt(document.getElementById('cfgMinBet').value, 10) || 0;
+      const maxBet = parseInt(document.getElementById('cfgMaxBet').value, 10) || 0;
+      const workMin = parseInt(document.getElementById('cfgWorkMin').value, 10) || 0;
+      const workMax = parseInt(document.getElementById('cfgWorkMax').value, 10) || 0;
+      const bankInterestPercent = parseInt(document.getElementById('cfgBankInterest').value, 10) || 0;
+      const loanMaxAmount = parseInt(document.getElementById('cfgLoanMax').value, 10) || 0;
+      const lotteryTicketPrice = parseInt(document.getElementById('cfgTicketPrice').value, 10) || 0;
+      const bigWinThreshold = parseInt(document.getElementById('cfgBigWin').value, 10) || 0;
+      const houseEdgePercent = parseInt(document.getElementById('cfgHouseEdge').value, 10) || 0;
+      const robSuccessChance = parseInt(document.getElementById('cfgRobChance').value, 10) || 0;
+      const robFailFinePercent = parseInt(document.getElementById('cfgRobFine').value, 10) || 0;
+      const logChannelId = document.getElementById('cfgLogChannel').value;
+      
+      const autoTournamentEnabled = document.getElementById('cfgAutoTourEnabled').checked;
+      const autoTournamentDay = parseInt(document.getElementById('cfgAutoTourDay').value, 10) || 0;
+      const autoTournamentHour = parseInt(document.getElementById('cfgAutoTourHour').value, 10) || 0;
+      const autoTournamentDurationHours = parseInt(document.getElementById('cfgAutoTourDuration').value, 10) || 0;
+
+      try {
+        const res = await fetch('/api/admin/config/update', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            startingBalance, dailyAmount, minBet, maxBet, workMin, workMax,
+            bankInterestPercent, loanMaxAmount, lotteryTicketPrice, bigWinThreshold,
+            houseEdgePercent, robSuccessChance, robFailFinePercent, logChannelId,
+            autoTournamentEnabled, autoTournamentDay, autoTournamentHour, autoTournamentDurationHours
+          })
+        });
+
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao gravar configurações.");
+          return;
+        }
+
+        showToast("Configurações do casino atualizadas! ⚙️");
+      } catch (err) {
+        alert("Erro ao gravar configurações do casino.");
+      }
+    }
+
+    async function resetPlayerBalance() {
+      if (!selectedUserId) return;
+      const user = users.find(u => u.userId === selectedUserId);
+      const name = user ? user.username : selectedUserId;
+      if (!confirm(`Tem a certeza que deseja redefinir o saldo de ${name} para o valor inicial?`)) return;
+
+      try {
+        const res = await fetch('/api/admin/user/reset', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetUserId: selectedUserId })
+        });
+
+        if (!res.ok) throw new Error();
+
+        showToast("Saldo do jogador redefinido! 🔄");
+        await loadUsers();
+        selectUser(selectedUserId);
+      } catch (err) {
+        alert("Erro ao resetar saldo do jogador.");
+      }
+    }
+
+    async function resetAllBalances() {
+      const code = prompt("🚨 ATENÇÃO: Esta ação irá redefinir o saldo de TODOS os jogadores do servidor para o valor inicial do casino!\n\nPara confirmar, digite 'CONFIRMAR' na caixa abaixo:");
+      if (code !== 'CONFIRMAR') {
+        if (code !== null) alert("Confirmação cancelada ou incorreta.");
+        return;
+      }
+
+      try {
+        const res = await fetch('/api/admin/users/reset-all', { method: 'POST' });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao resetar todos os saldos.");
+          return;
+        }
+
+        showToast(`Saldos de ${data.count} jogadores redefinidos! 🔄`);
+        await loadUsers();
+        if (selectedUserId) selectUser(selectedUserId);
+      } catch (err) {
+        alert("Erro de rede ao resetar todos os saldos.");
+      }
+    }
+
     async function initAdminPanel() {
       await loadUsers();
       await loadStats();
       await loadChannels();
       await updateTournamentStatusCard();
+      await loadCasinoConfig();
     }
 
     initAdminPanel();

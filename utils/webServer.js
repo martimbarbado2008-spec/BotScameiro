@@ -1485,6 +1485,33 @@ app.post('/api/admin/user/clear-cooldowns', checkAdmin, async (req, res) => {
   }
 });
 
+app.post('/api/admin/user/reset', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const { targetUserId } = req.body;
+    if (!targetUserId) return res.status(400).json({ error: 'targetUserId em falta.' });
+
+    db.resetUser(guildId, targetUserId);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error('Erro em /api/admin/user/reset:', err);
+    res.status(500).json({ error: 'Erro ao resetar saldo do jogador.' });
+  }
+});
+
+app.post('/api/admin/users/reset-all', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const count = db.resetAllUsers(guildId);
+    return res.json({ success: true, count });
+  } catch (err) {
+    console.error('Erro em /api/admin/users/reset-all:', err);
+    res.status(500).json({ error: 'Erro ao resetar todos os saldos.' });
+  }
+});
+
 app.get('/api/admin/channels', checkAdmin, async (req, res) => {
   try {
     const session = getSession(req);
@@ -1577,6 +1604,57 @@ app.post('/api/admin/tournament/end', checkAdmin, async (req, res) => {
   } catch (err) {
     console.error(err);
     return res.status(500).json({ error: 'Erro ao terminar torneio.' });
+  }
+});
+
+app.get('/api/admin/config', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const cfg = db.getGuildConfig(guildId);
+    return res.json(cfg);
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao obter configurações.' });
+  }
+});
+
+app.post('/api/admin/config/update', checkAdmin, async (req, res) => {
+  try {
+    const session = getSession(req);
+    const { guildId } = session;
+    const {
+      minBet, maxBet, dailyAmount, startingBalance, houseEdgePercent,
+      workMin, workMax, bankInterestPercent, robSuccessChance,
+      robFailFinePercent, loanMaxAmount, lotteryTicketPrice,
+      bigWinThreshold, logChannelId, autoTournamentEnabled,
+      autoTournamentDay, autoTournamentHour, autoTournamentDurationHours
+    } = req.body;
+
+    const patch = {};
+    if (typeof minBet === 'number') patch.minBet = minBet;
+    if (typeof maxBet === 'number') patch.maxBet = maxBet;
+    if (typeof dailyAmount === 'number') patch.dailyAmount = dailyAmount;
+    if (typeof startingBalance === 'number') patch.startingBalance = startingBalance;
+    if (typeof houseEdgePercent === 'number') patch.houseEdgePercent = houseEdgePercent;
+    if (typeof workMin === 'number') patch.workMin = workMin;
+    if (typeof workMax === 'number') patch.workMax = workMax;
+    if (typeof bankInterestPercent === 'number') patch.bankInterestPercent = bankInterestPercent;
+    if (typeof robSuccessChance === 'number') patch.robSuccessChance = robSuccessChance;
+    if (typeof robFailFinePercent === 'number') patch.robFailFinePercent = robFailFinePercent;
+    if (typeof loanMaxAmount === 'number') patch.loanMaxAmount = loanMaxAmount;
+    if (typeof lotteryTicketPrice === 'number') patch.lotteryTicketPrice = lotteryTicketPrice;
+    if (typeof bigWinThreshold === 'number') patch.bigWinThreshold = bigWinThreshold;
+    if (logChannelId !== undefined) patch.logChannelId = logChannelId === 'none' ? null : logChannelId;
+    if (typeof autoTournamentEnabled === 'boolean') patch.autoTournamentEnabled = autoTournamentEnabled;
+    if (typeof autoTournamentDay === 'number') patch.autoTournamentDay = autoTournamentDay;
+    if (typeof autoTournamentHour === 'number') patch.autoTournamentHour = autoTournamentHour;
+    if (typeof autoTournamentDurationHours === 'number') patch.autoTournamentDurationHours = autoTournamentDurationHours;
+
+    const updated = db.setGuildConfig(guildId, patch);
+    return res.json({ success: true, config: updated });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao atualizar configurações.' });
   }
 });
 
