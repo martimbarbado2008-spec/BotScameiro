@@ -68,10 +68,13 @@
       width: 64px;
       height: 64px;
       border-radius: 50%;
-      padding: 3px;
+      padding: 3.5px;
       background: linear-gradient(135deg, var(--gold), var(--mint));
       box-shadow: 0 0 15px rgba(250, 202, 43, 0.3);
-      transition: all 0.3s ease;
+      transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .avatar-wrapper:hover {
+      transform: scale(1.15) rotate(5deg);
     }
 
     /* Estilos das Molduras de Perfil */
@@ -82,34 +85,44 @@
       animation: none;
     }
     .avatar-wrapper.frame-gold {
-      background: linear-gradient(135deg, #ffd700, #b8860b) !important;
-      box-shadow: 0 0 20px rgba(255, 215, 0, 0.8) !important;
-      border: 2px solid #ffd700 !important;
-      animation: none !important;
+      background: linear-gradient(135deg, #ffe066, #f5b041, #ffd700, #b8860b, #ffe066) !important;
+      background-size: 200% 200% !important;
+      animation: goldShimmer 2s linear infinite !important;
+      box-shadow: 0 0 25px #ffd700, 0 0 45px rgba(255, 215, 0, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.8) !important;
+      border: 2px solid #fff !important;
     }
     .avatar-wrapper.frame-neon {
-      background: linear-gradient(135deg, #57f287, #00ff00) !important;
-      box-shadow: 0 0 20px rgba(87, 242, 135, 0.9) !important;
-      border: 2px solid #57f287 !important;
-      animation: pulseNeonFrame 1.5s infinite alternate !important;
+      background: linear-gradient(135deg, #00ff66, #57f287, #00ff00, #10ac84) !important;
+      box-shadow: 0 0 30px #00ff00, 0 0 55px rgba(0, 255, 0, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.8) !important;
+      border: 2px solid #fff !important;
+      animation: pulseNeonFrame 0.8s infinite alternate !important;
     }
     .avatar-wrapper.frame-ruby {
-      background: linear-gradient(135deg, #ff4d4d, #e74c3c) !important;
-      box-shadow: 0 0 20px rgba(231, 76, 60, 0.8) !important;
-      border: 2px solid #ff4d4d !important;
-      animation: none !important;
+      background: linear-gradient(135deg, #ff3333, #e74c3c, #962d22, #ff4d4d) !important;
+      box-shadow: 0 0 30px #ff3333, 0 0 55px rgba(255, 51, 51, 0.8), inset 0 0 10px rgba(255, 255, 255, 0.8) !important;
+      border: 2px solid #fff !important;
+      animation: heartbeatRuby 1.2s infinite alternate ease-in-out !important;
     }
     .avatar-wrapper.frame-rainbow {
       background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
       background-size: 400% 400% !important;
-      box-shadow: 0 0 20px rgba(255,255,255,0.4) !important;
-      animation: rotateRainbowFrame 6s linear infinite !important;
-      border: none !important;
+      box-shadow: 0 0 35px rgba(255, 255, 255, 0.3), 0 0 55px rgba(0, 255, 213, 0.9), 0 0 75px rgba(255, 0, 200, 0.9) !important;
+      animation: rotateRainbowFrame 2.5s linear infinite !important;
+      border: 2px solid #fff !important;
     }
 
+    @keyframes goldShimmer {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
     @keyframes pulseNeonFrame {
-      0% { box-shadow: 0 0 10px rgba(87, 242, 135, 0.5); }
-      100% { box-shadow: 0 0 25px rgba(87, 242, 135, 1); }
+      0% { box-shadow: 0 0 15px #00ff00, 0 0 30px rgba(0,255,0,0.4), inset 0 0 8px rgba(0,255,0,0.5); }
+      100% { box-shadow: 0 0 35px #00ff00, 0 0 65px rgba(0,255,0,0.9), inset 0 0 15px rgba(0,255,0,0.8); }
+    }
+    @keyframes heartbeatRuby {
+      0% { transform: scale(1); box-shadow: 0 0 15px #ff3333, 0 0 30px rgba(255,51,51,0.4); }
+      100% { transform: scale(1.06); box-shadow: 0 0 45px #ff3333, 0 0 75px rgba(255,51,51,1); }
     }
     @keyframes rotateRainbowFrame {
       0% { background-position: 0% 50%; }
@@ -123,25 +136,70 @@
     }
     body.bg-matrix {
       background-color: #000000 !important;
-      background-image: radial-gradient(circle at center, #051608 0%, #000000 100%) !important;
+      background-image: linear-gradient(180deg, rgba(0,255,0,0) 0%, rgba(0,255,68,0.15) 50%, rgba(0,255,0,0) 100%) !important;
+      background-size: 100% 700px !important;
+      animation: matrixScroll 10s linear infinite !important;
     }
     body.bg-casino {
-      background-color: #0c0214 !important;
-      background-image: radial-gradient(circle at top, #27063a 0%, #030a06 100%) !important;
+      background-color: #05010b !important;
+      background-image: radial-gradient(circle at top left, #290849 0%, #030107 70%),
+                        radial-gradient(circle at bottom right, #50085a 0%, #030107 70%) !important;
+      background-size: 200% 200% !important;
+      animation: casinoGlow 8s ease infinite alternate !important;
     }
     body.bg-space {
-      background-color: #000a16 !important;
-      background-image: radial-gradient(circle at bottom right, #0b1a30 0%, #020805 100%) !important;
+      background-color: #000611 !important;
+      background-image: radial-gradient(circle at 20% 30%, #0d2850 0%, #020813 50%),
+                        radial-gradient(circle at 80% 70%, #08495a 0%, #020813 50%) !important;
+      background-size: 200% 200% !important;
+      animation: spaceNebula 15s ease infinite alternate !important;
+      position: relative;
+    }
+    body.bg-space::before {
+      content: '';
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background-image: 
+        radial-gradient(1px 1px at 20px 30px, #eee, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 40px 70px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 50px 160px, #ddd, rgba(0,0,0,0)),
+        radial-gradient(1px 1px at 80px 120px, #fff, rgba(0,0,0,0)),
+        radial-gradient(1.5px 1.5px at 110px 210px, #fff, rgba(0,0,0,0)),
+        radial-gradient(2px 2px at 150px 130px, #ddd, rgba(0,0,0,0));
+      background-repeat: repeat;
+      background-size: 200px 200px;
+      opacity: 0.35;
+      z-index: -1;
+      animation: spaceStarsTwinkle 4s infinite alternate;
+      pointer-events: none;
+    }
+
+    @keyframes matrixScroll {
+      0% { background-position: 0 -700px; }
+      100% { background-position: 0 700px; }
+    }
+    @keyframes casinoGlow {
+      0% { background-position: 0% 0%; }
+      100% { background-position: 100% 100%; }
+    }
+    @keyframes spaceNebula {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes spaceStarsTwinkle {
+      0% { opacity: 0.2; }
+      100% { opacity: 0.65; }
     }
 
     body.bg-matrix .mouse-glow-bg {
-      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(0, 255, 70, 0.06), transparent 80%) !important;
+      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(0, 255, 70, 0.08), transparent 80%) !important;
     }
     body.bg-casino .mouse-glow-bg {
-      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(224, 86, 253, 0.08), transparent 80%) !important;
+      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(224, 86, 253, 0.12), transparent 80%) !important;
     }
     body.bg-space .mouse-glow-bg {
-      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(52, 152, 219, 0.08), transparent 80%) !important;
+      background: radial-gradient(500px circle at var(--mouse-x, -1000px) var(--mouse-y, -1000px), rgba(52, 152, 219, 0.12), transparent 80%) !important;
     }
 
     .avatar-wrapper img {
@@ -751,25 +809,38 @@
       animation: none;
     }
     .chat-avatar-wrapper.frame-gold {
-      background: linear-gradient(135deg, #ffd700, #b8860b) !important;
+      background: linear-gradient(135deg, #ffe066, #f5b041, #ffd700, #b8860b, #ffe066) !important;
       border: 1px solid #ffd700 !important;
-      animation: none !important;
+      box-shadow: 0 0 10px #ffd700 !important;
+      animation: goldShimmer 2s linear infinite !important;
     }
     .chat-avatar-wrapper.frame-neon {
-      background: linear-gradient(135deg, #57f287, #00ff00) !important;
+      background: linear-gradient(135deg, #00ff66, #57f287, #00ff00) !important;
       border: 1px solid #57f287 !important;
-      animation: pulseNeonFrame 1.5s infinite alternate !important;
+      box-shadow: 0 0 10px #00ff00 !important;
+      animation: pulseNeonChat 0.8s infinite alternate !important;
     }
     .chat-avatar-wrapper.frame-ruby {
-      background: linear-gradient(135deg, #ff4d4d, #e74c3c) !important;
+      background: linear-gradient(135deg, #ff3333, #e74c3c, #ff4d4d) !important;
       border: 1px solid #ff4d4d !important;
-      animation: none !important;
+      box-shadow: 0 0 10px #ff3333 !important;
+      animation: pulseRubyChat 1.2s infinite alternate ease-in-out !important;
     }
     .chat-avatar-wrapper.frame-rainbow {
       background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
       background-size: 400% 400% !important;
-      animation: rotateRainbowFrame 6s linear infinite !important;
+      animation: rotateRainbowFrame 2.5s linear infinite !important;
+      box-shadow: 0 0 10px rgba(0, 255, 213, 0.8) !important;
       border: none !important;
+    }
+
+    @keyframes pulseNeonChat {
+      0% { box-shadow: 0 0 4px #00ff00; }
+      100% { box-shadow: 0 0 12px #00ff00, 0 0 16px rgba(0,255,0,0.8); }
+    }
+    @keyframes pulseRubyChat {
+      0% { box-shadow: 0 0 4px #ff3333; }
+      100% { box-shadow: 0 0 12px #ff3333, 0 0 16px rgba(255,51,51,0.8); }
     }
 
     .chat-msg-content {

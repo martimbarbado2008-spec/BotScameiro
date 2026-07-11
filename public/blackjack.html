@@ -501,30 +501,43 @@
       animation: none;
     }
     .chat-avatar-wrapper.frame-gold {
-      background: linear-gradient(135deg, #ffd700, #b8860b) !important;
+      background: linear-gradient(135deg, #ffe066, #f5b041, #ffd700, #b8860b, #ffe066) !important;
       border: 1px solid #ffd700 !important;
-      animation: none !important;
+      box-shadow: 0 0 10px #ffd700 !important;
+      animation: goldShimmer 2s linear infinite !important;
     }
     .chat-avatar-wrapper.frame-neon {
-      background: linear-gradient(135deg, #57f287, #00ff00) !important;
+      background: linear-gradient(135deg, #00ff66, #57f287, #00ff00) !important;
       border: 1px solid #57f287 !important;
-      animation: pulseNeonFrame 1.5s infinite alternate !important;
+      box-shadow: 0 0 10px #00ff00 !important;
+      animation: pulseNeonChat 0.8s infinite alternate !important;
     }
     .chat-avatar-wrapper.frame-ruby {
-      background: linear-gradient(135deg, #ff4d4d, #e74c3c) !important;
+      background: linear-gradient(135deg, #ff3333, #e74c3c, #ff4d4d) !important;
       border: 1px solid #ff4d4d !important;
-      animation: none !important;
+      box-shadow: 0 0 10px #ff3333 !important;
+      animation: pulseRubyChat 1.2s infinite alternate ease-in-out !important;
     }
     .chat-avatar-wrapper.frame-rainbow {
       background: linear-gradient(45deg, #ff0000, #ff7300, #fffb00, #48ff00, #00ffd5, #002bff, #7a00ff, #ff00c8, #ff0000) !important;
       background-size: 400% 400% !important;
-      animation: rotateRainbowFrame 6s linear infinite !important;
+      animation: rotateRainbowFrame 2.5s linear infinite !important;
+      box-shadow: 0 0 10px rgba(0, 255, 213, 0.8) !important;
       border: none !important;
     }
 
-    @keyframes pulseNeonFrame {
-      0% { box-shadow: 0 0 10px rgba(87, 242, 135, 0.5); }
-      100% { box-shadow: 0 0 25px rgba(87, 242, 135, 1); }
+    @keyframes goldShimmer {
+      0% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+      100% { background-position: 0% 50%; }
+    }
+    @keyframes pulseNeonChat {
+      0% { box-shadow: 0 0 4px #00ff00; }
+      100% { box-shadow: 0 0 12px #00ff00, 0 0 16px rgba(0,255,0,0.8); }
+    }
+    @keyframes pulseRubyChat {
+      0% { box-shadow: 0 0 4px #ff3333; }
+      100% { box-shadow: 0 0 12px #ff3333, 0 0 16px rgba(255,51,51,0.8); }
     }
     @keyframes rotateRainbowFrame {
       0% { background-position: 0% 50%; }
