@@ -1015,6 +1015,33 @@
           </div>
         </div>
 
+        <!-- Jogo de Slot Machine Web -->
+        <div class="panel">
+          <h2 class="panel-title"><span class="emoji">🎰</span> Máquina de Slots Arena</h2>
+          <div style="background: rgba(0,0,0,0.3); border: 2px solid var(--border-glow); border-radius: 16px; padding: 20px; text-align: center; position: relative; overflow: hidden; box-shadow: 0 0 20px rgba(0, 255, 100, 0.05);">
+            <!-- Reels display -->
+            <div style="display: flex; justify-content: center; gap: 15px; margin-bottom: 20px; font-family: 'Share Tech Mono', monospace;">
+              <div id="reel1" style="width: 70px; height: 80px; background: #07150f; border: 2px solid var(--mint); border-radius: 12px; font-size: 42px; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 10px rgba(0,255,0,0.5); transition: transform 0.1s ease;">🍒</div>
+              <div id="reel2" style="width: 70px; height: 80px; background: #07150f; border: 2px solid var(--mint); border-radius: 12px; font-size: 42px; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 10px rgba(0,255,0,0.5); transition: transform 0.1s ease;">🍒</div>
+              <div id="reel3" style="width: 70px; height: 80px; background: #07150f; border: 2px solid var(--mint); border-radius: 12px; font-size: 42px; display: flex; align-items: center; justify-content: center; text-shadow: 0 0 10px rgba(0,255,0,0.5); transition: transform 0.1s ease;">🍒</div>
+            </div>
+            
+            <!-- Slots controls -->
+            <div style="display: flex; justify-content: center; align-items: center; gap: 15px;">
+              <div style="text-align: left;">
+                <label style="font-size: 10px; color: var(--text-muted); display: block; margin-bottom: 4px; font-weight: 700; text-transform: uppercase;">Aposta (🪙)</label>
+                <input type="number" id="slotsBet" value="100" min="1" style="width: 110px; padding: 10px; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1); border-radius: 8px; color: #fff; font-weight: 700; text-align: center; font-size: 14px;">
+              </div>
+              <button id="btnSpin" class="btn-action" style="background: var(--gold); color: #000; font-weight: 900; font-size: 15px; padding: 12px 35px; border-radius: 10px; border: none; box-shadow: 0 0 15px rgba(250,202,43,0.4); cursor: pointer; transition: all 0.2s;" onclick="spinSlotsWeb()">GIRAR 🎰</button>
+            </div>
+            
+            <!-- Result message -->
+            <div id="slotsResult" style="margin-top: 15px; font-size: 13px; font-weight: 800; min-height: 20px; color: var(--text-muted);">
+              Define a tua aposta e clica em Girar!
+            </div>
+          </div>
+        </div>
+
         <!-- Painel de Trabalhos -->
         <div class="panel">
           <h2 class="panel-title"><span class="emoji">🧹</span> Mini-jogos de Trabalho</h2>
@@ -1972,9 +1999,142 @@
       }
     }
 
+    let spinningSlots = false;
+    const slotsEmojis = ['🍒', '🍋', '🍇', '💎', '🔔', '7️⃣'];
+
+    async function spinSlotsWeb() {
+      if (spinningSlots) return;
+      
+      const betInput = document.getElementById('slotsBet');
+      const bet = parseInt(betInput.value, 10);
+      if (isNaN(bet) || bet <= 0) {
+        alert("Introduz uma aposta válida maior que 0.");
+        return;
+      }
+      
+      spinningSlots = true;
+      const btn = document.getElementById('btnSpin');
+      const resultDiv = document.getElementById('slotsResult');
+      
+      btn.disabled = true;
+      btn.style.opacity = 0.5;
+      resultDiv.innerHTML = "A girar os cilindros... 🍀";
+      resultDiv.style.color = "var(--text-muted)";
+      
+      // Animação local rápida de rotação
+      const reel1 = document.getElementById('reel1');
+      const reel2 = document.getElementById('reel2');
+      const reel3 = document.getElementById('reel3');
+      
+      // Resetar brilho
+      reel1.parentElement.style.boxShadow = "none";
+      
+      const shuffleInterval = setInterval(() => {
+        reel1.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+        reel2.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+        reel3.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+      }, 70);
+      
+      try {
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        const res = await fetch('/api/games/slots', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ bet })
+        });
+        
+        const data = await res.json();
+        clearInterval(shuffleInterval);
+        
+        if (!res.ok) {
+          resultDiv.textContent = data.error || "Erro no jogo.";
+          resultDiv.style.color = "var(--ruby)";
+          spinningSlots = false;
+          btn.disabled = false;
+          btn.style.opacity = 1;
+          loadDashboard(); // fallback sync
+          return;
+        }
+        
+        // Parar cilindros sequencialmente
+        setTimeout(() => {
+          reel1.textContent = data.reels[0];
+          setTimeout(() => {
+            reel2.textContent = data.reels[1];
+            setTimeout(() => {
+              reel3.textContent = data.reels[2];
+              
+              spinningSlots = false;
+              btn.disabled = false;
+              btn.style.opacity = 1;
+              
+              if (data.win) {
+                resultDiv.innerHTML = `🎉 GANHASTE! Recebeste <span style="color:var(--mint); font-weight:900;">+${data.netReward.toLocaleString('pt-PT')} 🪙</span>!`;
+                resultDiv.style.color = "var(--mint)";
+                reel1.parentElement.style.boxShadow = "0 0 35px rgba(87, 242, 135, 0.4)";
+              } else {
+                resultDiv.innerHTML = `❌ Perdeu... Perdeste <span style="color:var(--ruby); font-weight:900;">-${bet.toLocaleString('pt-PT')} 🪙</span>.`;
+                resultDiv.style.color = "var(--ruby)";
+                reel1.parentElement.style.boxShadow = "0 0 25px rgba(231, 76, 60, 0.15)";
+              }
+              
+              // Atualiza o saldo local de imediato
+              loadDashboard();
+            }, 250);
+          }, 250);
+        }, 500);
+      } catch (err) {
+        clearInterval(shuffleInterval);
+        spinningSlots = false;
+        btn.disabled = false;
+        btn.style.opacity = 1;
+        resultDiv.textContent = "Erro de rede ao jogar slots.";
+        resultDiv.style.color = "var(--ruby)";
+      }
+    }
+
+    let sseSource = null;
+    function initRealTimeUpdates() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token') || localStorage.getItem('token');
+      if (!token) return;
+      
+      if (sseSource) sseSource.close();
+      
+      sseSource = new EventSource(`/api/stream?token=${encodeURIComponent(token)}`);
+      
+      sseSource.addEventListener('message', (e) => {
+        try {
+          const payload = JSON.parse(e.data);
+          
+          if (payload.type === 'balance_update') {
+            const uData = payload.data;
+            const balanceEl = document.getElementById('userBalance');
+            const bankEl = document.getElementById('userBank');
+            
+            if (balanceEl) balanceEl.textContent = Math.round(uData.balance).toLocaleString('pt-PT') + ' 🪙';
+            if (bankEl) bankEl.textContent = Math.round(uData.bank).toLocaleString('pt-PT') + ' 🪙';
+            
+            // Recarregar os outros dados de forma discreta para atualizar tabelas e ranking
+            loadDashboard();
+          }
+        } catch (err) {
+          console.error("Erro ao processar dados SSE:", err);
+        }
+      });
+      
+      sseSource.onerror = (err) => {
+        console.warn("Ligação em tempo real SSE perdida. A tentar reconectar...");
+      };
+    }
+
     loadDashboard();
-    // Atualizar a dashboard e tabelas classificativas automaticamente a cada 3 segundos
-    setInterval(loadDashboard, 3000);
+    initRealTimeUpdates();
+    // Atualizar a dashboard em segundo plano para tabelas a cada 15 segundos (como segurança ao SSE)
+    setInterval(loadDashboard, 15000);
   </script>
   <script src="/music.js"></script>
   <script src="/interactive-bg.js"></script>

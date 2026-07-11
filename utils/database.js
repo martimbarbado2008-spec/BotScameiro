@@ -115,9 +115,27 @@ function getUser(guildId, userId) {
   return u;
 }
 
+function broadcastBalanceUpdate(guildId, userId) {
+  try {
+    const webServer = require('./webServer');
+    if (webServer.broadcastToGuild) {
+      const u = getUser(guildId, userId);
+      webServer.broadcastToGuild(guildId, 'balance_update', {
+        userId,
+        balance: u.balance,
+        bank: u.bank,
+        stats: u.stats
+      });
+    }
+  } catch (err) {
+    // Ignora falhas antes do webServer estar pronto
+  }
+}
+
 function saveUser(guildId, userId, data) {
   users[key(guildId, userId)] = data;
   persist();
+  broadcastBalanceUpdate(guildId, userId);
 }
 
 function addBalance(guildId, userId, amount) {
@@ -125,6 +143,7 @@ function addBalance(guildId, userId, amount) {
   u.balance += amount;
   if (u.balance < 0) u.balance = 0;
   persist();
+  broadcastBalanceUpdate(guildId, userId);
   return u.balance;
 }
 
@@ -133,6 +152,7 @@ function addBank(guildId, userId, amount) {
   u.bank += amount;
   if (u.bank < 0) u.bank = 0;
   persist();
+  broadcastBalanceUpdate(guildId, userId);
   return u.bank;
 }
 

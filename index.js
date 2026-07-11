@@ -60,6 +60,33 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
+  if (interaction.isButton()) {
+    if (interaction.customId === 'open_portal') {
+      const baseUrl = process.env.WEB_BASE_URL;
+      if (!baseUrl) {
+        return interaction.reply({ content: 'O servidor web do casino ainda não está configurado. Avisa o dono do bot.', ephemeral: true });
+      }
+      
+      const token = require('./utils/webTokens').createToken(interaction.guildId, interaction.user.id);
+      const link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}&redirect=${encodeURIComponent('/dashboard.html')}`;
+
+      const { baseEmbed, COLORS } = require('./utils/embeds');
+      const embed = baseEmbed('🔑 Acesso Pessoal e Seguro', COLORS.gold)
+        .setDescription('Clica no botão abaixo para abrires a tua Dashboard do Casino. Este link é pessoal e não deve ser partilhado!');
+
+      const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+      const row = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setLabel('Entrar no Painel 🚀')
+          .setStyle(ButtonStyle.Link)
+          .setURL(link)
+      );
+
+      return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+    }
+    return;
+  }
+
   if (!interaction.isChatInputCommand()) return;
 
   const command = client.commands.get(interaction.commandName);
@@ -75,6 +102,32 @@ client.on('interactionCreate', async interaction => {
     } else {
       await interaction.reply(payload).catch(() => {});
     }
+  }
+});
+
+client.on('messageCreate', async message => {
+  if (message.author.bot || !message.guildId) return;
+  try {
+    const db = require('./utils/database');
+    const cfg = db.getGuildConfig(message.guildId);
+    
+    if (cfg && cfg.chatBridgeChannelId && message.channelId === cfg.chatBridgeChannelId) {
+      const webServer = require('./utils/webServer');
+      if (webServer.broadcastChatToWeb) {
+        const uData = db.getUser(message.guildId, message.author.id);
+        const frameClass = uData?.equippedFrame ? uData.equippedFrame.replace('frame_', 'frame-') : 'frame-none';
+        
+        webServer.broadcastChatToWeb(message.guildId, {
+          username: message.member?.displayName || message.author.username,
+          userId: message.author.id,
+          content: message.content,
+          equippedFrame: frameClass,
+          timestamp: Date.now()
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Erro na ponte de chat no messageCreate:", err);
   }
 });
 

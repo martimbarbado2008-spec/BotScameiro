@@ -271,14 +271,26 @@ const sessions = new Map();
 const activeJobs = new Map();
 
 function getSession(req) {
-  if (!req.headers.cookie) return null;
-  const cookies = Object.fromEntries(
-    req.headers.cookie.split('; ').map(c => {
-      const parts = c.split('=');
-      return [parts[0], parts.slice(1).join('=')];
-    })
-  );
-  const token = cookies.session_token;
+  let token = null;
+  
+  if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+  
+  if (!token && req.headers.cookie) {
+    const cookies = Object.fromEntries(
+      req.headers.cookie.split('; ').map(c => {
+        const parts = c.split('=');
+        return [parts[0], parts.slice(1).join('=')];
+      })
+    );
+    token = cookies.session_token;
+  }
+  
+  if (!token && req.query.token) {
+    token = req.query.token;
+  }
+  
   if (!token) return null;
   return sessions.get(token) || null;
 }
@@ -1626,7 +1638,7 @@ app.post('/api/admin/config/update', checkAdmin, async (req, res) => {
       minBet, maxBet, dailyAmount, startingBalance, houseEdgePercent,
       workMin, workMax, bankInterestPercent, robSuccessChance,
       robFailFinePercent, loanMaxAmount, lotteryTicketPrice,
-      bigWinThreshold, logChannelId, autoTournamentEnabled,
+      bigWinThreshold, logChannelId, chatBridgeChannelId, autoTournamentEnabled,
       autoTournamentDay, autoTournamentHour, autoTournamentDurationHours
     } = req.body;
 
@@ -1645,6 +1657,7 @@ app.post('/api/admin/config/update', checkAdmin, async (req, res) => {
     if (typeof lotteryTicketPrice === 'number') patch.lotteryTicketPrice = lotteryTicketPrice;
     if (typeof bigWinThreshold === 'number') patch.bigWinThreshold = bigWinThreshold;
     if (logChannelId !== undefined) patch.logChannelId = logChannelId === 'none' ? null : logChannelId;
+    if (chatBridgeChannelId !== undefined) patch.chatBridgeChannelId = chatBridgeChannelId === 'none' ? null : chatBridgeChannelId;
     if (typeof autoTournamentEnabled === 'boolean') patch.autoTournamentEnabled = autoTournamentEnabled;
     if (typeof autoTournamentDay === 'number') patch.autoTournamentDay = autoTournamentDay;
     if (typeof autoTournamentHour === 'number') patch.autoTournamentHour = autoTournamentHour;
@@ -1868,10 +1881,114 @@ app.post('/api/chat/send', async (req, res) => {
 
     broadcast(chatEntry);
 
+    // Enviar mensagem para o canal do Discord (Ponte de Chat)
+    try {
+      const cfg = db.getGuildConfig(guildId);
+      if (cfg && cfg.chatBridgeChannelId && discordClient) {
+        const channel = discordClient.channels.cache.get(cfg.chatBridgeChannelId) || await discordClient.channels.fetch(cfg.chatBridgeChannelId).catch(() => null);
+        if (channel) {
+          await channel.send(`💬 **[Site] ${username}**: ${cleanMessage}`).catch(() => {});
+        }
+      }
+    } catch (bridgeErr) {
+      console.error("Erro ao enviar mensagem para a ponte de chat no Discord:", bridgeErr);
+    }
+
     return res.json({ success: true, entry: chatEntry });
   } catch (err) {
     console.error('Erro ao enviar mensagem de chat:', err);
     res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+const SYMBOLS_WEB = [
+  { emoji: '🍒', weight: 30, mult: 2 },
+  { emoji: '🍋', weight: 25, mult: 3 },
+  { emoji: '🍇', weight: 20, mult: 4 },
+  { emoji: '🔔', weight: 12, mult: 8 },
+  { emoji: '💎', weight: 8, mult: 15 },
+  { emoji: '7️⃣', weight: 5, mult: 40 }
+];
+
+function spinWeb() {
+  const total = SYMBOLS_WEB.reduce((s, x) => s + x.weight, 0);
+  const roll = () => {
+    let r = Math.random() * total;
+    for (const s of SYMBOLS_WEB) {
+      if (r < s.weight) return s;
+      r -= s.weight;
+    }
+    return SYMBOLS_WEB[0];
+  };
+  return [roll(), roll(), roll()];
+}
+
+app.post('/api/games/slots', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Sessão inválida. Por favor, faz login novamente.' });
+    
+    const { guildId, userId } = session;
+    const { bet } = req.body;
+    
+    const cfg = db.getGuildConfig(guildId);
+    if (isNaN(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
+      return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet}.` });
+    }
+    
+    const user = db.getUser(guildId, userId);
+    if (user.balance < bet) {
+      return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+    }
+    
+    const result = spinWeb();
+    const [a, b, c] = result;
+    let winnings = 0;
+    let win = false;
+    
+    if (a.emoji === b.emoji && b.emoji === c.emoji) {
+      winnings = bet * a.mult;
+      win = true;
+    } else if (a.emoji === b.emoji || b.emoji === c.emoji || a.emoji === c.emoji) {
+      winnings = Math.round(bet * 1.5);
+      win = true;
+    } else {
+      winnings = 0;
+      win = false;
+    }
+    
+    const net = winnings - bet;
+    db.addBalance(guildId, userId, net);
+    db.recordResult(guildId, userId, net > 0, bet);
+    db.addTournamentScore(guildId, userId, net);
+    
+    const isJackpot = a.emoji === b.emoji && b.emoji === c.emoji;
+    const progression = require('./progression');
+    progression.recordJackpot(guildId, userId, isJackpot);
+    
+    if (discordClient) {
+      const guild = discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch(() => null);
+      if (guild) {
+        const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+        if (member) {
+          const fakeInteraction = { guildId, client: discordClient, channelId: null };
+          await progression.afterGameForMember(fakeInteraction, member, { game: 'Slots Web', bet, net, won: net > 0 }).catch(console.error);
+        }
+      }
+    }
+    
+    const updatedUser = db.getUser(guildId, userId);
+    
+    return res.json({
+      success: true,
+      reels: [a.emoji, b.emoji, c.emoji],
+      win,
+      netReward: winnings,
+      newBalance: updatedUser.balance
+    });
+  } catch (err) {
+    console.error('Erro na Slot Machine Web:', err);
+    res.status(500).json({ error: 'Erro interno ao girar Slots.' });
   }
 });
 
@@ -2457,6 +2574,53 @@ app.use((req, res) => {
   res.status(404).json({ error: 'Rota não encontrada.' });
 });
  
+let sseClients = [];
+
+app.get('/api/stream', (req, res) => {
+  const token = req.query.token;
+  if (!token) return res.status(400).send('Token em falta');
+  
+  const { verifyToken } = require('./webTokens');
+  const payload = verifyToken(token);
+  if (!payload) return res.status(401).send('Token inválido');
+  
+  res.setHeader('Content-Type', 'text/event-stream');
+  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Connection', 'keep-alive');
+  res.flushHeaders();
+  
+  const clientObj = { res, userId: payload.userId, guildId: payload.guildId };
+  sseClients.push(clientObj);
+  
+  req.on('close', () => {
+    sseClients = sseClients.filter(c => c.res !== res);
+  });
+});
+
+function broadcastToGuild(guildId, eventType, data) {
+  const payload = JSON.stringify({ type: eventType, data });
+  sseClients.forEach(c => {
+    if (c.guildId === guildId) {
+      try {
+        c.res.write(`data: ${payload}\n\n`);
+      } catch (err) {
+        // Ignora erros de escrita em ligações fechadas
+      }
+    }
+  });
+}
+
+function broadcastChatToWeb(guildId, msg) {
+  const ssePayload = `event: message\ndata: ${JSON.stringify(msg)}\n\n`;
+  chatClients.forEach(client => {
+    try {
+      client.write(ssePayload);
+    } catch (err) {
+      chatClients.delete(client);
+    }
+  });
+}
+
 app.use((err, req, res, next) => {
   console.error('Erro não tratado no servidor web:', err);
   if (res.headersSent) return next(err);
@@ -2470,4 +2634,4 @@ function startServer(port, client) {
   });
 }
  
-module.exports = { startServer };
+module.exports = { startServer, broadcastToGuild, broadcastChatToWeb };
