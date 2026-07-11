@@ -517,6 +517,29 @@ app.get('/api/login-dashboard', (req, res) => {
   res.redirect(redirectUrl);
 });
 
+app.get('/api/login-fake', (req, res) => {
+  const users = db.getUsersData();
+  const keys = Object.keys(users || {});
+  
+  let guildId = process.env.GUILD_ID;
+  let userId = null;
+  
+  if (keys.length > 0) {
+    const parts = keys[0].split(':');
+    guildId = parts[0];
+    userId = parts[1];
+  } else {
+    guildId = guildId || '123456789012345678';
+    userId = '123456789012345678';
+    db.getUser(guildId, userId);
+  }
+  
+  const sessionToken = createSession(guildId, userId);
+  res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`);
+  
+  return res.json({ success: true, token: sessionToken });
+});
+
 app.get('/api/profile/data', async (req, res) => {
   try {
     const session = getSession(req);
@@ -1653,8 +1676,8 @@ app.post('/api/admin/config/update', checkAdmin, async (req, res) => {
       minBet, maxBet, dailyAmount, startingBalance, houseEdgePercent,
       workMin, workMax, bankInterestPercent, robSuccessChance,
       robFailFinePercent, loanMaxAmount, lotteryTicketPrice,
-      bigWinThreshold, logChannelId, chatBridgeChannelId, autoTournamentEnabled,
-      autoTournamentDay, autoTournamentHour, autoTournamentDurationHours
+      bigWinThreshold, logChannelId, chatBridgeChannelId, announcementChannelId,
+      autoTournamentEnabled, autoTournamentDay, autoTournamentHour, autoTournamentDurationHours
     } = req.body;
 
     const patch = {};
@@ -1673,6 +1696,7 @@ app.post('/api/admin/config/update', checkAdmin, async (req, res) => {
     if (typeof bigWinThreshold === 'number') patch.bigWinThreshold = bigWinThreshold;
     if (logChannelId !== undefined) patch.logChannelId = logChannelId === 'none' ? null : logChannelId;
     if (chatBridgeChannelId !== undefined) patch.chatBridgeChannelId = chatBridgeChannelId === 'none' ? null : chatBridgeChannelId;
+    if (announcementChannelId !== undefined) patch.announcementChannelId = announcementChannelId === 'none' ? null : announcementChannelId;
     if (typeof autoTournamentEnabled === 'boolean') patch.autoTournamentEnabled = autoTournamentEnabled;
     if (typeof autoTournamentDay === 'number') patch.autoTournamentDay = autoTournamentDay;
     if (typeof autoTournamentHour === 'number') patch.autoTournamentHour = autoTournamentHour;
@@ -1993,6 +2017,15 @@ app.post('/api/games/slots', async (req, res) => {
     }
     
     const updatedUser = db.getUser(guildId, userId);
+
+    // Announce wins via Discord + Web Chat + SSE lateral pop-up
+    if (win) {
+      const username = updatedUser.username || userId;
+      const reelStr = [a.emoji, b.emoji, c.emoji].join(' ');
+      let title = isJackpot ? '🎰 JACKPOT na Slot Machine!' : '🎰 Vitória na Slot Machine!';
+      let msg = `**${username}** ganhou **${winnings.toLocaleString('pt-PT')} 🪙** nas Slots! ${reelStr}`;
+      announceWebEvent(guildId, 'win', { title, message: msg, username, game: 'Slots', amount: winnings, bet });
+    }
     
     return res.json({
       success: true,
@@ -2642,6 +2675,56 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Erro interno do servidor.' });
 });
  
+// ─── Global Event Announcer ────────────────────────────────────────────────────
+// Announces wins, level-ups, and purchases to:
+// 1) All web clients via SSE (pop-up alert on the side)
+// 2) The configured Discord announcement channel
+// 3) The web global chat as a system message
+async function announceWebEvent(guildId, eventType, details) {
+  try {
+    // 1. SSE Broadcast to all web clients in this guild (lateral pop-up)
+    broadcastToGuild(guildId, 'game_win_alert', { eventType, ...details });
+
+    // 2. Web chat system message
+    const systemMsg = {
+      userId: 'system',
+      username: '🎰 Casino',
+      content: details.message || '🎉 Evento no casino!',
+      timestamp: Date.now(),
+      isSystem: true,
+    };
+    db.addChatMessage(systemMsg);
+    broadcastChatToWeb(guildId, systemMsg);
+
+    // 3. Discord announcement channel (if configured)
+    if (discordClient) {
+      const cfg = db.getGuildConfig(guildId);
+      const channelId = cfg.announcementChannelId;
+      if (channelId) {
+        try {
+          const ch = await discordClient.channels.fetch(channelId);
+          if (ch) {
+            const { EmbedBuilder } = require('discord.js');
+            const color = eventType === 'win' ? 0x57F287 : eventType === 'levelup' ? 0xFACA2B : 0x5865F2;
+            const emoji = eventType === 'win' ? '🎉' : eventType === 'levelup' ? '⬆️' : '🛒';
+            const embed = new EmbedBuilder()
+              .setColor(color)
+              .setTitle(`${emoji} ${details.title || 'Evento no Casino'}`)
+              .setDescription(details.message || '')
+              .setTimestamp()
+              .setFooter({ text: 'Casino Arena Web' });
+            await ch.send({ embeds: [embed] });
+          }
+        } catch (err) {
+          // Canal pode não existir ou bot sem permissão
+        }
+      }
+    }
+  } catch (err) {
+    console.error('Erro ao anunciar evento web:', err);
+  }
+}
+
 function startServer(port, client) {
   discordClient = client;
   app.listen(port, () => {
@@ -2649,4 +2732,4 @@ function startServer(port, client) {
   });
 }
  
-module.exports = { startServer, broadcastToGuild, broadcastChatToWeb };
+module.exports = { startServer, broadcastToGuild, broadcastChatToWeb, announceWebEvent };

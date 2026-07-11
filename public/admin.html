@@ -548,7 +548,7 @@
             <input type="number" id="cfgRobFine" min="0" max="100">
           </div>
 
-          <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-bottom:15px;">
+          <div class="form-group" style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:15px; margin-bottom:15px;">
             <div>
               <label class="form-label">📋 Canal de Logs</label>
               <select id="cfgLogChannel" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
@@ -558,6 +558,12 @@
             <div>
               <label class="form-label">💬 Ponte de Chat</label>
               <select id="cfgChatBridgeChannel" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
+                <option value="none">Nenhum</option>
+              </select>
+            </div>
+            <div>
+              <label class="form-label">📣 Anúncios de Vitórias</label>
+              <select id="cfgAnnouncementChannel" style="width:100%; padding:10px; background:rgba(0,0,0,0.25); border:1px solid rgba(255,255,255,0.08); border-radius:8px; color:#fff;">
                 <option value="none">Nenhum</option>
               </select>
             </div>
@@ -849,10 +855,12 @@
         const tourSelect = document.getElementById('tourChannel');
         const configSelect = document.getElementById('cfgLogChannel');
         const bridgeSelect = document.getElementById('cfgChatBridgeChannel');
+        const announcementSelect = document.getElementById('cfgAnnouncementChannel');
         
         tourSelect.innerHTML = '';
         configSelect.innerHTML = '<option value="none">Nenhum</option>';
         bridgeSelect.innerHTML = '<option value="none">Nenhum</option>';
+        announcementSelect.innerHTML = '<option value="none">Nenhum</option>';
         
         if (channels.length === 0) {
           tourSelect.innerHTML = '<option value="">Sem canais ou sem permissão</option>';
@@ -877,6 +885,12 @@
           opt3.value = c.id;
           opt3.textContent = `#${c.name}`;
           bridgeSelect.appendChild(opt3);
+
+          // Opção para canal de anúncios de vitórias
+          const opt4 = document.createElement('option');
+          opt4.value = c.id;
+          opt4.textContent = `#${c.name}`;
+          announcementSelect.appendChild(opt4);
         });
       } catch (err) {
         console.error("Erro ao carregar canais:", err);
@@ -1005,6 +1019,12 @@
         } else {
           document.getElementById('cfgChatBridgeChannel').value = 'none';
         }
+
+        if (cfg.announcementChannelId) {
+          document.getElementById('cfgAnnouncementChannel').value = cfg.announcementChannelId;
+        } else {
+          document.getElementById('cfgAnnouncementChannel').value = 'none';
+        }
         
         const autoTourCheckbox = document.getElementById('cfgAutoTourEnabled');
         autoTourCheckbox.checked = !!cfg.autoTournamentEnabled;
@@ -1035,6 +1055,7 @@
       const robFailFinePercent = parseInt(document.getElementById('cfgRobFine').value, 10) || 0;
       const logChannelId = document.getElementById('cfgLogChannel').value;
       const chatBridgeChannelId = document.getElementById('cfgChatBridgeChannel').value;
+      const announcementChannelId = document.getElementById('cfgAnnouncementChannel').value;
       
       const autoTournamentEnabled = document.getElementById('cfgAutoTourEnabled').checked;
       const autoTournamentDay = parseInt(document.getElementById('cfgAutoTourDay').value, 10) || 0;
@@ -1048,7 +1069,7 @@
           body: JSON.stringify({
             startingBalance, dailyAmount, minBet, maxBet, workMin, workMax,
             bankInterestPercent, loanMaxAmount, lotteryTicketPrice, bigWinThreshold,
-            houseEdgePercent, robSuccessChance, robFailFinePercent, logChannelId, chatBridgeChannelId,
+            houseEdgePercent, robSuccessChance, robFailFinePercent, logChannelId, chatBridgeChannelId, announcementChannelId,
             autoTournamentEnabled, autoTournamentDay, autoTournamentHour, autoTournamentDurationHours
           })
         });

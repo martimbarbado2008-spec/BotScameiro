@@ -154,6 +154,18 @@ async function applyProgressionFor(ctx, { game, bet, net, won }) {
         console.error('Erro ao anunciar subida de nível no chat:', err.message);
       }
     }
+
+    // Anunciar no canal de anúncios configurado + chat web
+    try {
+      const { announceWebEvent } = require('./webServer');
+      const username = (ctx.user && (ctx.user.username || ctx.user.globalName)) || userId;
+      await announceWebEvent(guildId, 'levelup', {
+        title: `⬆️ Subida de Nível!`,
+        message: `**${username}** subiu para o **Nível ${xpResult.level}**! 🚀`,
+        username,
+        level: xpResult.level
+      });
+    } catch (err) { /* Ignora erros de circular require */ }
   }
   await syncBalanceRoles(ctx).catch(() => {});
 

@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Login — Casino Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #09130e 0%, #0d1e16 50%, #050b08 100%);
+      --panel-bg: rgba(18, 38, 29, 0.45);
+      --border-glow: rgba(250, 202, 43, 0.25);
+      --gold: #FACA2B;
+      --mint: #57F287;
+      --text: #E5F3EB;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Animated background elements */
+    body::before {
+      content: '';
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: radial-gradient(circle at 50% 50%, rgba(87, 242, 135, 0.04) 0%, transparent 60%);
+      pointer-events: none;
+      z-index: -1;
+    }
+
+    .login-card {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 2px solid var(--border-glow);
+      border-radius: 24px;
+      padding: 40px 30px;
+      width: 100%;
+      max-width: 420px;
+      text-align: center;
+      box-shadow: 0 15px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(250, 202, 43, 0.05);
+      position: relative;
+    }
+
+    .logo-glow {
+      font-size: 64px;
+      margin-bottom: 15px;
+      filter: drop-shadow(0 0 15px rgba(250,202,43,0.4));
+      animation: heartbeat 2s infinite ease-in-out;
+    }
+
+    h1 {
+      font-size: 26px;
+      font-weight: 800;
+      letter-spacing: 1.5px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, var(--gold), #fff);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      text-transform: uppercase;
+    }
+
+    p {
+      font-size: 13px;
+      color: #8fa096;
+      margin-bottom: 30px;
+      line-height: 1.5;
+    }
+
+    .btn-login {
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      border: none;
+      padding: 16px;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 900;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 5px 20px rgba(250, 202, 43, 0.35);
+      transition: all 0.25s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .btn-login:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 30px rgba(250, 202, 43, 0.6);
+    }
+
+    .btn-login:active {
+      transform: translateY(1px);
+    }
+
+    .loader {
+      display: none;
+      width: 20px;
+      height: 20px;
+      border: 3px solid rgba(0,0,0,0.1);
+      border-radius: 50%;
+      border-top-color: #000;
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    @keyframes heartbeat {
+      0% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+      100% { transform: scale(1); }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="login-card">
+    <div class="logo-glow">🎰</div>
+    <h1>Casino Arena</h1>
+    <p>Bem-vindo ao maior casino virtual integrado com o Discord! Clica no botão abaixo para entrares instantaneamente.</p>
+    
+    <button class="btn-login" id="btnLogin" onclick="handleLogin()">
+      <span>Entrar no Casino 🚀</span>
+      <div class="loader" id="btnLoader"></div>
+    </button>
+  </div>
+
+  <script>
+    async function handleLogin() {
+      const btn = document.getElementById('btnLogin');
+      const loader = document.getElementById('btnLoader');
+      const btnText = btn.querySelector('span');
+      
+      btn.disabled = true;
+      btnText.style.display = 'none';
+      loader.style.display = 'block';
+      
+      try {
+        const res = await fetch('/api/login-fake');
+        if (!res.ok) {
+          throw new Error('Falha no login automático');
+        }
+        const data = await res.json();
+        
+        // Salvar token e redirecionar
+        localStorage.setItem('token', data.token);
+        window.location.href = `/dashboard.html?token=${data.token}`;
+      } catch (err) {
+        alert("Erro ao realizar o login automático. Verifica se o servidor de base de dados está ativo.");
+        btn.disabled = false;
+        btnText.style.display = 'block';
+        loader.style.display = 'none';
+      }
+    }
+  </script>
+</body>
+</html>
