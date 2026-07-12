@@ -555,9 +555,9 @@ function startFootballWatcher(client) {
         if (hasRealApi) {
           // Busca jogos reais
           await fetchRealMatches(guild.id);
-          // Resolve jogos reais
-          await resolveRealMatches(guild.id, client);
         }
+        // Resolve jogos reais (sempre executado, para limpar/simular jogos pendentes da DB)
+        await resolveRealMatches(guild.id, client);
 
         // De qualquer forma, mantemos jogos virtuais como alternativa ou para manter ativo
         generateVirtualMatches(guild.id);

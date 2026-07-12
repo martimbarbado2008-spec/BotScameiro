@@ -719,8 +719,9 @@
         const card = document.createElement('div');
         card.className = 'match-card';
 
-        const isLive = Date.now() >= m.startTime;
         const isCompleted = m.status === 'completed';
+        const isLive = Date.now() >= m.startTime && Date.now() < m.startTime + 2 * 60 * 60 * 1000;
+        const isOverTime = Date.now() >= m.startTime + 2 * 60 * 60 * 1000;
 
         // Construir relógio ou estado do jogo
         let timeStatus = '';
@@ -728,6 +729,8 @@
           timeStatus = `<span style="color:var(--ruby); font-weight:700;">Terminado (Fim)</span>`;
         } else if (isLive) {
           timeStatus = `<span class="match-countdown live">⚽ EM DECORRER (LIVE)</span>`;
+        } else if (isOverTime) {
+          timeStatus = `<span style="color:var(--gold); font-weight:700;">A processar resultado... 🕒</span>`;
         } else {
           const diff = m.startTime - Date.now();
           if (diff > 60 * 60 * 1000) {
