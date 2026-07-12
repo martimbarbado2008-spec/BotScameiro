@@ -92,10 +92,17 @@ function fluctuateCrypto() {
   };
 
   for (const [coin, price] of Object.entries(prices)) {
-    const change = 1 + (Math.random() * 0.05 - 0.025);
+    const limit = bounds[coin] || { min: 1, max: 1000000 };
+    const range = limit.max - limit.min;
+    const midpoint = limit.min + range / 2;
+    
+    // Mean reversion drift: empurra o preço em direção ao ponto médio para evitar ficar preso no teto/chão
+    const deviation = (price - midpoint) / (range / 2);
+    const drift = -0.012 * deviation; 
+    
+    const change = 1 + (Math.random() * 0.05 - 0.025) + drift;
     let newPrice = price * change;
     
-    const limit = bounds[coin] || { min: 1, max: 1000000 };
     newPrice = Math.max(limit.min, Math.min(limit.max, newPrice));
     
     if (coin === 'DOGE') {

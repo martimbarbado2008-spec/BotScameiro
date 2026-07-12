@@ -1409,7 +1409,7 @@ app.post('/api/crypto/contract/create', async (req, res) => {
   if (!session) return res.status(401).json({ error: 'Não autorizado.' });
 
   const { guildId, userId } = session;
-  const { coin, amount, direction, entryPrice } = req.body;
+  const { coin, amount, direction, entryPrice, duration } = req.body;
 
   if (!['BTC', 'ETH', 'SOL', 'DOGE'].includes(coin) || typeof amount !== 'number' || amount < 10 || !['up', 'down'].includes(direction) || typeof entryPrice !== 'number') {
     return res.status(400).json({ error: 'Parâmetros de contrato inválidos.' });
@@ -1418,6 +1418,13 @@ app.post('/api/crypto/contract/create', async (req, res) => {
   const user = db.getUser(guildId, userId);
   if (user.balance < amount) {
     return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+  }
+
+  let durationMs = 60 * 1000; 
+  if (duration === '5m') {
+    durationMs = 5 * 60 * 1000;
+  } else if (duration === '15m') {
+    durationMs = 15 * 60 * 1000;
   }
 
   // Subtrair o investimento imediatamente
@@ -1430,7 +1437,7 @@ app.post('/api/crypto/contract/create', async (req, res) => {
     amount,
     direction,
     entryPrice,
-    expiryTime: Date.now() + 30 * 1000, // Contrato de 30 segundos
+    expiryTime: Date.now() + durationMs,
     status: 'pending',
     payout: 0,
     createdAt: Date.now()

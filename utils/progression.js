@@ -158,7 +158,30 @@ async function applyProgressionFor(ctx, { game, bet, net, won }) {
     // Anunciar no canal de anúncios configurado + chat web
     try {
       const { announceWebEvent } = require('./webServer');
-      const username = (ctx.user && (ctx.user.username || ctx.user.globalName)) || userId;
+      
+      let username = userId;
+      if (ctx.member && ctx.member.displayName && ctx.member.displayName !== userId) {
+        username = ctx.member.displayName;
+      } else if (ctx.user && (ctx.user.username || ctx.user.globalName)) {
+        username = ctx.user.globalName || ctx.user.username;
+      } else if (ctx.client) {
+        try {
+          const uObj = ctx.client.users.cache.get(userId) || await ctx.client.users.fetch(userId).catch(() => null);
+          if (uObj) {
+            username = uObj.username;
+          }
+          if (guildId) {
+            const guildObj = ctx.client.guilds.cache.get(guildId) || await ctx.client.guilds.fetch(guildId).catch(() => null);
+            if (guildObj) {
+              const mObj = guildObj.members.cache.get(userId) || await guildObj.members.fetch(userId).catch(() => null);
+              if (mObj) {
+                username = mObj.displayName;
+              }
+            }
+          }
+        } catch(e) {}
+      }
+
       await announceWebEvent(guildId, 'levelup', {
         title: `⬆️ Subida de Nível!`,
         message: `**${username}** subiu para o **Nível ${xpResult.level}**! 🚀`,

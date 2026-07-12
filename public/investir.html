@@ -551,6 +551,15 @@
           </div>
         </div>
 
+        <div class="input-group">
+          <div class="panel-subtitle">Tempo de Expiração</div>
+          <div style="display: flex; gap: 8px; margin-top: 8px;">
+            <button type="button" id="durationBtn_1m" class="btn-duration active" onclick="setDuration('1m')" style="flex:1; text-align:center; padding:10px; border-radius:8px; border:1px solid var(--mint); background:rgba(87, 242, 135, 0.08); color:var(--mint); font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s;">1 Minuto</button>
+            <button type="button" id="durationBtn_5m" class="btn-duration" onclick="setDuration('5m')" style="flex:1; text-align:center; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:rgba(0,0,0,0.15); color:var(--text-muted); font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s;">5 Minutos</button>
+            <button type="button" id="durationBtn_15m" class="btn-duration" onclick="setDuration('15m')" style="flex:1; text-align:center; padding:10px; border-radius:8px; border:1px solid rgba(255,255,255,0.06); background:rgba(0,0,0,0.15); color:var(--text-muted); font-weight:700; cursor:pointer; font-family:inherit; transition:all 0.2s;">15 Minutos</button>
+          </div>
+        </div>
+
         <div class="trade-buttons">
           <button class="btn-action-giant buy" onclick="executeTrade('buy')">
             <span>Comprar (Subir)</span>
@@ -599,8 +608,26 @@
   <script>
     let appData = null;
     let activeCoin = 'BTC';
+    let activeDuration = '1m';
     let currentPrices = {};
     let chart = null;
+
+    function setDuration(d) {
+      activeDuration = d;
+      document.querySelectorAll('.btn-duration').forEach(btn => {
+        btn.classList.remove('active');
+        btn.style.borderColor = 'rgba(255,255,255,0.06)';
+        btn.style.background = 'rgba(0,0,0,0.15)';
+        btn.style.color = 'var(--text-muted)';
+      });
+      const activeBtn = document.getElementById(`durationBtn_${d}`);
+      if (activeBtn) {
+        activeBtn.classList.add('active');
+        activeBtn.style.borderColor = 'var(--mint)';
+        activeBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+        activeBtn.style.color = 'var(--mint)';
+      }
+    }
 
     // Histórico de pontos para o gráfico (armazenará objetos {x: tempo, y: preço})
     let chartHistory = {
@@ -796,7 +823,8 @@
             coin: activeCoin,
             amount: cashVal,
             direction,
-            entryPrice
+            entryPrice,
+            duration: activeDuration
           })
         });
 
