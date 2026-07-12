@@ -67,6 +67,36 @@
         gain.gain.linearRampToValueAtTime(0, now + 0.12);
         osc.start(now);
         osc.stop(now + 0.13);
+      } else if (type === 'levelup') {
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25, 783.99, 1046.50];
+        notes.forEach((freq, idx) => {
+          const t = now + idx * 0.07;
+          const oscNode = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          oscNode.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscNode.type = 'sine';
+          oscNode.frequency.setValueAtTime(freq, t);
+          gainNode.gain.setValueAtTime(0.1, t);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
+          oscNode.start(t);
+          oscNode.stop(t + 0.35);
+        });
+      } else if (type === 'join' || type === 'chat_join') {
+        const notes = [587.33, 880.00];
+        notes.forEach((freq, idx) => {
+          const t = now + idx * 0.12;
+          const oscNode = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+          oscNode.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          oscNode.type = 'triangle';
+          oscNode.frequency.setValueAtTime(freq, t);
+          gainNode.gain.setValueAtTime(0.08, t);
+          gainNode.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
+          oscNode.start(t);
+          oscNode.stop(t + 0.25);
+        });
       }
     } catch (e) {
       console.warn("SFX error:", e);
@@ -296,6 +326,16 @@
       document.removeEventListener("click", startOnFirstClick);
     }, { once: true });
   }
+
+  // Escutador global para cliques em botões para feedback físico de áudio
+  document.addEventListener('click', (e) => {
+    const target = e.target.closest('button, .nav-btn, .amount-shortcut, .btn-duration, .lobby-item, .filter-btn, .action-btn');
+    if (target && !target.disabled) {
+      if (typeof window.playSFX === 'function') {
+        window.playSFX('click');
+      }
+    }
+  });
 
   updateUI();
 })();

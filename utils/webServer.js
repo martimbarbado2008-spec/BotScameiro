@@ -1034,15 +1034,18 @@ app.get('/api/members/search', async (req, res) => {
 app.get('/api/leaderboard/data', async (req, res) => {
   try {
     const session = getSession(req);
-    if (!session) {
-      return res.status(401).json({ error: 'Não autorizado. Faz login de novo.' });
-    }
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
 
     const { guildId } = session;
-    const rawLeaderboard = db.getLeaderboard(guildId, 100); // obter top 100
+    const scope = req.query.scope || 'local';
+
+    const rawLeaderboard = scope === 'global'
+      ? db.getGlobalLeaderboard(100)
+      : db.getLeaderboard(guildId, 100);
+
     const leaderboard = await Promise.all(
       rawLeaderboard.map(async (entry, index) => {
-        let uName = `Jogador #${index + 1}`;
+        let uName = entry.username || `Jogador #${index + 1}`;
         let uAvatar = null;
         if (discordClient) {
           const uObj = discordClient.users.cache.get(entry.userId) || await discordClient.users.fetch(entry.userId).catch(() => null);
@@ -1130,6 +1133,30 @@ app.get('/api/dashboard/data', async (req, res) => {
       })
     );
 
+    const rawGlobalLeaderboard = db.getGlobalLeaderboard(10);
+    const globalLeaderboard = await Promise.all(
+      rawGlobalLeaderboard.map(async (entry, index) => {
+        let uName = entry.username || `Jogador Global #${index + 1}`;
+        let uAvatar = null;
+        if (discordClient) {
+          const uObj = discordClient.users.cache.get(entry.userId) || await discordClient.users.fetch(entry.userId).catch(() => null);
+          if (uObj) {
+            uName = uObj.username;
+            uAvatar = uObj.displayAvatarURL({ size: 64 }) || uObj.defaultAvatarURL;
+          }
+        }
+        return {
+          userId: entry.userId,
+          username: uName,
+          avatar: uAvatar,
+          balance: entry.balance,
+          bank: entry.bank,
+          level: entry.level,
+          xp: entry.xp
+        };
+      })
+    );
+
     const { ACHIEVEMENTS } = require('./progression');
     const { ITEMS } = require('../commands/shop');
 
@@ -1146,6 +1173,27 @@ app.get('/api/dashboard/data', async (req, res) => {
     const tournamentLeaderboard = await Promise.all(
       rawTournamentLeaderboard.map(async (entry, index) => {
         let uName = `Jogador #${index + 1}`;
+        let uAvatar = null;
+        if (discordClient) {
+          const uObj = discordClient.users.cache.get(entry.userId) || await discordClient.users.fetch(entry.userId).catch(() => null);
+          if (uObj) {
+            uName = uObj.username;
+            uAvatar = uObj.displayAvatarURL({ size: 64 }) || uObj.defaultAvatarURL;
+          }
+        }
+        return {
+          userId: entry.userId,
+          username: uName,
+          avatar: uAvatar,
+          score: entry.score
+        };
+      })
+    );
+
+    const rawGlobalTournamentLeaderboard = db.getGlobalTournamentLeaderboard(10);
+    const globalTournamentLeaderboard = await Promise.all(
+      rawGlobalTournamentLeaderboard.map(async (entry, index) => {
+        let uName = entry.username || `Jogador Global #${index + 1}`;
         let uAvatar = null;
         if (discordClient) {
           const uObj = discordClient.users.cache.get(entry.userId) || await discordClient.users.fetch(entry.userId).catch(() => null);
@@ -1180,12 +1228,14 @@ app.get('/api/dashboard/data', async (req, res) => {
       inventory: user.inventory || [],
       history: db.getHistory(guildId, userId, 10),
       leaderboard,
+      globalLeaderboard,
       tournament: {
         active: db.isTournamentActive(guildId),
         name: userTournament?.name || 'Sem Torneio Ativo',
         endTime: userTournament?.endTime || 0,
         prize: userTournament?.prize || 0,
-        leaderboard: tournamentLeaderboard
+        leaderboard: tournamentLeaderboard,
+        globalLeaderboard: globalTournamentLeaderboard
       },
       cryptoPrices: prices,
       cryptoHoldings: user.crypto || { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 },

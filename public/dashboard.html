@@ -1021,6 +1021,15 @@
       50% { background-position: 100% 50%; }
       100% { background-position: 0% 50%; }
     }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0.6; transform: scale(0.95); }
+    }
   </style>
 </head>
 <body>
@@ -1030,6 +1039,15 @@
     <h2>🔒 Sessão Expirada ou Inválida</h2>
     <p>Tens de aceder ao site através do link gerado no Discord.</p>
     <p>Volta ao teu servidor e digita o comando <code>/perfil</code> para obteres um link pessoal ativo.</p>
+  </div>
+
+  <!-- Loader de Transição de Página (Fichas a rodar / Escudo a pulsar) -->
+  <div id="pageLoader" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#09130e; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100000; transition: opacity 0.4s ease, visibility 0.4s;">
+    <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
+      <div style="position:absolute; width:80px; height:80px; border-radius:50%; border:6px dashed var(--gold); border-top-color:var(--mint); border-bottom-color:var(--mint); animation: spin 1.2s linear infinite; box-shadow: 0 0 20px rgba(87, 242, 135, 0.15);"></div>
+      <div style="font-size:32px; animation: pulse 1.5s infinite;">🎰</div>
+    </div>
+    <div style="margin-top:20px; font-weight:800; font-size:13px; letter-spacing:3px; color:var(--mint); text-transform:uppercase; animation: pulse 1.5s infinite; font-family: 'Outfit', sans-serif;">A carregar dados do casino...</div>
   </div>
 
   <!-- Interface Principal -->
@@ -1285,8 +1303,14 @@
         <!-- Torneio Ativo -->
         <div class="panel" id="tournamentPanel" style="display: none;">
           <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 12px;">
-            <h2 class="panel-title" style="margin-bottom: 0; border: none; padding: 0;"><span class="emoji">🏆</span> Torneio Ativo</h2>
-            <span id="tournamentBadge" style="background: rgba(241,196,15,0.1); border: 1px solid rgba(241,196,15,0.2); color: var(--gold); font-size: 10px; font-weight:800; padding:2px 8px; border-radius:12px; text-transform: uppercase;">A Decorrer</span>
+            <h2 class="panel-title" style="margin-bottom: 0; border: none; padding: 0;"><span class="emoji">🏆</span> Torneio</h2>
+            <div style="display: flex; gap: 8px; align-items: center;">
+              <div style="display: flex; background: rgba(0,0,0,0.2); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+                <button id="tournamentLocalBtn" onclick="switchTournamentScope('local')" style="background: rgba(87, 242, 135, 0.08); color: var(--mint); border: none; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-family: inherit;">Servidor</button>
+                <button id="tournamentGlobalBtn" onclick="switchTournamentScope('global')" style="background: transparent; color: var(--text-muted); border: none; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-family: inherit;">Global</button>
+              </div>
+              <span id="tournamentBadge" style="background: rgba(241,196,15,0.1); border: 1px solid rgba(241,196,15,0.2); color: var(--gold); font-size: 10px; font-weight:800; padding:2px 8px; border-radius:12px; text-transform: uppercase;">A Decorrer</span>
+            </div>
           </div>
           
           <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 14px; margin-bottom: 14px;">
@@ -1319,7 +1343,13 @@
 
         <!-- Leaderboard -->
         <div class="panel">
-          <h2 class="panel-title" style="margin-bottom: 12px;"><span class="emoji">🏆</span> Classificação Global</h2>
+          <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 8px; margin-bottom: 12px;">
+            <h2 class="panel-title" style="margin-bottom: 0; border: none; padding: 0;"><span class="emoji">🏆</span> Classificações</h2>
+            <div style="display: flex; background: rgba(0,0,0,0.2); padding: 3px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.03);">
+              <button id="leaderboardLocalBtn" onclick="switchLeaderboardScope('local')" style="background: rgba(87, 242, 135, 0.08); color: var(--mint); border: none; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-family: inherit;">Servidor</button>
+              <button id="leaderboardGlobalBtn" onclick="switchLeaderboardScope('global')" style="background: transparent; color: var(--text-muted); border: none; font-size: 10px; font-weight: 700; padding: 4px 8px; border-radius: 5px; cursor: pointer; font-family: inherit;">Global</button>
+            </div>
+          </div>
           <div style="position: relative; margin-bottom: 16px;">
             <input type="text" id="memberSearchInput" placeholder="Procurar jogador..." style="width: 100%; padding: 10px 12px 10px 34px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px;" oninput="searchMembers()">
             <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); font-size: 13px; opacity: 0.6;">🔍</span>
@@ -1386,6 +1416,49 @@
     let tradeAction = '';
     let tournamentTimerInterval = null;
     let tournamentEndTime = 0;
+    
+    let currentLeaderboardScope = 'local';
+    let currentTournamentScope = 'local';
+
+    function switchLeaderboardScope(scope) {
+      currentLeaderboardScope = scope;
+      const localBtn = document.getElementById('leaderboardLocalBtn');
+      const globalBtn = document.getElementById('leaderboardGlobalBtn');
+      if (localBtn && globalBtn) {
+        if (scope === 'local') {
+          localBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+          localBtn.style.color = 'var(--mint)';
+          globalBtn.style.background = 'transparent';
+          globalBtn.style.color = 'var(--text-muted)';
+        } else {
+          globalBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+          globalBtn.style.color = 'var(--mint)';
+          localBtn.style.background = 'transparent';
+          localBtn.style.color = 'var(--text-muted)';
+        }
+      }
+      renderDashboard();
+    }
+
+    function switchTournamentScope(scope) {
+      currentTournamentScope = scope;
+      const localBtn = document.getElementById('tournamentLocalBtn');
+      const globalBtn = document.getElementById('tournamentGlobalBtn');
+      if (localBtn && globalBtn) {
+        if (scope === 'local') {
+          localBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+          localBtn.style.color = 'var(--mint)';
+          globalBtn.style.background = 'transparent';
+          globalBtn.style.color = 'var(--text-muted)';
+        } else {
+          globalBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+          globalBtn.style.color = 'var(--mint)';
+          localBtn.style.background = 'transparent';
+          localBtn.style.color = 'var(--text-muted)';
+        }
+      }
+      renderDashboard();
+    }
 
     function startTournamentCountdown(endTime) {
       tournamentEndTime = endTime;
@@ -1450,8 +1523,19 @@
         renderDashboard();
         loadDashboardFootballBets();
         loadGlobalWins();
+
+        // Desvanecer e ocultar o Loader de forma suave
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => {
+            loader.style.display = 'none';
+          }, 400);
+        }
       } catch (err) {
         document.getElementById('unauthScreen').style.display = 'block';
+        const loader = document.getElementById('pageLoader');
+        if (loader) loader.style.display = 'none';
       }
     }
 
@@ -1578,7 +1662,8 @@
       // Classificação
       const leadList = document.getElementById('leaderboardList');
       leadList.innerHTML = '';
-      appData.leaderboard.forEach((user, index) => {
+      const activeLeaderboard = currentLeaderboardScope === 'global' ? appData.globalLeaderboard : appData.leaderboard;
+      activeLeaderboard.forEach((user, index) => {
         const row = document.createElement('div');
         row.className = 'leaderboard-item';
         row.style.cursor = 'pointer';
@@ -1707,10 +1792,11 @@
         const tourList = document.getElementById('tournamentLeaderboard');
         tourList.innerHTML = '';
         
-        if (tour.leaderboard.length === 0) {
+        const activeTourList = currentTournamentScope === 'global' ? tour.globalLeaderboard : tour.leaderboard;
+        if (!activeTourList || activeTourList.length === 0) {
           tourList.innerHTML = '<div style="font-size:11px; color:var(--text-muted); text-align:center; padding:15px;">Ainda ninguém pontuou. Joga qualquer jogo do casino para entrares na classificação!</div>';
         } else {
-          tour.leaderboard.forEach((user, index) => {
+          activeTourList.forEach((user, index) => {
             const row = document.createElement('div');
             row.className = 'leaderboard-item';
             row.style.cursor = 'pointer';
@@ -1975,7 +2061,7 @@
         const msg = JSON.parse(e.data);
         appendMessage(msg);
         scrollToBottom();
-        if (typeof window.playSFX === 'function') window.playSFX('click');
+        if (typeof window.playSFX === 'function') window.playSFX('chat_join');
       });
 
       chatSse.onerror = () => {
@@ -2277,6 +2363,14 @@
             const title = d.title || (d.eventType === 'levelup' ? '⬆️ Level Up!' : '🎉 Vitória!');
             const msg = (d.message || '').replace(/\*\*/g, ''); // strip markdown bold
             showWinAlert(title, msg);
+            
+            if (typeof window.playSFX === 'function') {
+              if (d.eventType === 'levelup') {
+                window.playSFX('levelup');
+              } else if (d.eventType === 'win') {
+                window.playSFX('win');
+              }
+            }
 
             if (d.eventType === 'win') {
               const tbody = document.getElementById('globalWinsTableBody');

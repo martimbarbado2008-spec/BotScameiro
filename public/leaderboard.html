@@ -241,10 +241,14 @@
       <a href="/dashboard.html" class="btn-back">⬅ Voltar ao Painel</a>
     </header>
 
-    <!-- Barra de Pesquisa -->
-    <div class="search-box-wrapper">
-      <div class="search-box">
+    <!-- Barra de Pesquisa e Escopo Toggle -->
+    <div style="display: flex; gap: 15px; margin-bottom: 20px; align-items: center; width: 100%; flex-wrap: wrap;">
+      <div class="search-box" style="flex: 1; min-width: 250px;">
         <input type="text" id="leaderboardSearch" placeholder="Filtrar por nome de jogador..." oninput="filterLeaderboard()">
+      </div>
+      <div style="display: flex; background: rgba(0,0,0,0.25); padding: 4px; border-radius: 12px; border: 1px solid rgba(255,255,255,0.04); height: 46px; align-items: center; box-shadow: var(--shadow);">
+        <button id="scopeLocalBtn" class="nav-btn" onclick="setScope('local')" style="border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; background: rgba(87, 242, 135, 0.08); color: var(--mint); font-family: inherit; justify-content: center; height: auto; border-color: transparent;">Este Servidor 🏠</button>
+        <button id="scopeGlobalBtn" class="nav-btn" onclick="setScope('global')" style="border: none; padding: 10px 20px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-muted); font-family: inherit; justify-content: center; height: auto; border-color: transparent;">Global Geral 🌍</button>
       </div>
     </div>
 
@@ -268,10 +272,11 @@
 
   <script>
     let leaderboardData = [];
+    let currentScope = 'local';
 
     async function loadLeaderboard() {
       try {
-        const res = await fetch('/api/leaderboard/data');
+        const res = await fetch(`/api/leaderboard/data?scope=${currentScope}`);
         if (!res.ok) {
           throw new Error('Não autorizado');
         }
@@ -280,6 +285,26 @@
       } catch (err) {
         document.getElementById('unauthScreen').style.display = 'block';
       }
+    }
+
+    function setScope(scope) {
+      currentScope = scope;
+      const localBtn = document.getElementById('scopeLocalBtn');
+      const globalBtn = document.getElementById('scopeGlobalBtn');
+      if (localBtn && globalBtn) {
+        if (scope === 'local') {
+          localBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+          localBtn.style.color = 'var(--mint)';
+          globalBtn.style.background = 'transparent';
+          globalBtn.style.color = 'var(--text-muted)';
+        } else {
+          globalBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+          globalBtn.style.color = 'var(--mint)';
+          localBtn.style.background = 'transparent';
+          localBtn.style.color = 'var(--text-muted)';
+        }
+      }
+      loadLeaderboard();
     }
 
     function fmt(val) {

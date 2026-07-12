@@ -222,6 +222,69 @@ function getLeaderboard(guildId, limit = 10) {
     .slice(0, limit);
 }
 
+function getGlobalLeaderboard(limit = 10) {
+  const globalUsers = {};
+  for (const [k, v] of Object.entries(users)) {
+    const userId = k.split(':')[1];
+    if (!globalUsers[userId]) {
+      globalUsers[userId] = {
+        userId,
+        balance: 0,
+        bank: 0,
+        xp: 0,
+        level: 1,
+        username: v.username || userId,
+        equippedFrame: v.equippedFrame || 'frame_none',
+        vipLevel: v.vipLevel || 0
+      };
+    }
+    globalUsers[userId].balance += v.balance || 0;
+    globalUsers[userId].bank += v.bank || 0;
+    globalUsers[userId].xp += v.xp || 0;
+    if (v.level > globalUsers[userId].level) {
+      globalUsers[userId].level = v.level;
+    }
+    if (v.username && v.username !== userId) {
+      globalUsers[userId].username = v.username;
+    }
+    if (v.equippedFrame && v.equippedFrame !== 'frame_none') {
+      globalUsers[userId].equippedFrame = v.equippedFrame;
+    }
+    if (v.vipLevel > globalUsers[userId].vipLevel) {
+      globalUsers[userId].vipLevel = v.vipLevel;
+    }
+  }
+  return Object.values(globalUsers)
+    .sort((a, b) => (b.balance + b.bank) - (a.balance + a.bank))
+    .slice(0, limit);
+}
+
+function getGlobalTournamentLeaderboard(limit = 10) {
+  const globalUsers = {};
+  for (const [k, v] of Object.entries(users)) {
+    const userId = k.split(':')[1];
+    if (!globalUsers[userId]) {
+      globalUsers[userId] = {
+        userId,
+        tournamentScore: 0,
+        username: v.username || userId,
+        vipLevel: v.vipLevel || 0
+      };
+    }
+    globalUsers[userId].tournamentScore += v.tournamentScore || 0;
+    if (v.username && v.username !== userId) {
+      globalUsers[userId].username = v.username;
+    }
+    if (v.vipLevel > globalUsers[userId].vipLevel) {
+      globalUsers[userId].vipLevel = v.vipLevel;
+    }
+  }
+  return Object.values(globalUsers)
+    .filter(u => u.tournamentScore > 0)
+    .sort((a, b) => b.tournamentScore - a.tournamentScore)
+    .slice(0, limit);
+}
+
 function getAllUserIdsForGuild(guildId) {
   return Object.keys(users)
     .filter(k => k.startsWith(`${guildId}:`))
@@ -516,11 +579,11 @@ function addChatMessage(msg) {
 
 module.exports = {
   getUser, saveUser, addBalance, addBank, tickBankInterest, setCooldown, getCooldown,
-  recordResult, pushHistory, getHistory, getLeaderboard, resetUser, resetAllUsers,
+  recordResult, pushHistory, getHistory, getLeaderboard, getGlobalLeaderboard, resetUser, resetAllUsers,
   xpForLevel, addXp, addBadge, getGuildConfig, setGuildConfig, DEFAULT_BALANCE,
   getLoan, createLoan, repayLoan, setRobbedNow,
   startTournament, getTournament, isTournamentActive, addTournamentScore,
-  getTournamentLeaderboard, endTournament, getAllGuildIdsWithTournamentSupport, saveTournament,
+  getTournamentLeaderboard, getGlobalTournamentLeaderboard, endTournament, getAllGuildIdsWithTournamentSupport, saveTournament,
   getLottery, saveLottery, buyLotteryTickets, drawLottery,
   getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild,
   getFootballMatches, saveFootballMatches, getFootballBets, saveFootballBets,

@@ -360,6 +360,15 @@
       color: var(--text-muted);
       margin-bottom: 10px;
     }
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0.6; transform: scale(0.95); }
+    }
   </style>
 </head>
 <body>
@@ -369,6 +378,15 @@
     <h2>🔒 Acesso Restrito</h2>
     <p>Não foi possível autenticar a tua sessão.</p>
     <p>Por favor, volta ao Discord e usa o botão no canal para abrires o painel.</p>
+  </div>
+
+  <!-- Loader de Transição de Página (Fichas a rodar / Escudo a pulsar) -->
+  <div id="pageLoader" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#09130e; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100000; transition: opacity 0.4s ease, visibility 0.4s;">
+    <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
+      <div style="position:absolute; width:80px; height:80px; border-radius:50%; border:6px dashed var(--gold); border-top-color:var(--mint); border-bottom-color:var(--mint); animation: spin 1.2s linear infinite; box-shadow: 0 0 20px rgba(87, 242, 135, 0.15);"></div>
+      <div style="font-size:32px; animation: pulse 1.5s infinite;">🎰</div>
+    </div>
+    <div style="margin-top:20px; font-weight:800; font-size:13px; letter-spacing:3px; color:var(--mint); text-transform:uppercase; animation: pulse 1.5s infinite; font-family: 'Outfit', sans-serif;">A abrir sala de jogos...</div>
   </div>
 
   <div id="jogosApp" class="container" style="display: none;">
@@ -421,21 +439,16 @@
 
       <!-- Outros Jogos -->
       <div class="panel">
-        <h2 class="panel-title"><span class="emoji">🎲</span> Outros Jogos Web</h2>
+        <h2 class="panel-title"><span class="emoji">🎲</span> Sala de Jogos Casino</h2>
         
-        <div class="lobby-list">
-          <!-- Blackjack -->
-          <a href="/blackjack.html" class="lobby-item">
-            <div class="lobby-info">
-              <div class="lobby-icon">🃏</div>
-              <div class="lobby-detail">
-                <h3>Blackjack Online</h3>
-                <p>Desafia o dealer ou outros jogadores em tempo real</p>
-              </div>
-            </div>
-            <span class="lobby-action-btn">JOGAR</span>
-          </a>
+        <!-- Tabs selector -->
+        <div style="display: flex; background: rgba(0,0,0,0.25); padding: 4px; border-radius: 12px; margin-bottom: 20px; border: 1px solid rgba(255,255,255,0.04);">
+          <button id="tabBotBtn" class="nav-btn" onclick="switchLobbyTab('bot')" style="flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; background: rgba(87, 242, 135, 0.08); color: var(--mint); font-family: inherit; justify-content: center;">🤖 Contra o Bot (Solo)</button>
+          <button id="tabMultiBtn" class="nav-btn" onclick="switchLobbyTab('multi')" style="flex: 1; border: none; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 13px; cursor: pointer; transition: all 0.2s; background: transparent; color: var(--text-muted); font-family: inherit; justify-content: center;">👥 Multijogador</button>
+        </div>
 
+        <!-- Contra o Bot (Single Player) -->
+        <div id="lobbyTabBot" class="lobby-list">
           <!-- Mines -->
           <a href="/mines.html" class="lobby-item">
             <div class="lobby-info">
@@ -460,16 +473,103 @@
             <span class="lobby-action-btn">JOGAR</span>
           </a>
 
-          <!-- Roulette -->
-          <a href="#" class="lobby-item locked" onclick="event.preventDefault()">
+          <!-- Roda da Fortuna -->
+          <a href="/roda.html" class="lobby-item">
             <div class="lobby-info">
               <div class="lobby-icon">🎡</div>
               <div class="lobby-detail">
-                <h3>Roleta Europeia</h3>
-                <p>Aposta no vermelho, preto ou nos teus números da sorte</p>
+                <h3>Roda da Fortuna</h3>
+                <p>Roda a roleta diária para ganhares bónus e prémios!</p>
               </div>
             </div>
-            <span class="lobby-action-btn soon">EM BREVE</span>
+            <span class="lobby-action-btn">GIRAR</span>
+          </a>
+
+          <!-- Roleta Russa -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa o comando /roleta-russa no Discord para desafiares a tua sorte!');">
+            <div class="lobby-info">
+              <div class="lobby-icon">🔫</div>
+              <div class="lobby-detail">
+                <h3>Roleta Russa</h3>
+                <p>Testa a tua sorte contra o tambor do bot</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">DISCORD</span>
+          </a>
+
+          <!-- Dados contra o Bot -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa o comando /dice no Discord para jogares dados!');">
+            <div class="lobby-info">
+              <div class="lobby-icon">🎲</div>
+              <div class="lobby-detail">
+                <h3>Dados vs Bot (Dice)</h3>
+                <p>Lança os dados contra o bot e vê quem tira maior pontuação</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">DISCORD</span>
+          </a>
+
+          <!-- Maior ou Menor -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa o comando /hl no Discord para jogares maior ou menor!');">
+            <div class="lobby-info">
+              <div class="lobby-icon">↕️</div>
+              <div class="lobby-detail">
+                <h3>Maior ou Menor (Higher/Lower)</h3>
+                <p>Adivinha se a próxima carta do baralho é maior ou menor</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">DISCORD</span>
+          </a>
+        </div>
+
+        <!-- Multijogador (Multiplayer) -->
+        <div id="lobbyTabMulti" class="lobby-list" style="display: none;">
+          <!-- Blackjack Multiplayer -->
+          <a href="/blackjack.html" class="lobby-item">
+            <div class="lobby-info">
+              <div class="lobby-icon">🃏</div>
+              <div class="lobby-detail">
+                <h3>Blackjack Online Multiplayer</h3>
+                <p>Junta-te a outros jogadores na mesa em tempo real contra o Dealer</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn">ENTRAR</span>
+          </a>
+
+          <!-- Apostas de Futebol -->
+          <a href="/futebol.html" class="lobby-item">
+            <div class="lobby-info">
+              <div class="lobby-icon">⚽</div>
+              <div class="lobby-detail">
+                <h3>Apostas de Futebol (Sportsbook)</h3>
+                <p>Aposta em tempo real nos resultados dos campeonatos</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn">APOSTAR</span>
+          </a>
+
+          <!-- Duelo Coinflip / PvP -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa os comandos /duel ou /coinflip no Discord para desafiares outro jogador!');">
+            <div class="lobby-info">
+              <div class="lobby-icon">🪙</div>
+              <div class="lobby-detail">
+                <h3>Duelo Coinflip PvP</h3>
+                <p>Desafia outro jogador para um cara ou coroa apostado</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">DISCORD</span>
+          </a>
+
+          <!-- Poker Multiplayer -->
+          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa o comando /poker no Discord para criar uma mesa de Texas Hold\'em!');">
+            <div class="lobby-info">
+              <div class="lobby-icon">🂡</div>
+              <div class="lobby-detail">
+                <h3>Poker Multiplayer</h3>
+                <p>Junta-te a uma mesa de Texas Hold'em clássica com os teus amigos</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn soon">DISCORD</span>
           </a>
         </div>
       </div>
@@ -506,6 +606,30 @@
       };
     })();
 
+    function switchLobbyTab(tab) {
+      const tabBotBtn = document.getElementById('tabBotBtn');
+      const tabMultiBtn = document.getElementById('tabMultiBtn');
+      const lobbyTabBot = document.getElementById('lobbyTabBot');
+      const lobbyTabMulti = document.getElementById('lobbyTabMulti');
+
+      if (tab === 'bot') {
+        tabBotBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+        tabBotBtn.style.color = 'var(--mint)';
+        tabMultiBtn.style.background = 'transparent';
+        tabMultiBtn.style.color = 'var(--text-muted)';
+        lobbyTabBot.style.display = 'flex';
+        lobbyTabMulti.style.display = 'none';
+      } else {
+        tabMultiBtn.style.background = 'rgba(87, 242, 135, 0.08)';
+        tabMultiBtn.style.color = 'var(--mint)';
+        tabBotBtn.style.background = 'transparent';
+        tabBotBtn.style.color = 'var(--text-muted)';
+        lobbyTabBot.style.display = 'none';
+        lobbyTabMulti.style.display = 'flex';
+      }
+      syncLinksWithToken();
+    }
+
     // Sincronizar links
     function syncLinksWithToken() {
       const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
@@ -533,8 +657,19 @@
         
         document.getElementById('jogosApp').style.display = 'block';
         syncLinksWithToken();
+
+        // Desvanecer e ocultar o Loader de forma suave
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => {
+            loader.style.display = 'none';
+          }, 400);
+        }
       } catch (err) {
         document.getElementById('unauthScreen').style.display = 'block';
+        const loader = document.getElementById('pageLoader');
+        if (loader) loader.style.display = 'none';
       }
     }
 
