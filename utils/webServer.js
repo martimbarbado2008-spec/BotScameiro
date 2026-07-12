@@ -4,6 +4,9 @@ const webTokens = require('./webTokens');
  
 const chatClients = new Set();
 const activeDuels = new Map();
+let globalWins = [];
+const activeMinesGames = new Map();
+const activeCrashGames = new Map();
 const DIRTY_COUNT = 14;
 const TOTAL_TILES = 16;
 const TIME_LIMIT_SECONDS = 20;
@@ -514,7 +517,8 @@ app.get('/api/login-dashboard', (req, res) => {
   const sessionToken = createSession(guildId, userId);
   
   res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`);
-  res.redirect(redirectUrl);
+  const separator = redirectUrl.includes('?') ? '&' : '?';
+  res.redirect(`${redirectUrl}${separator}token=${sessionToken}`);
 });
 
 app.get('/api/login-fake', (req, res) => {
@@ -538,6 +542,383 @@ app.get('/api/login-fake', (req, res) => {
   res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`);
   
   return res.json({ success: true, token: sessionToken });
+});
+
+app.get('/api/global-wins', (req, res) => {
+  return res.json(globalWins);
+});
+
+// ─── MINES GAME ENDPOINTS ────────────────────────────────────────────────────
+app.post('/api/games/mines/start', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet, minesCount } = req.body;
+    
+    const cfg = db.getGuildConfig(guildId);
+    if (isNaN(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
+      return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet}.` });
+    }
+    if (isNaN(minesCount) || minesCount < 1 || minesCount > 15) {
+      return res.status(400).json({ error: 'Número de minas inválido (deve ser entre 1 e 15).' });
+    }
+    
+    const user = db.getUser(guildId, userId);
+    if (user.balance < bet) {
+      return res.status(400).json({ error: 'Saldo insuficiente.' });
+    }
+    
+    db.addBalance(guildId, userId, -bet);
+    db.broadcastBalanceUpdate(guildId, userId);
+    
+    const GRID_SIZE = 20;
+    const board = Array(GRID_SIZE).fill('safe');
+    const minePositions = new Set();
+    while (minePositions.size < minesCount) {
+      minePositions.add(Math.floor(Math.random() * GRID_SIZE));
+    }
+    for (const idx of minePositions) {
+      board[idx] = 'mine';
+    }
+    
+    const revealed = new Set();
+    
+    activeMinesGames.set(userId, {
+      guildId,
+      bet,
+      minesCount,
+      board,
+      revealed,
+      status: 'playing'
+    });
+    
+    return res.json({
+      success: true,
+      gridSize: GRID_SIZE,
+      minesCount,
+      bet,
+      newBalance: db.getUser(guildId, userId).balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao iniciar o jogo.' });
+  }
+});
+
+app.post('/api/games/mines/reveal', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { userId } = session;
+    const game = activeMinesGames.get(userId);
+    if (!game || game.status !== 'playing') {
+      return res.status(400).json({ error: 'Nenhum jogo ativo de Mines.' });
+    }
+    
+    const { cellIndex } = req.body;
+    if (isNaN(cellIndex) || cellIndex < 0 || cellIndex >= game.board.length) {
+      return res.status(400).json({ error: 'Posição inválida.' });
+    }
+    
+    if (game.revealed.has(cellIndex)) {
+      return res.status(400).json({ error: 'Célula já revelada.' });
+    }
+    
+    const GRID_SIZE = 20;
+    const HOUSE_EDGE = 0.97;
+    
+    function combinations(n, k) {
+      if (k < 0 || k > n) return 0;
+      k = Math.min(k, n - k);
+      let result = 1;
+      for (let i = 0; i < k; i++) result = (result * (n - i)) / (i + 1);
+      return result;
+    }
+    
+    function multiplierFor(revealedCount, mines) {
+      const fair = combinations(GRID_SIZE, revealedCount) / combinations(GRID_SIZE - mines, revealedCount);
+      return Math.max(1, fair * HOUSE_EDGE);
+    }
+    
+    game.revealed.add(cellIndex);
+    
+    if (game.board[cellIndex] === 'mine') {
+      game.status = 'lost';
+      activeMinesGames.delete(userId);
+      db.recordResult(game.guildId, userId, false, game.bet);
+      db.addTournamentScore(game.guildId, userId, -game.bet);
+      
+      return res.json({
+        success: true,
+        exploded: true,
+        grid: game.board,
+        newBalance: db.getUser(game.guildId, userId).balance
+      });
+    }
+    
+    const safeCellsCount = GRID_SIZE - game.minesCount;
+    const currentMult = multiplierFor(game.revealed.size, game.minesCount);
+    
+    if (game.revealed.size === safeCellsCount) {
+      const winnings = Math.round(game.bet * currentMult);
+      const net = winnings - game.bet;
+      db.addBalance(game.guildId, userId, winnings);
+      db.recordResult(game.guildId, userId, true, game.bet);
+      db.addTournamentScore(game.guildId, userId, net);
+      db.broadcastBalanceUpdate(game.guildId, userId);
+      
+      activeMinesGames.delete(userId);
+      
+      let displayName = userId;
+      if (discordClient) {
+        const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+        if (uObj) displayName = uObj.username;
+        const guild = discordClient.guilds.cache.get(game.guildId) || await discordClient.guilds.fetch(game.guildId).catch(() => null);
+        if (guild) {
+          const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+          if (member) displayName = member.displayName;
+        }
+      }
+      
+      const title = '💣 MINES: Campo Limpo! 🏆';
+      const msg = `**${displayName}** limpou o Campo Minado e ganhou **${winnings.toLocaleString('pt-PT')} 🪙** (x${currentMult.toFixed(2)})!`;
+      announceWebEvent(game.guildId, 'win', { title, message: msg, username: displayName, game: 'Mines', amount: winnings, bet: game.bet });
+      
+      return res.json({
+        success: true,
+        exploded: false,
+        cleared: true,
+        multiplier: currentMult,
+        winnings,
+        revealedCells: Array.from(game.revealed),
+        newBalance: db.getUser(game.guildId, userId).balance
+      });
+    }
+    
+    return res.json({
+      success: true,
+      exploded: false,
+      cleared: false,
+      multiplier: currentMult,
+      revealedCells: Array.from(game.revealed)
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao revelar célula.' });
+  }
+});
+
+app.post('/api/games/mines/cashout', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { userId } = session;
+    const game = activeMinesGames.get(userId);
+    if (!game || game.status !== 'playing') {
+      return res.status(400).json({ error: 'Nenhum jogo ativo para efetuar o saque.' });
+    }
+    
+    if (game.revealed.size === 0) {
+      return res.status(400).json({ error: 'Tens de revelar pelo menos uma célula antes de sacar.' });
+    }
+    
+    const GRID_SIZE = 20;
+    const HOUSE_EDGE = 0.97;
+    
+    function combinations(n, k) {
+      if (k < 0 || k > n) return 0;
+      k = Math.min(k, n - k);
+      let result = 1;
+      for (let i = 0; i < k; i++) result = (result * (n - i)) / (i + 1);
+      return result;
+    }
+    
+    function multiplierFor(revealedCount, mines) {
+      const fair = combinations(GRID_SIZE, revealedCount) / combinations(GRID_SIZE - mines, revealedCount);
+      return Math.max(1, fair * HOUSE_EDGE);
+    }
+    
+    const currentMult = multiplierFor(game.revealed.size, game.minesCount);
+    const winnings = Math.round(game.bet * currentMult);
+    const net = winnings - game.bet;
+    
+    db.addBalance(game.guildId, userId, winnings);
+    db.recordResult(game.guildId, userId, true, game.bet);
+    db.addTournamentScore(game.guildId, userId, net);
+    db.broadcastBalanceUpdate(game.guildId, userId);
+    
+    activeMinesGames.delete(userId);
+    
+    let displayName = userId;
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+      if (uObj) displayName = uObj.username;
+      const guild = discordClient.guilds.cache.get(game.guildId) || await discordClient.guilds.fetch(game.guildId).catch(() => null);
+      if (guild) {
+        const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+        if (member) displayName = member.displayName;
+      }
+    }
+    
+    const title = '💣 MINES: Saque efetuado! 💰';
+    const msg = `**${displayName}** sacou **${winnings.toLocaleString('pt-PT')} 🪙** no Campo Minado com multiplicador **x${currentMult.toFixed(2)}**!`;
+    announceWebEvent(game.guildId, 'win', { title, message: msg, username: displayName, game: 'Mines', amount: winnings, bet: game.bet });
+    
+    return res.json({
+      success: true,
+      winnings,
+      multiplier: currentMult,
+      newBalance: db.getUser(game.guildId, userId).balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao efetuar saque.' });
+  }
+});
+
+// ─── CRASH GAME ENDPOINTS ────────────────────────────────────────────────────
+app.post('/api/games/crash/start', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet } = req.body;
+    
+    const cfg = db.getGuildConfig(guildId);
+    if (isNaN(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
+      return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet}.` });
+    }
+    
+    const user = db.getUser(guildId, userId);
+    if (user.balance < bet) {
+      return res.status(400).json({ error: 'Saldo insuficiente.' });
+    }
+    
+    db.addBalance(guildId, userId, -bet);
+    db.broadcastBalanceUpdate(guildId, userId);
+    
+    function generateCrashPoint() {
+      if (Math.random() < 0.05) return 1.00;
+      const r = Math.random();
+      const point = Math.min(20, (1 / (1 - r)) * 0.97);
+      return Math.max(1.02, Math.round(point * 100) / 100);
+    }
+    
+    const crashPoint = generateCrashPoint();
+    
+    function getCrashTimeMs(cp) {
+      let mult = 1.0;
+      let ticks = 0;
+      while (mult < cp && ticks < 150) {
+        mult = Math.round(mult * 1.06 * 100) / 100;
+        ticks++;
+      }
+      return ticks * 700;
+    }
+    
+    const crashTimeMs = getCrashTimeMs(crashPoint);
+    
+    activeCrashGames.set(userId, {
+      guildId,
+      bet,
+      crashPoint,
+      crashTimeMs,
+      startTime: Date.now(),
+      status: 'playing'
+    });
+    
+    return res.json({
+      success: true,
+      startTime: Date.now(),
+      tickMs: 700,
+      growth: 1.06,
+      newBalance: db.getUser(guildId, userId).balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao iniciar o Crash.' });
+  }
+});
+
+app.post('/api/games/crash/cashout', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { userId } = session;
+    const game = activeCrashGames.get(userId);
+    if (!game || game.status !== 'playing') {
+      return res.status(400).json({ error: 'Nenhum jogo ativo de Crash.' });
+    }
+    
+    const elapsedMs = Date.now() - game.startTime;
+    
+    if (elapsedMs >= game.crashTimeMs) {
+      game.status = 'crashed';
+      activeCrashGames.delete(userId);
+      db.recordResult(game.guildId, userId, false, game.bet);
+      db.addTournamentScore(game.guildId, userId, -game.bet);
+      
+      return res.json({
+        success: true,
+        crashed: true,
+        crashPoint: game.crashPoint,
+        newBalance: db.getUser(game.guildId, userId).balance
+      });
+    }
+    
+    game.status = 'cashed_out';
+    activeCrashGames.delete(userId);
+    
+    function getCrashMultiplierAt(timeMs) {
+      const ticks = Math.floor(timeMs / 700);
+      let mult = 1.0;
+      for (let i = 0; i < ticks; i++) {
+        mult = Math.round(mult * 1.06 * 100) / 100;
+      }
+      return mult;
+    }
+    
+    const multiplier = getCrashMultiplierAt(elapsedMs);
+    const winnings = Math.round(game.bet * multiplier);
+    const net = winnings - game.bet;
+    
+    db.addBalance(game.guildId, userId, winnings);
+    db.recordResult(game.guildId, userId, true, game.bet);
+    db.addTournamentScore(game.guildId, userId, net);
+    db.broadcastBalanceUpdate(game.guildId, userId);
+    
+    let displayName = userId;
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+      if (uObj) displayName = uObj.username;
+      const guild = discordClient.guilds.cache.get(game.guildId) || await discordClient.guilds.fetch(game.guildId).catch(() => null);
+      if (guild) {
+        const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
+        if (member) displayName = member.displayName;
+      }
+    }
+    
+    const title = '📈 CRASH: Saque efetuado! 🚀';
+    const msg = `**${displayName}** sacou **${winnings.toLocaleString('pt-PT')} 🪙** no Crash com multiplicador **x${multiplier.toFixed(2)}**!`;
+    announceWebEvent(game.guildId, 'win', { title, message: msg, username: displayName, game: 'Crash', amount: winnings, bet: game.bet });
+    
+    return res.json({
+      success: true,
+      crashed: false,
+      multiplier,
+      winnings,
+      newBalance: db.getUser(game.guildId, userId).balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao efetuar saque no Crash.' });
+  }
 });
 
 app.get('/api/profile/data', async (req, res) => {
@@ -2005,11 +2386,17 @@ app.post('/api/games/slots', async (req, res) => {
     const progression = require('./progression');
     progression.recordJackpot(guildId, userId, isJackpot);
     
+    let displayName = userId;
     if (discordClient) {
+      const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+      if (uObj) {
+        displayName = uObj.username;
+      }
       const guild = discordClient.guilds.cache.get(guildId) || await discordClient.guilds.fetch(guildId).catch(() => null);
       if (guild) {
         const member = guild.members.cache.get(userId) || await guild.members.fetch(userId).catch(() => null);
         if (member) {
+          displayName = member.displayName;
           const fakeInteraction = { guildId, client: discordClient, channelId: null };
           await progression.afterGameForMember(fakeInteraction, member, { game: 'Slots Web', bet, net, won: net > 0 }).catch(console.error);
         }
@@ -2020,11 +2407,10 @@ app.post('/api/games/slots', async (req, res) => {
 
     // Announce wins via Discord + Web Chat + SSE lateral pop-up
     if (win) {
-      const username = updatedUser.username || userId;
       const reelStr = [a.emoji, b.emoji, c.emoji].join(' ');
       let title = isJackpot ? '🎰 JACKPOT na Slot Machine!' : '🎰 Vitória na Slot Machine!';
-      let msg = `**${username}** ganhou **${winnings.toLocaleString('pt-PT')} 🪙** nas Slots! ${reelStr}`;
-      announceWebEvent(guildId, 'win', { title, message: msg, username, game: 'Slots', amount: winnings, bet });
+      let msg = `**${displayName}** ganhou **${winnings.toLocaleString('pt-PT')} 🪙** nas Slots! ${reelStr}`;
+      announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Slots', amount: winnings, bet });
     }
     
     return res.json({
@@ -2392,6 +2778,13 @@ function resolvePayouts() {
     }
     db.pushHistory(p.guildId, p.userId, { game: 'Blackjack Online Web', bet: p.bet, net });
     db.addTournamentScore(p.guildId, p.userId, net);
+
+    if (net > 0) {
+      const username = p.username || 'Jogador';
+      const title = pBJ ? '🃏 BLACKJACK no Casino!' : '🃏 Vitória no Blackjack!';
+      const msg = `**${username}** ganhou **${p.payoutResult.toLocaleString('pt-PT')} 🪙** no Blackjack!`;
+      announceWebEvent(p.guildId, 'win', { title, message: msg, username, game: 'Blackjack', amount: p.payoutResult, bet: p.bet });
+    }
   });
 }
 
@@ -2682,6 +3075,19 @@ app.use((err, req, res, next) => {
 // 3) The web global chat as a system message
 async function announceWebEvent(guildId, eventType, details) {
   try {
+    if (eventType === 'win') {
+      globalWins.unshift({
+        username: details.username,
+        game: details.game,
+        amount: details.amount,
+        bet: details.bet,
+        timestamp: Date.now()
+      });
+      if (globalWins.length > 20) {
+        globalWins.pop();
+      }
+    }
+
     // 1. SSE Broadcast to all web clients in this guild (lateral pop-up)
     broadcastToGuild(guildId, 'game_win_alert', { eventType, ...details });
 

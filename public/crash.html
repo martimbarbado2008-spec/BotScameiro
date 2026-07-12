@@ -1,0 +1,514 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crash Crypto — Casino Arena</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800;900&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-gradient: linear-gradient(135deg, #09130e 0%, #0d1e16 50%, #050b08 100%);
+      --gold: #FACA2B;
+      --mint: #57F287;
+      --ruby: #FF3366;
+      --panel-bg: rgba(18, 38, 29, 0.45);
+      --border-glow: rgba(87, 242, 135, 0.15);
+      --text: #E5F3EB;
+      --text-muted: #8fa096;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      background: var(--bg-gradient);
+      color: var(--text);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+    }
+
+    .container {
+      width: 100%;
+      max-width: 720px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      padding: 15px 24px;
+      border-radius: 16px;
+      border: 1px solid var(--border-glow);
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      color: #fff;
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 700;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      transform: translateX(-3px);
+    }
+
+    .game-grid-container {
+      display: grid;
+      grid-template-columns: 240px 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .game-grid-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .control-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .form-label {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .input-field {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 10px 12px;
+      color: #fff;
+      font-family: inherit;
+      font-size: 14px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .input-field:focus {
+      border-color: var(--mint);
+    }
+
+    .btn-play {
+      background: linear-gradient(135deg, var(--mint), #38d068);
+      color: #050e08;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 800;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(87, 242, 135, 0.2);
+      transition: all 0.2s;
+    }
+
+    .btn-play:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(87, 242, 135, 0.35);
+    }
+
+    .btn-cashout {
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      border: none;
+      padding: 14px;
+      border-radius: 10px;
+      font-size: 15px;
+      font-weight: 900;
+      cursor: pointer;
+      text-transform: uppercase;
+      box-shadow: 0 4px 15px rgba(250, 202, 43, 0.2);
+      transition: all 0.2s;
+      display: none;
+    }
+
+    .btn-cashout:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(250, 202, 43, 0.4);
+    }
+
+    .display-panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      position: relative;
+      min-height: 320px;
+      overflow: hidden;
+    }
+
+    .chart-area {
+      width: 100%;
+      height: 220px;
+      position: relative;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+      border-left: 2px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .rocket {
+      position: absolute;
+      bottom: 0px;
+      left: 0px;
+      font-size: 38px;
+      transition: all 0.1s linear;
+      transform: translate(-50%, 50%);
+      z-index: 10;
+    }
+
+    .multiplier-text {
+      font-size: 48px;
+      font-weight: 900;
+      color: var(--mint);
+      position: absolute;
+      top: 20px;
+      z-index: 5;
+      text-shadow: 0 0 20px rgba(87, 242, 135, 0.4);
+    }
+
+    .multiplier-text.crashed {
+      color: var(--ruby);
+      text-shadow: 0 0 20px rgba(255, 51, 102, 0.4);
+    }
+
+    .status-hud {
+      display: flex;
+      justify-content: space-between;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 8px;
+      padding: 10px;
+      font-size: 13px;
+      font-weight: 700;
+    }
+
+    .status-hud span {
+      color: var(--gold);
+    }
+
+    #unauthScreen {
+      position: fixed;
+      top: 0; left: 0; width: 100vw; height: 100vh;
+      background: #09130e;
+      z-index: 99999;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      padding: 20px;
+    }
+
+    #unauthScreen h2 {
+      margin-bottom: 10px;
+      color: var(--ruby);
+    }
+
+    /* Trail behind rocket */
+    .trail {
+      position: absolute;
+      background: rgba(87, 242, 135, 0.2);
+      height: 3px;
+      border-radius: 10px;
+      transform-origin: left center;
+      z-index: 2;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Ecrã de erro de login -->
+  <div id="unauthScreen" style="display: none;">
+    <h2>🔒 Sessão Expirada ou Inválida</h2>
+    <p>Tens de aceder ao site através do link gerado no Discord.</p>
+    <p style="margin-top: 10px; color: var(--text-muted);">Volta ao teu servidor e clica em <strong>Entrar no Casino Web 🌐</strong></p>
+  </div>
+
+  <div class="container" id="gameApp">
+    <header>
+      <div>
+        <h1 style="font-size: 20px; font-weight: 900; color: var(--gold);">📈 CRASH CRYPTO</h1>
+        <p style="font-size: 12px; color: var(--text-muted);">Saca antes que a moeda colapse</p>
+      </div>
+      <a href="/dashboard.html" class="btn-back">⬅️ Voltar à Dashboard</a>
+    </header>
+
+    <div class="status-hud">
+      <div>Carteira: <span id="userBalance">... 🪙</span></div>
+      <div>Estado: <span id="gameStateText">Aguardando Aposta</span></div>
+    </div>
+
+    <div class="game-grid-container">
+      <!-- Controls -->
+      <div class="control-panel">
+        <div class="form-group">
+          <label class="form-label">Aposta (🪙)</label>
+          <input type="number" id="crashBet" class="input-field" value="100" min="1">
+        </div>
+
+        <button id="btnPlay" class="btn-play" onclick="startGame()">Começar Jogo 🚀</button>
+        <button id="btnCashout" class="btn-cashout" onclick="cashout()">Sacar Multiplicador 💰</button>
+
+        <div id="resultBox" style="font-size: 13px; font-weight: 600; text-align: center; margin-top: 10px;"></div>
+      </div>
+
+      <!-- Graph Display -->
+      <div class="display-panel">
+        <div id="multDisplay" class="multiplier-text">x1.00</div>
+        <div class="chart-area" id="chartArea">
+          <div class="rocket" id="rocket" style="display: none;">🚀</div>
+          <canvas id="trailCanvas" style="position: absolute; top:0; left:0; width:100%; height:100%; pointer-events: none; z-index:1;"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let inProgress = false;
+    let startTime = null;
+    let gameInterval = null;
+    let tickMs = 700;
+    let growth = 1.06;
+    
+    // Sobrecarga do fetch global para incluir o token de autorização automaticamente
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) {
+        localStorage.setItem('token', tokenParam);
+      }
+      
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          if (!options.headers) options.headers = {};
+          if (options.headers instanceof Headers) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          } else if (Array.isArray(options.headers)) {
+            if (!options.headers.some(h => h[0].toLowerCase() === 'authorization')) {
+              options.headers.push(['Authorization', `Bearer ${token}`]);
+            }
+          } else {
+            if (!options.headers['Authorization'] && !options.headers['authorization']) {
+              options.headers['Authorization'] = `Bearer ${token}`;
+            }
+          }
+        }
+        return originalFetch(url, options);
+      };
+    })();
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/api/dashboard/data');
+        if (!res.ok) throw new Error();
+        const data = await res.json();
+        document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('gameApp').style.display = 'flex';
+        
+        // Sincronizar links
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          document.querySelectorAll('a').forEach(a => {
+            if (a.href && (a.href.includes('.html') || a.href.startsWith('/'))) {
+              try {
+                const u = new URL(a.href, window.location.origin);
+                u.searchParams.set('token', token);
+                a.href = u.pathname + u.search;
+              } catch(e) {}
+            }
+          });
+        }
+      } catch (err) {
+        document.getElementById('unauthScreen').style.display = 'flex';
+        document.getElementById('gameApp').style.display = 'none';
+      }
+    }
+
+    async function startGame() {
+      const betInput = document.getElementById('crashBet');
+      const resultBox = document.getElementById('resultBox');
+      const bet = parseInt(betInput.value, 10);
+      
+      if (isNaN(bet) || bet <= 0) {
+        alert('Aposta inválida.');
+        return;
+      }
+      
+      resultBox.textContent = '';
+      
+      try {
+        const res = await fetch('/api/games/crash/start', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ bet })
+        });
+        
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Erro ao iniciar o Crash.');
+          return;
+        }
+        
+        inProgress = true;
+        startTime = data.startTime;
+        tickMs = data.tickMs;
+        growth = data.growth;
+        
+        document.getElementById('userBalance').textContent = Math.round(data.newBalance).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('gameStateText').textContent = 'Foguete no ar! 🚀';
+        document.getElementById('multDisplay').className = 'multiplier-text';
+        document.getElementById('multDisplay').textContent = 'x1.00';
+        
+        betInput.disabled = true;
+        document.getElementById('btnPlay').style.display = 'none';
+        document.getElementById('btnCashout').style.display = 'block';
+        
+        // Show rocket and start animation
+        const rocket = document.getElementById('rocket');
+        rocket.style.display = 'block';
+        rocket.style.bottom = '0px';
+        rocket.style.left = '0px';
+        
+        const canvas = document.getElementById('trailCanvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = canvas.offsetWidth;
+        canvas.height = canvas.offsetHeight;
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        
+        gameInterval = setInterval(updateAnimation, 50);
+        
+      } catch (err) {
+        alert('Erro ao conectar ao servidor.');
+      }
+    }
+
+    function updateAnimation() {
+      if (!inProgress) return;
+      
+      const elapsedMs = Date.now() - startTime;
+      const ticks = Math.floor(elapsedMs / tickMs);
+      
+      // Calculate multiplier
+      let currentMult = 1.0;
+      for (let i = 0; i < ticks; i++) {
+        currentMult = Math.round(currentMult * growth * 100) / 100;
+      }
+      
+      const display = document.getElementById('multDisplay');
+      display.textContent = `x${currentMult.toFixed(2)}`;
+      
+      // Animate rocket positions
+      const rocket = document.getElementById('rocket');
+      const chartArea = document.getElementById('chartArea');
+      const canvas = document.getElementById('trailCanvas');
+      const ctx = canvas.getContext('2d');
+      
+      const w = chartArea.clientWidth;
+      const h = chartArea.clientHeight;
+      
+      // Growth curves
+      const progress = Math.min(1, elapsedMs / 15000); // 15s max visual limit
+      const rocketX = progress * (w - 30);
+      const rocketY = Math.pow(progress, 2.5) * (h - 40);
+      
+      rocket.style.left = `${rocketX}px`;
+      rocket.style.bottom = `${rocketY}px`;
+      
+      // Draw canvas trail
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      ctx.strokeStyle = '#57F287';
+      ctx.lineWidth = 4;
+      ctx.shadowBlur = 10;
+      ctx.shadowColor = '#57F287';
+      ctx.moveTo(0, canvas.height);
+      
+      // Draw smooth curve to rocket
+      for (let x = 0; x <= rocketX; x += 5) {
+        const p = x / (w - 30);
+        const y = Math.pow(p, 2.5) * (h - 40);
+        ctx.lineTo(x, canvas.height - y);
+      }
+      ctx.stroke();
+    }
+
+    async function cashout() {
+      if (!inProgress) return;
+      
+      try {
+        const res = await fetch('/api/games/crash/cashout', {
+          method: 'POST'
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || 'Erro ao sacar.');
+          return;
+        }
+        
+        clearInterval(gameInterval);
+        
+        if (data.crashed) {
+          // Crashed
+          document.getElementById('gameStateText').textContent = 'Colapsou! 💥';
+          document.getElementById('multDisplay').className = 'multiplier-text crashed';
+          document.getElementById('multDisplay').textContent = `💥 x${data.crashPoint.toFixed(2)}`;
+          document.getElementById('resultBox').innerHTML = `<span style="color:var(--ruby);">💥 Colapsou! Perdeste a tua aposta.</span>`;
+          document.getElementById('rocket').style.display = 'none';
+        } else {
+          // Success
+          document.getElementById('gameStateText').textContent = 'Saque Efetuado! 💰';
+          document.getElementById('resultBox').innerHTML = `<span style="color:var(--mint);">💰 Sacaste x${data.multiplier.toFixed(2)}! Ganhaste +${data.winnings.toLocaleString('pt-PT')} 🪙</span>`;
+        }
+        
+        inProgress = false;
+        document.getElementById('userBalance').textContent = Math.round(data.newBalance).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('crashBet').disabled = false;
+        document.getElementById('btnPlay').style.display = 'block';
+        document.getElementById('btnCashout').style.display = 'none';
+        
+      } catch (err) {
+        alert('Erro ao sacar.');
+      }
+    }
+
+    checkAuth();
+  </script>
+</body>
+</html>

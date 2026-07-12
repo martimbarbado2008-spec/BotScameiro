@@ -68,16 +68,16 @@ client.on('interactionCreate', async interaction => {
       }
       
       const token = require('./utils/webTokens').createToken(interaction.guildId, interaction.user.id);
-      const link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}&redirect=${encodeURIComponent('/dashboard.html')}`;
+      const link = `${baseUrl.replace(/\/$/, '')}/login.html?token=${token}&redirect=${encodeURIComponent('/dashboard.html')}`;
 
       const { baseEmbed, COLORS } = require('./utils/embeds');
       const embed = baseEmbed('🔑 Acesso Pessoal e Seguro', COLORS.gold)
-        .setDescription('Clica no botão abaixo para abrires a tua Dashboard do Casino. Este link é pessoal e não deve ser partilhado!');
+        .setDescription('Clica no botão abaixo para entrares no Casino Arena. Este link é pessoal e não deve ser partilhado!');
 
       const { ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
       const row = new ActionRowBuilder().addComponents(
         new ButtonBuilder()
-          .setLabel('Entrar no Painel 🚀')
+          .setLabel('Entrar no Casino 🚀')
           .setStyle(ButtonStyle.Link)
           .setURL(link)
       );

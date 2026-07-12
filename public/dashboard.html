@@ -1150,6 +1150,27 @@
           </div>
         </div>
 
+        <!-- Painel de Últimos Prémios Globais -->
+        <div class="panel">
+          <h2 class="panel-title"><span class="emoji">🏆</span> Últimos Prémios Globais</h2>
+          <div style="max-height: 250px; overflow-y: auto; padding: 10px;">
+            <table style="width: 100%; border-collapse: collapse; text-align: left; font-size: 12.5px;">
+              <thead>
+                <tr style="border-bottom: 1px solid rgba(255,255,255,0.08); color: rgba(255,255,255,0.5);">
+                  <th style="padding: 8px 4px;">Jogador</th>
+                  <th style="padding: 8px 4px;">Jogo</th>
+                  <th style="padding: 8px 4px; text-align: right;">Prémio</th>
+                </tr>
+              </thead>
+              <tbody id="globalWinsTableBody">
+                <tr>
+                  <td colspan="3" style="text-align: center; padding: 20px; color: rgba(255,255,255,0.35);">A carregar prémios...</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <!-- Painel de Trabalhos -->
         <div class="panel">
           <h2 class="panel-title"><span class="emoji">🧹</span> Mini-jogos de Trabalho</h2>
@@ -1387,6 +1408,37 @@
       tournamentTimerInterval = setInterval(updateTimer, 1000);
     }
 
+    async function loadGlobalWins() {
+      try {
+        const res = await fetch('/api/global-wins');
+        if (!res.ok) return;
+        const wins = await res.json();
+        renderGlobalWins(wins);
+      } catch (err) {
+        console.error("Erro ao carregar prémios globais:", err);
+      }
+    }
+
+    function renderGlobalWins(wins) {
+      const tbody = document.getElementById('globalWinsTableBody');
+      if (!tbody) return;
+      
+      if (wins.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="3" style="text-align: center; padding: 20px; color: rgba(255,255,255,0.35);">Nenhum prémio recente.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = wins.map(w => {
+        return `
+          <tr style="border-bottom: 1px solid rgba(255,255,255,0.03); transition: background 0.2s;">
+            <td style="padding: 10px 4px; font-weight: 700; color: #fff;">${escapeHTML(w.username)}</td>
+            <td style="padding: 10px 4px; color: rgba(255,255,255,0.7);">${escapeHTML(w.game)}</td>
+            <td style="padding: 10px 4px; text-align: right; font-weight: 800; color: var(--mint);">+${w.amount.toLocaleString('pt-PT')} 🪙</td>
+          </tr>
+        `;
+      }).join('');
+    }
+
     async function loadDashboard() {
       try {
         const res = await fetch('/api/dashboard/data');
@@ -1396,6 +1448,7 @@
         appData = await res.json();
         renderDashboard();
         loadDashboardFootballBets();
+        loadGlobalWins();
       } catch (err) {
         document.getElementById('unauthScreen').style.display = 'block';
       }
@@ -1906,7 +1959,8 @@
     function initChatStream() {
       if (chatSse) return;
 
-      chatSse = new EventSource('/api/chat/stream');
+      const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+      chatSse = new EventSource('/api/chat/stream?token=' + encodeURIComponent(token));
 
       chatSse.addEventListener('history', (e) => {
         const history = JSON.parse(e.data);
@@ -2222,6 +2276,33 @@
             const title = d.title || (d.eventType === 'levelup' ? '⬆️ Level Up!' : '🎉 Vitória!');
             const msg = (d.message || '').replace(/\*\*/g, ''); // strip markdown bold
             showWinAlert(title, msg);
+
+            if (d.eventType === 'win') {
+              const tbody = document.getElementById('globalWinsTableBody');
+              if (tbody) {
+                if (tbody.innerHTML.includes('Nenhum prémio') || tbody.innerHTML.includes('A carregar')) {
+                  tbody.innerHTML = '';
+                }
+                const tr = document.createElement('tr');
+                tr.style.borderBottom = '1px solid rgba(255,255,255,0.03)';
+                tr.style.background = 'rgba(87, 242, 135, 0.08)';
+                tr.style.transition = 'background 1.5s ease';
+                tr.innerHTML = `
+                  <td style="padding: 10px 4px; font-weight: 700; color: #fff;">${escapeHTML(d.username)}</td>
+                  <td style="padding: 10px 4px; color: rgba(255,255,255,0.7);">${escapeHTML(d.game)}</td>
+                  <td style="padding: 10px 4px; text-align: right; font-weight: 800; color: var(--mint);">+${d.amount.toLocaleString('pt-PT')} 🪙</td>
+                `;
+                tbody.insertBefore(tr, tbody.firstChild);
+                
+                if (tbody.children.length > 15) {
+                  tbody.removeChild(tbody.lastChild);
+                }
+                
+                setTimeout(() => {
+                  tr.style.background = 'transparent';
+                }, 1500);
+              }
+            }
           }
         } catch (err) {
           console.error("Erro ao processar dados SSE:", err);

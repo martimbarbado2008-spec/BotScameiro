@@ -152,6 +152,15 @@
       btnText.style.display = 'none';
       loader.style.display = 'block';
       
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token');
+      const redirect = urlParams.get('redirect') || '/dashboard.html';
+
+      if (token) {
+        window.location.href = `/api/login-dashboard?token=${encodeURIComponent(token)}&redirect=${encodeURIComponent(redirect)}`;
+        return;
+      }
+      
       try {
         const res = await fetch('/api/login-fake');
         if (!res.ok) {

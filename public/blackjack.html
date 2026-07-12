@@ -973,7 +973,8 @@
     function initChatStream() {
       if (chatSse) return;
 
-      chatSse = new EventSource('/api/chat/stream');
+      const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+      chatSse = new EventSource('/api/chat/stream?token=' + encodeURIComponent(token));
 
       chatSse.addEventListener('history', (e) => {
         const history = JSON.parse(e.data);

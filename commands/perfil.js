@@ -26,17 +26,17 @@ module.exports = {
     // Cria token seguro de login para quem executa o comando
     const token = webTokens.createToken(guildId, userId);
     
-    let link = `${baseUrl.replace(/\/$/, '')}/api/login-dashboard?token=${token}`;
+    let link = `${baseUrl.replace(/\/$/, '')}/login.html?token=${token}&redirect=${encodeURIComponent('/perfil.html')}`;
     let embedTitle = '🎴 Perfil e Painel Web';
-    let embedDesc = 'Abre o link abaixo para acederes ao teu perfil do casino. Lá podes ver as tuas estatísticas detalhadas, carteira, cotações crypto, badges, comprar itens na loja e jogar mini-jogos!\n\n**O link é pessoal e expira em 10 minutos.**';
-    let buttonLabel = 'Abrir o meu Perfil 🎴';
+    let embedDesc = 'Abre o link abaixo para entrares no casino e veres o teu perfil. Lá podes ver as tuas estatísticas detalhadas, carteira, cotações crypto, badges, comprar itens na loja e jogar mini-jogos!\n\n**O link é pessoal e expira em 10 minutos.**';
+    let buttonLabel = 'Entrar no Casino 🚀';
 
     if (targetUser && targetUser.id !== userId) {
       const redirect = `/perfil.html?userId=${targetUser.id}`;
-      link += `&redirect=${encodeURIComponent(redirect)}`;
+      link = `${baseUrl.replace(/\/$/, '')}/login.html?token=${token}&redirect=${encodeURIComponent(redirect)}`;
       embedTitle = `🎴 Perfil de ${targetUser.username}`;
       embedDesc = `Abre o link abaixo para visualizares o perfil de **${targetUser.username}** no site do casino. Podes ver as estatísticas dele, conquistas, inventário e investimentos.\n\n**O link expira em 10 minutos.**`;
-      buttonLabel = `Ver Perfil de ${targetUser.username} 🌐`;
+      buttonLabel = 'Entrar no Casino 🚀';
     }
 
     const embed = baseEmbed(embedTitle, COLORS.gold)
