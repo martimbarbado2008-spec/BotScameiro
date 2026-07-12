@@ -2410,7 +2410,7 @@ app.post('/api/games/slots', async (req, res) => {
       const reelStr = [a.emoji, b.emoji, c.emoji].join(' ');
       let title = isJackpot ? '🎰 JACKPOT na Slot Machine!' : '🎰 Vitória na Slot Machine!';
       let msg = `**${displayName}** ganhou **${winnings.toLocaleString('pt-PT')} 🪙** nas Slots! ${reelStr}`;
-      announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Slots', amount: winnings, bet });
+      announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Slots', amount: winnings, bet, isJackpot });
     }
     
     return res.json({
@@ -2783,7 +2783,7 @@ function resolvePayouts() {
       const username = p.username || 'Jogador';
       const title = pBJ ? '🃏 BLACKJACK no Casino!' : '🃏 Vitória no Blackjack!';
       const msg = `**${username}** ganhou **${p.payoutResult.toLocaleString('pt-PT')} 🪙** no Blackjack!`;
-      announceWebEvent(p.guildId, 'win', { title, message: msg, username, game: 'Blackjack', amount: p.payoutResult, bet: p.bet });
+      announceWebEvent(p.guildId, 'win', { title, message: msg, username, game: 'Blackjack', amount: p.payoutResult, bet: p.bet, isJackpot: pBJ });
     }
   });
 }
@@ -3091,38 +3091,48 @@ async function announceWebEvent(guildId, eventType, details) {
     // 1. SSE Broadcast to all web clients in this guild (lateral pop-up)
     broadcastToGuild(guildId, 'game_win_alert', { eventType, ...details });
 
-    // 2. Web chat system message
-    const systemMsg = {
-      userId: 'system',
-      username: '🎰 Casino',
-      content: details.message || '🎉 Evento no casino!',
-      timestamp: Date.now(),
-      isSystem: true,
-    };
-    db.addChatMessage(systemMsg);
-    broadcastChatToWeb(guildId, systemMsg);
-
-    // 3. Discord announcement channel (if configured)
-    if (discordClient) {
+    let shouldAnnouncePublicly = true;
+    if (eventType === 'win') {
       const cfg = db.getGuildConfig(guildId);
-      const channelId = cfg.announcementChannelId;
-      if (channelId) {
-        try {
-          const ch = await discordClient.channels.fetch(channelId);
-          if (ch) {
-            const { EmbedBuilder } = require('discord.js');
-            const color = eventType === 'win' ? 0x57F287 : eventType === 'levelup' ? 0xFACA2B : 0x5865F2;
-            const emoji = eventType === 'win' ? '🎉' : eventType === 'levelup' ? '⬆️' : '🛒';
-            const embed = new EmbedBuilder()
-              .setColor(color)
-              .setTitle(`${emoji} ${details.title || 'Evento no Casino'}`)
-              .setDescription(details.message || '')
-              .setTimestamp()
-              .setFooter({ text: 'Casino Arena Web' });
-            await ch.send({ embeds: [embed] });
+      const isJackpot = !!details.isJackpot;
+      const isBigWin = details.amount >= (cfg.bigWinThreshold || 1000);
+      shouldAnnouncePublicly = isJackpot || isBigWin;
+    }
+
+    if (shouldAnnouncePublicly) {
+      // 2. Web chat system message
+      const systemMsg = {
+        userId: 'system',
+        username: '🎰 Casino',
+        content: details.message || '🎉 Evento no casino!',
+        timestamp: Date.now(),
+        isSystem: true,
+      };
+      db.addChatMessage(systemMsg);
+      broadcastChatToWeb(guildId, systemMsg);
+
+      // 3. Discord announcement channel (if configured)
+      if (discordClient) {
+        const cfg = db.getGuildConfig(guildId);
+        const channelId = cfg.announcementChannelId;
+        if (channelId) {
+          try {
+            const ch = await discordClient.channels.fetch(channelId);
+            if (ch) {
+              const { EmbedBuilder } = require('discord.js');
+              const color = eventType === 'win' ? 0x57F287 : eventType === 'levelup' ? 0xFACA2B : 0x5865F2;
+              const emoji = eventType === 'win' ? '🎉' : eventType === 'levelup' ? '⬆️' : '🛒';
+              const embed = new EmbedBuilder()
+                .setColor(color)
+                .setTitle(`${emoji} ${details.title || 'Evento no Casino'}`)
+                .setDescription(details.message || '')
+                .setTimestamp()
+                .setFooter({ text: 'Casino Arena Web' });
+              await ch.send({ embeds: [embed] });
+            }
+          } catch (err) {
+            // Canal pode não existir ou bot sem permissão
           }
-        } catch (err) {
-          // Canal pode não existir ou bot sem permissão
         }
       }
     }

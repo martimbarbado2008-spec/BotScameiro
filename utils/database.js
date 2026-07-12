@@ -524,6 +524,6 @@ module.exports = {
   getLottery, saveLottery, buyLotteryTickets, drawLottery,
   getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild,
   getFootballMatches, saveFootballMatches, getFootballBets, saveFootballBets,
-  getChatHistory, addChatMessage,
+  getChatHistory, addChatMessage, broadcastBalanceUpdate,
   getUsersData: () => users
 };

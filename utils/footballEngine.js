@@ -147,17 +147,92 @@ async function fetchRealMatches(guildId) {
 
 async function resolveRealMatches(guildId, client) {
   const resultApiKey = process.env.FOOTBALL_DATA_API_KEY;
-  if (!resultApiKey) return false;
+  
+  const matches = db.getFootballMatches(guildId);
+  const pendingRealMatches = matches.filter(m => m.id.startsWith('r_') && m.status === 'pending' && Date.now() >= m.startTime + 2 * 60 * 60 * 1000); // Já começaram há mais de 2 horas
+
+  if (pendingRealMatches.length === 0) return true;
+
+  // FALLBACK 1: Se não houver chave de API de resultados, resolvemos os jogos reais de forma simulada/aleatória após 3 horas do início
+  if (!resultApiKey) {
+    let changed = false;
+    const bets = db.getFootballBets(guildId);
+    
+    pendingRealMatches.forEach(m => {
+      if (Date.now() >= m.startTime + 3 * 60 * 60 * 1000) {
+        const pHome = m.odds && m.odds.home ? 1 / m.odds.home : 0.33;
+        const pDraw = m.odds && m.odds.draw ? 1 / m.odds.draw : 0.33;
+        const pAway = m.odds && m.odds.away ? 1 / m.odds.away : 0.33;
+        const sum = pHome + pDraw + pAway || 1;
+        const roll = Math.random() * sum;
+        let result = 'X';
+        if (roll <= pHome) result = '1';
+        else if (roll <= pHome + pAway) result = '2';
+
+        m.status = 'completed';
+        m.result = result;
+        m.resolvedAt = Date.now();
+        changed = true;
+
+        bets.forEach(b => {
+          if (b.matchId === m.id && b.status === 'pending') {
+            const isWin = b.choice === result;
+            if (isWin) {
+              const winnings = Math.round(b.amount * b.odds);
+              let net = winnings - b.amount;
+              const u = db.getUser(guildId, b.userId);
+              const vipPercent = u.vipLevel === 1 ? 0.10 : (u.vipLevel === 2 ? 0.20 : (u.vipLevel === 3 ? 0.35 : 0));
+              const vipBonus = Math.round(net * vipPercent);
+              const finalWinnings = winnings + vipBonus;
+              net += vipBonus;
+
+              db.addBalance(guildId, b.userId, finalWinnings);
+              db.pushHistory(guildId, b.userId, {
+                game: `Aposta Futebol Real (Simulado): ${m.homeTeam} x ${m.awayTeam}`,
+                bet: b.amount,
+                net: net
+              });
+              db.addTournamentScore(guildId, b.userId, net);
+              b.status = 'won';
+              b.payout = finalWinnings;
+
+              if (client) {
+                client.users.fetch(b.userId).then(uObj => {
+                  uObj.send(`🏆 **Aposta Real Ganha (Simulada)!** O jogo real **${m.homeTeam} vs ${m.awayTeam}** terminou com o resultado **${result === '1' ? m.homeTeam : (result === '2' ? m.awayTeam : 'Empate')}**. Recebeste **${finalWinnings} 🪙**!`).catch(() => {});
+                }).catch(() => {});
+              }
+            } else {
+              db.pushHistory(guildId, b.userId, {
+                game: `Aposta Futebol Real (Simulado): ${m.homeTeam} x ${m.awayTeam}`,
+                bet: b.amount,
+                net: -b.amount
+              });
+              db.addTournamentScore(guildId, b.userId, -b.amount);
+              b.status = 'lost';
+              b.payout = 0;
+
+              if (client) {
+                client.users.fetch(b.userId).then(uObj => {
+                  uObj.send(`😭 **Aposta Real Perdida (Simulada).** O jogo real **${m.homeTeam} vs ${m.awayTeam}** terminou com o resultado **${result === '1' ? m.homeTeam : (result === '2' ? m.awayTeam : 'Empate')}**. Perdeste **${b.amount} 🪙**.`).catch(() => {});
+                }).catch(() => {});
+              }
+            }
+          }
+        });
+      }
+    });
+
+    if (changed) {
+      db.saveFootballMatches(guildId, matches);
+      db.saveFootballBets(guildId, bets);
+    }
+    return true;
+  }
 
   // Evita fazer pedidos de resultados a toda a hora (máximo a cada 10 minutos)
   if (Date.now() - lastResultsApiFetchTime < 10 * 60 * 1000) {
     return true;
   }
-
-  const matches = db.getFootballMatches(guildId);
-  const pendingRealMatches = matches.filter(m => m.id.startsWith('r_') && m.status === 'pending' && Date.now() >= m.startTime + 2 * 60 * 60 * 1000); // Já começaram há mais de 2 horas
-
-  if (pendingRealMatches.length === 0) return true;
 
   console.log(`⚽ A verificar resultados de ${pendingRealMatches.length} jogos reais terminados...`);
 
@@ -173,6 +248,58 @@ async function resolveRealMatches(guildId, client) {
       const bets = db.getFootballBets(guildId);
 
       pendingRealMatches.forEach(m => {
+        // FALLBACK 2: Se o jogo começou há mais de 24 horas e ainda está pendente (por falha de nome, cancelado ou ausência na API), resolvemos como simulado
+        if (Date.now() >= m.startTime + 24 * 60 * 60 * 1000) {
+          const pHome = m.odds && m.odds.home ? 1 / m.odds.home : 0.33;
+          const pDraw = m.odds && m.odds.draw ? 1 / m.odds.draw : 0.33;
+          const pAway = m.odds && m.odds.away ? 1 / m.odds.away : 0.33;
+          const sum = pHome + pDraw + pAway || 1;
+          const roll = Math.random() * sum;
+          let result = 'X';
+          if (roll <= pHome) result = '1';
+          else if (roll <= pHome + pAway) result = '2';
+
+          m.status = 'completed';
+          m.result = result;
+          m.resolvedAt = Date.now();
+          changed = true;
+
+          bets.forEach(b => {
+            if (b.matchId === m.id && b.status === 'pending') {
+              const isWin = b.choice === result;
+              if (isWin) {
+                const winnings = Math.round(b.amount * b.odds);
+                let net = winnings - b.amount;
+                const u = db.getUser(guildId, b.userId);
+                const vipPercent = u.vipLevel === 1 ? 0.10 : (u.vipLevel === 2 ? 0.20 : (u.vipLevel === 3 ? 0.35 : 0));
+                const vipBonus = Math.round(net * vipPercent);
+                const finalWinnings = winnings + vipBonus;
+                net += vipBonus;
+
+                db.addBalance(guildId, b.userId, finalWinnings);
+                db.pushHistory(guildId, b.userId, {
+                  game: `Aposta Futebol Real (Simulado 24h): ${m.homeTeam} x ${m.awayTeam}`,
+                  bet: b.amount,
+                  net: net
+                });
+                db.addTournamentScore(guildId, b.userId, net);
+                b.status = 'won';
+                b.payout = finalWinnings;
+              } else {
+                db.pushHistory(guildId, b.userId, {
+                  game: `Aposta Futebol Real (Simulado 24h): ${m.homeTeam} x ${m.awayTeam}`,
+                  bet: b.amount,
+                  net: -b.amount
+                });
+                db.addTournamentScore(guildId, b.userId, -b.amount);
+                b.status = 'lost';
+                b.payout = 0;
+              }
+            }
+          });
+          return;
+        }
+
         // Tenta emparelhar o jogo local com os resultados da API usando normalização
         const found = apiMatches.find(am => 
           am.status === 'FINISHED' && 
