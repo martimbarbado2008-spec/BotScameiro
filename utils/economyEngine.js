@@ -83,13 +83,25 @@ async function checkAutoTournaments(client) {
 function fluctuateCrypto() {
   const prices = db.getCryptoPrices();
   const updatedPrices = {};
+  
+  const bounds = {
+    BTC: { min: 30000, max: 100000 },
+    ETH: { min: 1500, max: 5000 },
+    SOL: { min: 80, max: 300 },
+    DOGE: { min: 0.05, max: 0.5 }
+  };
+
   for (const [coin, price] of Object.entries(prices)) {
-    // Flutuação de -8% a +8%
-    const change = 1 + (Math.random() * 0.16 - 0.08);
+    const change = 1 + (Math.random() * 0.05 - 0.025);
+    let newPrice = price * change;
+    
+    const limit = bounds[coin] || { min: 1, max: 1000000 };
+    newPrice = Math.max(limit.min, Math.min(limit.max, newPrice));
+    
     if (coin === 'DOGE') {
-      updatedPrices[coin] = Math.max(0.01, Math.round(price * change * 1000) / 1000);
+      updatedPrices[coin] = Math.round(newPrice * 1000) / 1000;
     } else {
-      updatedPrices[coin] = Math.max(1, Math.round(price * change));
+      updatedPrices[coin] = Math.round(newPrice);
     }
   }
   db.setCryptoPrices(updatedPrices);

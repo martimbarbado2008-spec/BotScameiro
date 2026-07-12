@@ -823,20 +823,23 @@ app.post('/api/games/crash/start', async (req, res) => {
     
     const crashTimeMs = getCrashTimeMs(crashPoint);
     
+    const now = Date.now();
     activeCrashGames.set(userId, {
       guildId,
       bet,
       crashPoint,
       crashTimeMs,
-      startTime: Date.now(),
+      startTime: now,
       status: 'playing'
     });
     
     return res.json({
       success: true,
-      startTime: Date.now(),
+      startTime: now,
       tickMs: 700,
       growth: 1.06,
+      crashTimeMs,
+      crashPoint,
       newBalance: db.getUser(guildId, userId).balance
     });
   } catch (err) {
@@ -863,6 +866,7 @@ app.post('/api/games/crash/cashout', async (req, res) => {
       activeCrashGames.delete(userId);
       db.recordResult(game.guildId, userId, false, game.bet);
       db.addTournamentScore(game.guildId, userId, -game.bet);
+      db.broadcastBalanceUpdate(game.guildId, userId);
       
       return res.json({
         success: true,

@@ -417,6 +417,8 @@
           return;
         }
         
+        initGrid();
+        
         inProgress = true;
         document.getElementById('userBalance').textContent = Math.round(data.newBalance).toLocaleString('pt-PT') + ' 🪙';
         document.getElementById('currentMult').textContent = 'x1.00';

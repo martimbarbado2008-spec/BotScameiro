@@ -304,6 +304,8 @@
     let gameInterval = null;
     let tickMs = 700;
     let growth = 1.06;
+    let crashTimeMs = null;
+    let crashPoint = null;
     
     // Sobrecarga do fetch global para incluir o token de autorização automaticamente
     (function() {
@@ -390,6 +392,8 @@
         startTime = data.startTime;
         tickMs = data.tickMs;
         growth = data.growth;
+        crashTimeMs = data.crashTimeMs;
+        crashPoint = data.crashPoint;
         
         document.getElementById('userBalance').textContent = Math.round(data.newBalance).toLocaleString('pt-PT') + ' 🪙';
         document.getElementById('gameStateText').textContent = 'Foguete no ar! 🚀';
@@ -423,6 +427,31 @@
       if (!inProgress) return;
       
       const elapsedMs = Date.now() - startTime;
+      
+      if (crashTimeMs && elapsedMs >= crashTimeMs) {
+        clearInterval(gameInterval);
+        inProgress = false;
+        
+        document.getElementById('gameStateText').textContent = 'Colapsou! 💥';
+        document.getElementById('multDisplay').className = 'multiplier-text crashed';
+        document.getElementById('multDisplay').textContent = `💥 x${crashPoint.toFixed(2)}`;
+        document.getElementById('resultBox').innerHTML = `<span style="color:var(--ruby);">💥 Colapsou! Perdeste a tua aposta.</span>`;
+        document.getElementById('rocket').style.display = 'none';
+        
+        document.getElementById('crashBet').disabled = false;
+        document.getElementById('btnPlay').style.display = 'block';
+        document.getElementById('btnCashout').style.display = 'none';
+        
+        fetch('/api/games/crash/cashout', { method: 'POST' }).then(res => {
+          if (res.ok) {
+            res.json().then(data => {
+              document.getElementById('userBalance').textContent = Math.round(data.newBalance).toLocaleString('pt-PT') + ' 🪙';
+            });
+          }
+        }).catch(() => {});
+        return;
+      }
+      
       const ticks = Math.floor(elapsedMs / tickMs);
       
       // Calculate multiplier
