@@ -4,7 +4,7 @@ const crypto = require('crypto');
 // um jogador, expira sozinho e só pode ser usado uma vez.
 const tokens = new Map(); // token -> { guildId, userId, expiresAt, used }
 
-const TOKEN_TTL_MS = 10 * 60 * 1000; // 10 minutos para abrir e jogar
+const TOKEN_TTL_MS = 60 * 60 * 1000; // 60 minutos para abrir o link e jogar
 
 function createToken(guildId, userId) {
   const token = crypto.randomBytes(24).toString('hex');

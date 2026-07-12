@@ -516,7 +516,7 @@ app.get('/api/login-dashboard', (req, res) => {
   const { guildId, userId } = entry;
   const sessionToken = createSession(guildId, userId);
   
-  res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`);
+  res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Lax`);
   const separator = redirectUrl.includes('?') ? '&' : '?';
   res.redirect(`${redirectUrl}${separator}token=${sessionToken}`);
 });
@@ -539,7 +539,7 @@ app.get('/api/login-fake', (req, res) => {
   }
   
   const sessionToken = createSession(guildId, userId);
-  res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${24 * 60 * 60}; HttpOnly`);
+  res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Lax`);
   
   return res.json({ success: true, token: sessionToken });
 });
