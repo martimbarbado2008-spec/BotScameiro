@@ -47,7 +47,7 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 16px;
-      padding: 110px 20px 20px;
+      padding: 20px;
       background: var(--panel-bg);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
@@ -68,13 +68,8 @@
       border-bottom: 1px solid var(--border-glow);
       z-index: 0;
       transition: background 0.3s;
+      display: none;
     }
-
-    /* Banner background themes (GIFs & Images) */
-    .profile-banner.bg-matrix { background-image: url('https://i.imgur.com/83pL3eL.gif'); }
-    .profile-banner.bg-casino { background-image: url('https://i.imgur.com/e9wU1Dk.gif'); }
-    .profile-banner.bg-space { background-image: url('https://i.imgur.com/Z4254vS.gif'); }
-    .profile-banner.bg-anime { background-image: url('https://i.imgur.com/mP7p4aX.gif'); }
 
     .profile-section {
       position: relative;
@@ -93,7 +88,7 @@
       background: linear-gradient(135deg, var(--gold), var(--mint));
       box-shadow: 0 0 15px rgba(250, 202, 43, 0.3);
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      margin-top: -30px;
+      margin-top: 0px;
       border: 4px solid #09130e;
     }
     .avatar-wrapper:hover {
@@ -718,14 +713,27 @@
       if (data.equippedBg) {
         const bgClass = data.equippedBg.replace('bg_', 'bg-');
         document.body.classList.add(bgClass);
-        if (banner) banner.classList.add(bgClass);
       } else {
         document.body.classList.add('bg-none');
       }
 
       // Banner customizado por URL
-      if (data.customBannerUrl && banner) {
+      const hasCustomBanner = data.inventory && data.inventory.includes('custom_banner') && data.customBannerUrl;
+      const header = document.querySelector('header');
+      const avatarWrapper = document.querySelector('.avatar-wrapper');
+
+      if (hasCustomBanner && banner) {
+        banner.style.display = 'block';
         banner.style.backgroundImage = `url("${data.customBannerUrl}")`;
+        if (header) header.style.padding = '110px 20px 20px';
+        if (avatarWrapper) avatarWrapper.style.marginTop = '-30px';
+      } else {
+        if (banner) {
+          banner.style.display = 'none';
+          banner.style.backgroundImage = '';
+        }
+        if (header) header.style.padding = '20px';
+        if (avatarWrapper) avatarWrapper.style.marginTop = '0px';
       }
 
       // Painel de Banner Personalizado
