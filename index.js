@@ -4,7 +4,6 @@ const path = require('path');
 const { Client, GatewayIntentBits, Collection, REST, Routes } = require('discord.js');
 const { startTournamentWatcher } = require('./utils/tournamentEngine');
 const { startEconomyWatcher } = require('./utils/economyEngine');
-const { startFootballWatcher } = require('./utils/footballEngine');
 const { startServer } = require('./utils/webServer');
 
 const client = new Client({ intents: [GatewayIntentBits.Guilds] });
@@ -53,7 +52,6 @@ client.once('ready', async () => {
 
   startTournamentWatcher(client);
   startEconomyWatcher(client);
-  startFootballWatcher(client);
 
   const port = process.env.PORT || 3000;
   startServer(port, client);
