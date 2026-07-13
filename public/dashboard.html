@@ -1130,6 +1130,14 @@
             </div>
             <div class="xp-track">
               <div class="xp-fill" id="xpFill"></div>
+          </div>
+          <div id="customBannerPanel" style="display: none; margin-top: 15px; width: 100%; max-width: 320px;">
+            <div style="background: rgba(255,255,255,0.02); border: 1px solid rgba(255,255,255,0.06); border-radius: 10px; padding: 10px; text-align: left;">
+              <span style="font-size: 10px; font-weight: 700; color: var(--gold); text-transform: uppercase; display: block; margin-bottom: 4px;">🎨 Link do Banner</span>
+              <div style="display: flex; gap: 6px;">
+                <input type="text" id="customBannerInput" placeholder="URL da imagem (ex: imgur)" style="flex: 1; padding: 6px 10px; font-size: 11px; border-radius: 6px; border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3); color: #fff;">
+                <button onclick="saveCustomBanner()" style="padding: 6px 12px; font-size: 11px; font-weight: 700; background: var(--mint); color: #000; border: none; border-radius: 6px; cursor: pointer; transition: opacity 0.2s;">Gravar</button>
+              </div>
             </div>
           </div>
         </div>
@@ -1661,13 +1669,34 @@
       // Aplicar fundo cosmético da página e banner
       document.body.className = ''; // reset
       const banner = document.getElementById('profileBanner');
-      if (banner) banner.className = 'profile-banner'; // reset
+      if (banner) {
+        banner.className = 'profile-banner'; // reset
+        banner.style.backgroundImage = ''; // reset custom image
+      }
+
       if (appData.equippedBg) {
         const bgClass = appData.equippedBg.replace('bg_', 'bg-');
         document.body.classList.add(bgClass);
         if (banner) banner.classList.add(bgClass);
       } else {
         document.body.classList.add('bg-none');
+      }
+
+      // Banner customizado por URL
+      if (appData.customBannerUrl && banner) {
+        banner.style.backgroundImage = `url("${appData.customBannerUrl}")`;
+      }
+
+      // Painel de Banner Personalizado
+      const bannerPanel = document.getElementById('customBannerPanel');
+      if (bannerPanel) {
+        const hasCustomBannerItem = appData.inventory && appData.inventory.includes('custom_banner');
+        bannerPanel.style.display = hasCustomBannerItem ? 'block' : 'none';
+        
+        const bannerInput = document.getElementById('customBannerInput');
+        if (bannerInput) {
+          bannerInput.value = appData.customBannerUrl || '';
+        }
       }
 
       document.getElementById('userTag').textContent = appData.username;
@@ -1857,16 +1886,23 @@
 
         let previewHTML = '';
         if (item.id.startsWith('bg_')) {
-          const bgUrls = {
-            bg_matrix: 'https://i.imgur.com/83pL3eL.gif',
-            bg_casino: 'https://i.imgur.com/e9wU1Dk.gif',
-            bg_space: 'https://i.imgur.com/Z4254vS.gif',
-            bg_anime: 'https://i.imgur.com/mP7p4aX.gif'
+          const bgGradients = {
+            bg_matrix: 'linear-gradient(180deg, #000, #00ff44)',
+            bg_casino: 'linear-gradient(135deg, #290849, #50085a)',
+            bg_space: 'linear-gradient(135deg, #0d2850, #08495a)'
           };
-          const url = bgUrls[item.id];
-          if (url) {
-            previewHTML = `<div style="height: 60px; border-radius: 8px; margin-bottom: 10px; background-image: url('${url}'); background-size: cover; background-position: center; border: 1px solid rgba(255,255,255,0.08);"></div>`;
-          }
+          const style = bgGradients[item.id] || 'linear-gradient(135deg, #333, #111)';
+          previewHTML = `
+            <div style="height: 60px; border-radius: 8px; margin-bottom: 10px; background: ${style}; border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: rgba(255,255,255,0.8);">
+              🎨 Tema de Fundo
+            </div>
+          `;
+        } else if (item.id === 'custom_banner') {
+          previewHTML = `
+            <div style="height: 60px; border-radius: 8px; margin-bottom: 10px; background: linear-gradient(135deg, #ff007f, #7f00ff); border: 1px solid rgba(255,255,255,0.08); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 700; color: #fff;">
+              🖼️ Link Personalizado
+            </div>
+          `;
         } else if (item.id.startsWith('frame_')) {
           const frameStyles = {
             frame_gold: 'linear-gradient(135deg, #ffe066, #f5b041, #ffd700, #b8860b, #ffe066)',
@@ -2722,6 +2758,34 @@
       if (appData && appData.userId) {
         navigator.clipboard.writeText(appData.userId);
         alert("ID do Utilizador copiado para a área de transferência!");
+      }
+    }
+
+    async function saveCustomBanner() {
+      const bannerInput = document.getElementById('customBannerInput');
+      if (!bannerInput) return;
+      const bannerUrl = bannerInput.value.trim();
+
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/profile/custom-banner', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ bannerUrl })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          alert("Banner personalizado guardado com sucesso!");
+          loadDashboard();
+        } else {
+          alert("Erro: " + data.error);
+        }
+      } catch (err) {
+        console.error("Erro ao guardar banner:", err);
+        alert("Erro ao conectar ao servidor.");
       }
     }
 

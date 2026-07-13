@@ -3459,6 +3459,33 @@ app.post('/api/profile/equip', async (req, res) => {
   }
 });
 
+app.post('/api/profile/custom-banner', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { bannerUrl } = req.body;
+
+    const user = db.getUser(guildId, userId);
+
+    if (!user.inventory.includes('custom_banner')) {
+      return res.status(403).json({ error: 'Não tens o item Banner Personalizado na tua carteira.' });
+    }
+
+    user.customBannerUrl = bannerUrl || '';
+    db.saveUser(guildId, userId, user);
+    
+    // Broadcast win event or sse event to update dashboard
+    announceWebEvent(guildId, 'balance_update', { userId, balance: user.balance });
+
+    return res.json({ success: true, customBannerUrl: user.customBannerUrl });
+  } catch (err) {
+    console.error('Erro em /api/profile/custom-banner:', err);
+    res.status(500).json({ error: 'Erro ao guardar banner.' });
+  }
+});
+
 app.get('/api/chat/stream', async (req, res) => {
   const session = getSession(req);
   if (!session) {
