@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Máquina de Slots — Casino Arena 🎰</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <script src="/utils.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #f1c40f;
+      --mint: #57f287;
+      --ruby: #e74c3c;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .balance-display {
+      background: rgba(87, 242, 135, 0.1);
+      border: 1px solid rgba(87, 242, 135, 0.2);
+      color: var(--mint);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .game-container {
+      width: 100%;
+      max-width: 500px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 32px;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 30px;
+    }
+
+    /* 🎰 Reels Area */
+    .reels-container {
+      display: flex;
+      justify-content: center;
+      gap: 15px;
+      margin-bottom: 25px;
+      padding: 20px;
+      background: rgba(0,0,0,0.3);
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      transition: box-shadow 0.3s;
+    }
+
+    .reel {
+      width: 90px;
+      height: 90px;
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 42px;
+      user-select: none;
+      box-shadow: inset 0 2px 8px rgba(0,0,0,0.4);
+    }
+
+    /* Input & Spin button layout */
+    .control-row {
+      max-width: 320px;
+      margin: 0 auto;
+    }
+
+    .input-group {
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      font-family: inherit;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .btn-spin {
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+      margin-bottom: 15px;
+    }
+
+    .btn-spin:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(241, 196, 15, 0.4);
+    }
+
+    .btn-spin:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .result-text {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 54px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/jogos.html" class="btn-back">⬅️ Voltar à Sala</a>
+    <div class="balance-display" id="userBalance">0 🪙</div>
+  </header>
+
+  <div class="game-container">
+    <h1>🎰 Máquina de Slots</h1>
+    <p class="subtitle">Alinha 3 símbolos iguais para ganhares multiplicadores gigantes!</p>
+
+    <!-- Reels Area -->
+    <div class="reels-container" id="reelsWrapper">
+      <div id="reel1" class="reel">🍒</div>
+      <div id="reel2" class="reel">🍒</div>
+      <div id="reel3" class="reel">🍒</div>
+    </div>
+
+    <!-- Inputs & Trigger -->
+    <div class="control-row">
+      <div class="input-group">
+        <label>Aposta (🪙)</label>
+        <input type="number" id="slotsBet" value="100" min="1">
+      </div>
+      <button id="btnSpin" class="btn-spin" onclick="spinSlots()">GIRAR 🎰</button>
+    </div>
+
+    <!-- Result Banner -->
+    <div id="slotsResult" class="result-text">
+      Escolhe a tua aposta e clica em girar!
+    </div>
+  </div>
+
+  <script>
+    let isSpinning = false;
+    const slotsEmojis = ['🍒', '🍇', '🍋', '🍊', '💎', '🎰', '🔔'];
+
+    // Load Token
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) localStorage.setItem('token', tokenParam);
+    })();
+
+    async function loadBalance() {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch('/api/dashboard/data', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        }
+      } catch (e) {}
+    }
+
+    async function spinSlots() {
+      if (isSpinning) return;
+
+      const betInput = document.getElementById('slotsBet');
+      const bet = parseInt(betInput.value, 10);
+      if (isNaN(bet) || bet <= 0) {
+        alert("Introduz uma aposta válida maior que 0.");
+        return;
+      }
+
+      isSpinning = true;
+      const btn = document.getElementById('btnSpin');
+      const resultDiv = document.getElementById('slotsResult');
+      
+      btn.disabled = true;
+      resultDiv.innerHTML = "A girar os cilindros... 🎰";
+      resultDiv.style.color = "var(--text-muted)";
+
+      const reel1 = document.getElementById('reel1');
+      const reel2 = document.getElementById('reel2');
+      const reel3 = document.getElementById('reel3');
+      const reelsWrapper = document.getElementById('reelsWrapper');
+      
+      reelsWrapper.style.boxShadow = "none";
+
+      const shuffleInterval = setInterval(() => {
+        reel1.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+        reel2.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+        reel3.textContent = slotsEmojis[Math.floor(Math.random() * slotsEmojis.length)];
+      }, 70);
+
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/games/slots', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ bet })
+        });
+        
+        const data = await res.json();
+        clearInterval(shuffleInterval);
+        
+        if (!res.ok) {
+          resultDiv.textContent = data.error || "Erro no jogo.";
+          resultDiv.style.color = "var(--ruby)";
+          isSpinning = false;
+          btn.disabled = false;
+          loadBalance();
+          return;
+        }
+
+        // Apply audio click or win sound
+        try {
+          if (data.win && window.playLevelUpSound) window.playLevelUpSound();
+          else if (window.playClickSound) window.playClickSound();
+        } catch (e) {}
+
+        setTimeout(() => {
+          reel1.textContent = data.reels[0];
+          setTimeout(() => {
+            reel2.textContent = data.reels[1];
+            setTimeout(() => {
+              reel3.textContent = data.reels[2];
+              
+              isSpinning = false;
+              btn.disabled = false;
+              
+              if (data.win) {
+                resultDiv.innerHTML = `🎉 GANHASTE! Recebeste <span style="color:var(--mint); font-weight:900;">+${data.netReward.toLocaleString('pt-PT')} 🪙</span>!`;
+                resultDiv.style.color = "var(--mint)";
+                reelsWrapper.style.boxShadow = "0 0 35px rgba(87, 242, 135, 0.45)";
+              } else {
+                resultDiv.innerHTML = `❌ Perdeu... Perdeste <span style="color:var(--ruby); font-weight:900;">-${bet.toLocaleString('pt-PT')} 🪙</span>.`;
+                resultDiv.style.color = "var(--ruby)";
+                reelsWrapper.style.boxShadow = "0 0 25px rgba(231, 76, 60, 0.15)";
+              }
+              
+              loadBalance();
+            }, 250);
+          }, 250);
+        }, 500);
+
+      } catch (err) {
+        clearInterval(shuffleInterval);
+        isSpinning = false;
+        btn.disabled = false;
+        resultDiv.textContent = "Erro de rede ao jogar slots.";
+        resultDiv.style.color = "var(--ruby)";
+      }
+    }
+
+    window.onload = () => {
+      loadBalance();
+    };
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>
