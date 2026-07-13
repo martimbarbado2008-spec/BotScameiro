@@ -1,0 +1,568 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Crash Multiplayer — Casino Arena 👥</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="/utils.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #f1c40f;
+      --mint: #57f287;
+      --ruby: #e74c3c;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .balance-display {
+      background: rgba(87, 242, 135, 0.1);
+      border: 1px solid rgba(87, 242, 135, 0.2);
+      color: var(--mint);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 1000px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 25px;
+    }
+
+    @media(min-width: 800px) {
+      .main-container {
+        grid-template-columns: 1.5fr 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* History bubbles */
+    .history-bubbles {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 15px;
+      overflow-x: auto;
+      padding-bottom: 8px;
+    }
+
+    .bubble {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 4px 8px;
+      font-size: 11px;
+      font-weight: 700;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .bubble.win {
+      color: var(--mint);
+      background: rgba(87, 242, 135, 0.08);
+      border-color: rgba(87, 242, 135, 0.2);
+    }
+
+    .bubble.lose {
+      color: var(--ruby);
+      background: rgba(231, 76, 60, 0.08);
+      border-color: rgba(231, 76, 60, 0.2);
+    }
+
+    /* Multiplier display arena */
+    .multiplier-display-box {
+      width: 100%;
+      height: 250px;
+      background: rgba(0,0,0,0.4);
+      border-radius: 16px;
+      border: 1px solid var(--border);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      overflow: hidden;
+      margin-bottom: 20px;
+    }
+
+    .live-multiplier {
+      font-family: 'Outfit', sans-serif;
+      font-size: 64px;
+      font-weight: 800;
+      transition: color 0.2s;
+    }
+
+    .live-multiplier.crashed {
+      color: var(--ruby) !important;
+      text-shadow: 0 0 20px rgba(231, 76, 60, 0.3);
+    }
+
+    .live-multiplier.climbing {
+      color: var(--mint);
+      text-shadow: 0 0 25px rgba(87, 242, 135, 0.35);
+    }
+
+    .status-text {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 10px;
+      font-weight: 600;
+    }
+
+    /* Controls box */
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 15px;
+      margin-bottom: 20px;
+    }
+
+    .input-box {
+      text-align: left;
+    }
+
+    .input-box label {
+      font-size: 10px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      margin-bottom: 6px;
+      display: block;
+    }
+
+    .input-box input {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      color: #fff;
+      font-weight: 700;
+      font-size: 15px;
+      font-family: inherit;
+    }
+
+    .btn-bet {
+      width: 100%;
+      padding: 15px;
+      border: none;
+      border-radius: 12px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      color: #000;
+    }
+
+    .btn-bet.place {
+      background: linear-gradient(135deg, var(--mint), #2ecc71);
+      box-shadow: 0 5px 15px rgba(46, 204, 113, 0.3);
+    }
+
+    .btn-bet.cashout {
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      box-shadow: 0 5px 15px rgba(241, 196, 15, 0.3);
+    }
+
+    .btn-bet.waiting {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Live bets tables styling */
+    .bets-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      max-height: 280px;
+      overflow-y: auto;
+    }
+
+    .bet-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 14px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      font-size: 13px;
+    }
+
+    .bet-row.cashed {
+      border-color: rgba(87, 242, 135, 0.25);
+      background: rgba(87, 242, 135, 0.03);
+    }
+
+    .bet-row.lost {
+      border-color: rgba(231, 76, 60, 0.15);
+      background: rgba(231, 76, 60, 0.01);
+    }
+
+    .bet-row .username {
+      font-weight: 700;
+    }
+
+    .bet-row .amount {
+      font-family: 'Share Tech Mono', monospace;
+      font-weight: 700;
+    }
+
+    .bet-row .mult {
+      font-weight: 800;
+      color: var(--gold);
+    }
+
+    .bet-row.cashed .mult {
+      color: var(--mint);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/jogos.html" class="btn-back">⬅️ Voltar à Sala</a>
+    <div class="balance-display" id="userBalance">0 🪙</div>
+  </header>
+
+  <div class="main-container">
+    <!-- Left Column: Crash Display & Betting panel -->
+    <div class="panel">
+      <!-- Last multipliers history bubbles -->
+      <div class="history-bubbles" id="historyBubbles">
+        <!-- Loaded via api -->
+      </div>
+
+      <!-- Multiplier rise window -->
+      <div class="multiplier-display-box">
+        <!-- Live Rocket graphics can be rendered, but a neat glowing counter is premium -->
+        <div class="live-multiplier" id="multiplierDisplay">1.00x</div>
+        <div class="status-text" id="statusText">A aguardar apostas...</div>
+      </div>
+
+      <!-- Bet panels -->
+      <div class="controls-grid">
+        <div class="input-box">
+          <label>Quantia a Apostar (🪙)</label>
+          <input type="number" id="betAmount" value="200" min="10">
+        </div>
+        <div class="input-box">
+          <label>Auto-Retirar (x) (Opcional)</label>
+          <input type="number" id="autoCashout" placeholder="ex: 2.0" step="0.1" min="1.01">
+        </div>
+      </div>
+
+      <button id="btnBetAction" class="btn-bet waiting" disabled>
+        Aguardando nova ronda...
+      </button>
+    </div>
+
+    <!-- Right Column: Live bets list of current round -->
+    <div class="panel">
+      <h2 class="panel-title">👥 Apostas na Ronda (<span id="totalBetsCount">0</span>)</h2>
+      <div class="bets-list" id="betsList">
+        <p style="color: var(--text-muted); font-size: 12px; padding: 20px 0; text-align: center;">Coloca a tua aposta para participares na ronda!</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let sseSource = null;
+    let pollInterval = null;
+    let currentUserId = null;
+    let myCurrentBet = null; // { bet, autoCashout, cashedOut: false }
+    let clientStatus = 'waiting'; // 'betting' | 'placed' | 'climbing' | 'cashed' | 'crashed'
+
+    // Load Token
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) localStorage.setItem('token', tokenParam);
+    })();
+
+    async function loadBalance() {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch('/api/dashboard/data', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          currentUserId = data.userId;
+          document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        }
+      } catch (e) {}
+    }
+
+    function startStatePolling() {
+      pollState();
+      pollInterval = setInterval(pollState, 900); // 900ms fast polling for smooth updates
+    }
+
+    async function pollState() {
+      try {
+        const res = await fetch('/api/games/crash-multi/state');
+        if (res.ok) {
+          const state = await res.json();
+          renderState(state);
+        }
+      } catch (e) {}
+    }
+
+    function renderState(state) {
+      const multDisplay = document.getElementById('multiplierDisplay');
+      const statusText = document.getElementById('statusText');
+      const btnAction = document.getElementById('btnBetAction');
+      const betsList = document.getElementById('betsList');
+      const betsCount = document.getElementById('totalBetsCount');
+      const bubbles = document.getElementById('historyBubbles');
+
+      // Update history bubbles
+      bubbles.innerHTML = '';
+      if (state.history && state.history.length > 0) {
+        state.history.forEach(h => {
+          const b = document.createElement('div');
+          b.className = `bubble ${h >= 2.0 ? 'win' : 'lose'}`;
+          b.textContent = h.toFixed(2) + 'x';
+          bubbles.appendChild(b);
+        });
+      }
+
+      betsCount.textContent = state.bets.length;
+
+      // Check if user is in this round
+      const myBet = state.bets.find(b => b.userId === currentUserId);
+      if (myBet) {
+        myCurrentBet = myBet;
+      } else {
+        myCurrentBet = null;
+      }
+
+      // Render Multiplier display
+      if (state.status === 'betting') {
+        multDisplay.textContent = '1.00x';
+        multDisplay.className = 'live-multiplier';
+        statusText.textContent = `Próxima ronda em ${state.timeLeft.toFixed(1)}s...`;
+        
+        // Bet button settings
+        if (myCurrentBet) {
+          btnAction.className = 'btn-bet waiting';
+          btnAction.textContent = 'Aposta Aceite! À espera...';
+          btnAction.disabled = true;
+        } else {
+          btnAction.className = 'btn-bet place';
+          btnAction.textContent = 'APOSTAR 🚀';
+          btnAction.disabled = false;
+        }
+      } 
+      else if (state.status === 'climbing') {
+        multDisplay.textContent = state.multiplier.toFixed(2) + 'x';
+        multDisplay.className = 'live-multiplier climbing';
+        statusText.textContent = 'A subir... RETIRA ANTES DO CRASH!';
+
+        if (myCurrentBet) {
+          if (myCurrentBet.cashedOut) {
+            btnAction.className = 'btn-bet waiting';
+            btnAction.textContent = `Retirado a x${myCurrentBet.cashedAt.toFixed(2)}`;
+            btnAction.disabled = true;
+          } else {
+            const currentWin = Math.round(myCurrentBet.bet * state.multiplier);
+            btnAction.className = 'btn-bet cashout';
+            btnAction.textContent = `RETIRAR: ${currentWin.toLocaleString('pt-PT')} 🪙`;
+            btnAction.disabled = false;
+          }
+        } else {
+          btnAction.className = 'btn-bet waiting';
+          btnAction.textContent = 'Em jogo...';
+          btnAction.disabled = true;
+        }
+      } 
+      else if (state.status === 'crashed') {
+        multDisplay.textContent = state.multiplier.toFixed(2) + 'x';
+        multDisplay.className = 'live-multiplier crashed';
+        statusText.textContent = `Crashed! Prémio final: ${state.multiplier.toFixed(2)}x`;
+
+        btnAction.className = 'btn-bet waiting';
+        btnAction.textContent = 'CRASHED 💥';
+        btnAction.disabled = true;
+      }
+
+      // Render bets list
+      betsList.innerHTML = '';
+      if (state.bets.length === 0) {
+        betsList.innerHTML = '<p style="color: var(--text-muted); font-size: 12px; padding: 20px 0; text-align: center;">Nenhuma aposta nesta ronda.</p>';
+      } else {
+        state.bets.forEach(b => {
+          const row = document.createElement('div');
+          row.className = `bet-row ${b.cashedOut ? 'cashed' : (state.status === 'crashed' ? 'lost' : '')}`;
+          
+          let payoutHTML = '';
+          if (b.cashedOut) {
+            const prize = Math.round(b.bet * b.cashedAt);
+            payoutHTML = `<span class="mult">Retirou a x${b.cashedAt.toFixed(2)} (+${prize.toLocaleString('pt-PT')} 🪙)</span>`;
+          } else if (state.status === 'crashed') {
+            payoutHTML = '<span style="color:var(--ruby); font-weight:700;">Perdeu 💥</span>';
+          } else {
+            payoutHTML = '<span style="color:var(--text-muted);">A jogar...</span>';
+          }
+
+          row.innerHTML = `
+            <div>
+              <span class="username">${b.username}</span>
+            </div>
+            <div style="display:flex; align-items:center; gap:10px;">
+              <span class="amount">${b.bet.toLocaleString('pt-PT')} 🪙</span>
+              ${payoutHTML}
+            </div>
+          `;
+          betsList.appendChild(row);
+        });
+      }
+    }
+
+    // Place Bet Action
+    async function handleBetAction() {
+      const btn = document.getElementById('btnBetAction');
+      
+      // If climbing, this action is CASHOUT
+      if (myCurrentBet && !myCurrentBet.cashedOut) {
+        btn.disabled = true;
+        try {
+          const token = localStorage.getItem('token');
+          const headers = { 'Content-Type': 'application/json' };
+          if (token) headers['Authorization'] = 'Bearer ' + token;
+
+          const res = await fetch('/api/games/crash-multi/cashout', {
+            method: 'POST',
+            headers
+          });
+          const data = await res.json();
+          if (res.ok) {
+            alert(`Sucesso! Retiraste a x${data.cashedAt.toFixed(2)} e ganhaste +${Math.round(data.winnings).toLocaleString('pt-PT')} 🪙!`);
+            loadBalance();
+            pollState();
+          } else {
+            alert(data.error || "Erro ao retirar.");
+          }
+        } catch(e) {}
+        return;
+      }
+
+      // Otherwise, place bet
+      const betInput = document.getElementById('betAmount');
+      const autoInput = document.getElementById('autoCashout');
+      const bet = parseInt(betInput.value, 10);
+      const autoCashout = autoInput.value ? parseFloat(autoInput.value) : null;
+
+      if (isNaN(bet) || bet < 10) {
+        alert("Aposta mínima de 10 moedas.");
+        return;
+      }
+
+      btn.disabled = true;
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/games/crash-multi/bet', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ bet, autoCashout })
+        });
+        const data = await res.json();
+        if (res.ok) {
+          loadBalance();
+          pollState();
+        } else {
+          alert(data.error || "Erro ao apostar.");
+          btn.disabled = false;
+        }
+      } catch (e) {
+        btn.disabled = false;
+      }
+    }
+
+    // Attach bet action click listener
+    document.getElementById('btnBetAction').onclick = handleBetAction;
+
+    window.onload = () => {
+      loadBalance();
+      startStatePolling();
+    };
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>

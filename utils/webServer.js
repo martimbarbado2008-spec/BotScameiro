@@ -4663,6 +4663,510 @@ async function announceWebEvent(guildId, eventType, details) {
   }
 }
 
+// ==========================================
+// 👥 JOGO DE ROLETA RUSSA MULTIPLAYER WEB 👥
+// ==========================================
+const russaRooms = new Map(); // roomId -> roomState
+
+function tickRussaRooms() {
+  try {
+    for (const [roomId, room] of russaRooms.entries()) {
+      if (room.status === 'waiting') {
+        // If at least 2 players are in, start lobby countdown
+        if (room.players.length >= 2) {
+          room.lobbyCountdown--;
+          if (room.lobbyCountdown <= 0) {
+            room.status = 'playing';
+            room.turnIdx = 0;
+            room.timer = 15;
+            room.bulletChamber = Math.floor(Math.random() * 6);
+            room.currentChamber = 0;
+            room.history.push("🔫 O jogo começou! O tambor foi girado. Quem puxa primeiro?");
+          }
+        } else {
+          room.lobbyCountdown = 10; // reset
+        }
+      } 
+      else if (room.status === 'playing') {
+        room.timer--;
+        if (room.timer <= 0) {
+          // Timeout! Force trigger pull for the current player
+          executeRussaPull(roomId, true);
+        }
+      } 
+      else if (room.status === 'finished') {
+        room.cleanupTimer--;
+        if (room.cleanupTimer <= 0) {
+          russaRooms.delete(roomId);
+        }
+      }
+    }
+  } catch (err) {
+    console.error("Erro no ticker da Roleta Russa Multi:", err);
+  }
+}
+
+async function executeRussaPull(roomId, isTimeout = false) {
+  const room = russaRooms.get(roomId);
+  if (!room || room.status !== 'playing') return;
+
+  const activePlayer = room.players[room.turnIdx];
+  if (!activePlayer) return;
+
+  const displayName = activePlayer.username;
+  const isBullet = room.currentChamber === room.bulletChamber;
+  
+  if (isBullet) {
+    // 💥 BANG! Player is eliminated
+    activePlayer.status = 'dead';
+    room.history.push(`💥 [ELIMINADO] @${displayName} puxou o gatilho... BANG! Eliminado da mesa.`);
+    
+    // Check remaining alive players
+    const alivePlayers = room.players.filter(p => p.status === 'alive');
+    if (alivePlayers.length === 1) {
+      // 🏆 Winner found!
+      const winner = alivePlayers[0];
+      room.status = 'finished';
+      room.winner = winner.username;
+      room.cleanupTimer = 10; // Delete room after 10s
+      room.history.push(`🏆 [VENCEDOR] @${winner.username} sobreviveu à Roleta Russa e ganhou o pote de ${room.pot.toLocaleString('pt-PT')} 🪙!`);
+
+      // Pay winner
+      try {
+        const u = db.getUser(room.guildId, winner.userId);
+        u.balance += room.pot;
+        db.saveUser(room.guildId, winner.userId, u);
+        
+        db.recordResult(room.guildId, winner.userId, true, room.bet);
+        db.addTournamentScore(room.guildId, winner.userId, room.pot - room.bet);
+        
+        const ctx = { guildId: room.guildId, userId: winner.userId, member: null, client: discordClient, channelId: null, user: null };
+        const progression = require('./progression');
+        await progression.applyProgressionFor(ctx, { game: 'Roleta Russa Multiplayer', bet: room.bet, net: room.pot - room.bet, won: true, isWeb: true });
+
+        // Announcement
+        announceWebEvent(room.guildId, 'win', {
+          title: '🔫 Sobrevivente da Roleta Russa!',
+          message: `👑 **${winner.username}** sobreviveu à Roleta Russa Multiplayer de **${room.bet.toLocaleString('pt-PT')} 🪙** e levou o pote de **${room.pot.toLocaleString('pt-PT')} 🪙**!`,
+          username: winner.username,
+          game: 'Roleta Russa Multi',
+          amount: room.pot,
+          bet: room.bet
+        });
+      } catch(e) {
+        console.error("Erro ao pagar vencedor de russa multi:", e);
+      }
+    } else {
+      // Gun reloads with 1 bullet in 6 chambers
+      room.bulletChamber = Math.floor(Math.random() * 6);
+      room.currentChamber = 0;
+      room.history.push("🔄 O revólver foi recarregado e o tambor girado. O jogo continua!");
+      advanceRussaTurn(room);
+    }
+  } else {
+    // 🟢 CLICK! Player survives
+    room.history.push(`🍀 [SEGURO] @${displayName} puxou o gatilho... click! Sobreviveu.`);
+    room.currentChamber++;
+    advanceRussaTurn(room);
+  }
+}
+
+function advanceRussaTurn(room) {
+  let nextIdx = room.turnIdx;
+  for (let i = 0; i < room.players.length; i++) {
+    nextIdx = (nextIdx + 1) % room.players.length;
+    if (room.players[nextIdx].status === 'alive') {
+      room.turnIdx = nextIdx;
+      room.timer = 15;
+      return;
+    }
+  }
+}
+
+// Russian Roulette Multiplayer API Endpoints
+app.get('/api/games/russa-multi/rooms', (req, res) => {
+  const list = Array.from(russaRooms.values()).map(r => ({
+    id: r.id,
+    bet: r.bet,
+    status: r.status,
+    players: r.players.map(p => ({ username: p.username, avatar: p.avatar, status: p.status }))
+  }));
+  return res.json(list);
+});
+
+app.get('/api/games/russa-multi/state/:roomId', (req, res) => {
+  const room = russaRooms.get(req.params.roomId);
+  if (!room) return res.status(404).json({ error: 'Sala não encontrada.' });
+  return res.json({
+    id: room.id,
+    bet: room.bet,
+    pot: room.pot,
+    status: room.status,
+    players: room.players,
+    turnIdx: room.turnIdx,
+    timer: room.timer,
+    winner: room.winner,
+    currentChamber: room.currentChamber,
+    history: room.history
+  });
+});
+
+app.post('/api/games/russa-multi/join', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { bet, roomId } = req.body;
+
+    const user = db.getUser(guildId, userId);
+    
+    let room;
+    if (roomId) {
+      room = russaRooms.get(roomId);
+      if (!room) return res.status(404).json({ error: 'Sala não encontrada.' });
+      if (room.status !== 'waiting') return res.status(400).json({ error: 'Esta sala já iniciou o jogo.' });
+      if (room.players.length >= 6) return res.status(400).json({ error: 'Esta sala está cheia.' });
+      if (room.players.some(p => p.userId === userId)) return res.status(400).json({ error: 'Já estás nesta sala.' });
+      if (user.balance < room.bet) return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+      
+      user.balance -= room.bet;
+      db.saveUser(guildId, userId, user);
+
+      room.players.push({
+        userId,
+        username: user.username || userId,
+        avatar: user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png',
+        status: 'alive'
+      });
+      room.pot += room.bet;
+      room.history.push(`📥 @${user.username || userId} entrou na sala.`);
+      
+      // Start immediately if full
+      if (room.players.length === 6) {
+        room.status = 'playing';
+        room.turnIdx = 0;
+        room.timer = 15;
+        room.bulletChamber = Math.floor(Math.random() * 6);
+        room.currentChamber = 0;
+        room.history.push("🔫 A sala encheu! O jogo começou! O tambor foi girado.");
+      }
+    } else {
+      // Create room
+      if (isNaN(bet) || bet < 100) return res.status(400).json({ error: 'Aposta mínima de 100 moedas.' });
+      if (user.balance < bet) return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+
+      user.balance -= bet;
+      db.saveUser(guildId, userId, user);
+
+      const newRoomId = 'ru_' + Math.random().toString(36).substr(2, 9);
+      room = {
+        id: newRoomId,
+        guildId,
+        bet,
+        pot: bet,
+        status: 'waiting',
+        lobbyCountdown: 10,
+        players: [{
+          userId,
+          username: user.username || userId,
+          avatar: user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png',
+          status: 'alive'
+        }],
+        turnIdx: 0,
+        timer: 15,
+        bulletChamber: 0,
+        currentChamber: 0,
+        winner: null,
+        history: [`📥 @${user.username || userId} criou a sala com aposta de ${bet.toLocaleString('pt-PT')} 🪙.`]
+      };
+      russaRooms.set(newRoomId, room);
+    }
+
+    announceWebEvent(guildId, 'balance_update', { userId, balance: user.balance });
+    return res.json({ success: true, roomId: room.id });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao entrar na sala.' });
+  }
+});
+
+app.post('/api/games/russa-multi/pull', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { roomId } = req.body;
+    const room = russaRooms.get(roomId);
+    if (!room) return res.status(404).json({ error: 'Sala não encontrada.' });
+    if (room.status !== 'playing') return res.status(400).json({ error: 'O jogo não está em curso.' });
+
+    const activePlayer = room.players[room.turnIdx];
+    if (activePlayer.userId !== session.userId) {
+      return res.status(403).json({ error: 'Não é o teu turno!' });
+    }
+
+    await executeRussaPull(roomId, false);
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+app.post('/api/games/russa-multi/leave', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { roomId } = req.body;
+    const room = russaRooms.get(roomId);
+    if (!room) return res.status(404).json({ error: 'Sala não encontrada.' });
+
+    const pIdx = room.players.findIndex(p => p.userId === session.userId);
+    if (pIdx !== -1) {
+      const p = room.players[pIdx];
+      room.players.splice(pIdx, 1);
+      
+      // Refund if waiting
+      if (room.status === 'waiting') {
+        const u = db.getUser(room.guildId, session.userId);
+        u.balance += room.bet;
+        db.saveUser(room.guildId, session.userId, u);
+        room.pot -= room.bet;
+        announceWebEvent(room.guildId, 'balance_update', { userId: session.userId, balance: u.balance });
+      }
+
+      room.history.push(`📤 @${p.username} saiu da sala.`);
+
+      if (room.players.length === 0) {
+        russaRooms.delete(roomId);
+      }
+    }
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro ao sair.' });
+  }
+});
+
+// ==========================================
+// 📈 JOGO DE CRASH MULTIPLAYER WEB 📈
+// ==========================================
+const crashState = {
+  status: 'betting', // 'betting' | 'climbing' | 'crashed'
+  timeLeft: 10.0, // Countdown para apostas ou ver resultado
+  multiplier: 1.0,
+  bets: [], // { userId, guildId, username, bet, autoCashout, cashedOut, cashedAt }
+  history: [1.54, 2.80, 1.12, 4.50, 1.05, 8.43, 2.10, 1.35], // últimos crashpoints
+  crashPoint: 1.0,
+  startTime: null
+};
+
+function tickCrash() {
+  try {
+    if (crashState.status === 'betting') {
+      crashState.timeLeft -= 0.1;
+      if (crashState.timeLeft <= 0) {
+        // Start round!
+        crashState.status = 'climbing';
+        crashState.startTime = Date.now();
+        crashState.multiplier = 1.0;
+        
+        // Calculate crashpoint with standard house edge formula
+        const rand = Math.random();
+        // 3% chance of instant crash at 1.00
+        crashState.crashPoint = rand < 0.03 ? 1.00 : parseFloat((0.98 / (1 - rand)).toFixed(2));
+      }
+    } 
+    else if (crashState.status === 'climbing') {
+      const elapsed = (Date.now() - crashState.startTime) / 1000;
+      // Exponential rise formula: multiplier increases by 7.5% per second
+      crashState.multiplier = parseFloat(Math.pow(Math.E, 0.075 * elapsed).toFixed(2));
+
+      // Check auto-cashouts for players still in
+      crashState.bets.forEach(async (b) => {
+        if (!b.cashedOut && b.autoCashout && crashState.multiplier >= b.autoCashout) {
+          if (b.autoCashout <= crashState.crashPoint) {
+            await executeCrashCashout(b.userId, b.autoCashout);
+          }
+        }
+      });
+
+      // Check if crashed
+      if (crashState.multiplier >= crashState.crashPoint) {
+        crashState.multiplier = crashState.crashPoint;
+        crashState.status = 'crashed';
+        crashState.timeLeft = 5.0; // 5 segundos para ver crashpoint
+
+        // Add to history
+        crashState.history.unshift(crashState.crashPoint);
+        if (crashState.history.length > 10) crashState.history.pop();
+        
+        // Save database statistics for lost bets
+        crashState.bets.forEach(b => {
+          if (!b.cashedOut) {
+            db.recordResult(b.guildId, b.userId, false, b.bet);
+            db.addTournamentScore(b.guildId, b.userId, -b.bet);
+            
+            const ctx = { guildId: b.guildId, userId: b.userId, member: null, client: discordClient, channelId: null, user: null };
+            const progression = require('./progression');
+            progression.applyProgressionFor(ctx, { game: 'Crash Multiplayer', bet: b.bet, net: -b.bet, won: false, isWeb: true }).catch(console.error);
+          }
+        });
+      }
+    } 
+    else if (crashState.status === 'crashed') {
+      crashState.timeLeft -= 0.1;
+      if (crashState.timeLeft <= 0) {
+        // Restart cycle
+        crashState.status = 'betting';
+        crashState.timeLeft = 10.0;
+        crashState.multiplier = 1.0;
+        crashState.bets = [];
+      }
+    }
+  } catch (err) {
+    console.error("Erro no ticker do Crash Multi:", err);
+  }
+}
+
+async function executeCrashCashout(userId, cashoutMultiplier) {
+  const bet = crashState.bets.find(b => b.userId === userId && !b.cashedOut);
+  if (!bet) return null;
+
+  bet.cashedOut = true;
+  bet.cashedAt = cashoutMultiplier;
+  
+  const winnings = Math.round(bet.bet * cashoutMultiplier);
+  const net = winnings - bet.bet;
+
+  try {
+    const user = db.getUser(bet.guildId, userId);
+    user.balance += winnings;
+    db.saveUser(bet.guildId, userId, user);
+
+    db.recordResult(bet.guildId, userId, true, bet.bet);
+    db.addTournamentScore(bet.guildId, userId, net);
+
+    const ctx = { guildId: bet.guildId, userId, member: null, client: discordClient, channelId: null, user: null };
+    const progression = require('./progression');
+    await progression.applyProgressionFor(ctx, { game: 'Crash Multiplayer', bet: bet.bet, net, won: true, isWeb: true });
+
+    // Announce big wins
+    const cfg = db.getGuildConfig(bet.guildId);
+    if (winnings >= cfg.bigWinThreshold) {
+      announceWebEvent(bet.guildId, 'win', {
+        title: '📈 Multiplicador do Crash batido!',
+        message: `🚀 **${bet.username}** retirou a **x${cashoutMultiplier.toFixed(2)}** no Crash Multiplayer e ganhou **${winnings.toLocaleString('pt-PT')} 🪙**!`,
+        username: bet.username,
+        game: 'Crash Multi',
+        amount: winnings,
+        bet: bet.bet
+      });
+    }
+
+    announceWebEvent(bet.guildId, 'balance_update', { userId, balance: user.balance });
+    return winnings;
+  } catch (err) {
+    console.error("Erro ao processar cashout de crash multi:", err);
+    return null;
+  }
+}
+
+// Multiplayer Crash API Endpoints
+app.get('/api/games/crash-multi/state', (req, res) => {
+  return res.json({
+    status: crashState.status,
+    timeLeft: crashState.timeLeft,
+    multiplier: crashState.multiplier,
+    history: crashState.history,
+    bets: crashState.bets.map(b => ({
+      userId: b.userId,
+      username: b.username,
+      bet: b.bet,
+      cashedOut: b.cashedOut,
+      cashedAt: b.cashedAt
+    }))
+  });
+});
+
+app.post('/api/games/crash-multi/bet', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { bet, autoCashout } = req.body;
+
+    if (crashState.status !== 'betting') {
+      return res.status(400).json({ error: 'Apostas fechadas para esta ronda.' });
+    }
+
+    if (isNaN(bet) || bet < 10) {
+      return res.status(400).json({ error: 'Aposta mínima de 10 moedas.' });
+    }
+
+    if (crashState.bets.some(b => b.userId === userId)) {
+      return res.status(400).json({ error: 'Já apostaste nesta ronda.' });
+    }
+
+    const user = db.getUser(guildId, userId);
+    if (user.balance < bet) {
+      return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+    }
+
+    user.balance -= bet;
+    db.saveUser(guildId, userId, user);
+
+    crashState.bets.push({
+      userId,
+      guildId,
+      username: user.username || userId,
+      bet,
+      autoCashout: autoCashout ? parseFloat(autoCashout) : null,
+      cashedOut: false,
+      cashedAt: null
+    });
+
+    announceWebEvent(guildId, 'balance_update', { userId, balance: user.balance });
+    return res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro ao registar aposta.' });
+  }
+});
+
+app.post('/api/games/crash-multi/cashout', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    if (crashState.status !== 'climbing') {
+      return res.status(400).json({ error: 'Cashout indisponível.' });
+    }
+
+    const bet = crashState.bets.find(b => b.userId === session.userId && !b.cashedOut);
+    if (!bet) {
+      return res.status(400).json({ error: 'Nenhuma aposta ativa para cashout.' });
+    }
+
+    const winnings = await executeCrashCashout(session.userId, crashState.multiplier);
+    if (winnings !== null) {
+      return res.json({ success: true, winnings, cashedAt: crashState.multiplier });
+    } else {
+      return res.status(400).json({ error: 'Erro ao processar cashout.' });
+    }
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+// Run multiplayer tickers
+setInterval(tickRussaRooms, 1000);
+setInterval(tickCrash, 100);
+
 function startServer(port, client) {
   discordClient = client;
   app.listen(port, () => {

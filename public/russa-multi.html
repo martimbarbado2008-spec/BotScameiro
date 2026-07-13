@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roleta Russa Multiplayer — Casino Arena 👥</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@500;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <script src="/utils.js"></script>
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #f1c40f;
+      --mint: #57f287;
+      --ruby: #e74c3c;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+    }
+
+    header {
+      width: 100%;
+      max-width: 1000px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .balance-display {
+      background: rgba(87, 242, 135, 0.1);
+      border: 1px solid rgba(87, 242, 135, 0.2);
+      color: var(--mint);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 1000px;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 25px;
+    }
+
+    @media(min-width: 800px) {
+      .main-container {
+        grid-template-columns: 1.4fr 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+    }
+
+    .panel-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 20px;
+      margin-bottom: 18px;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 10px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    /* Lobby List Styles */
+    .rooms-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      max-height: 400px;
+      overflow-y: auto;
+    }
+
+    .room-card {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 14px 18px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .room-card:hover {
+      background: rgba(255, 255, 255, 0.04);
+      border-color: rgba(250, 202, 43, 0.2);
+    }
+
+    .room-info {
+      text-align: left;
+    }
+
+    .room-bet {
+      font-weight: 800;
+      font-size: 15px;
+      color: var(--gold);
+    }
+
+    .room-players {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      border: none;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: opacity 0.2s;
+    }
+
+    .btn-action:hover {
+      opacity: 0.9;
+    }
+
+    /* Arena Styles */
+    .arena-grid {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+    }
+
+    .cylinder-visual {
+      width: 140px;
+      height: 140px;
+      border-radius: 50%;
+      border: 6px solid #4b5563;
+      background: #1f2937;
+      position: relative;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 10px 20px rgba(0,0,0,0.5);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .chamber-hole {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      background: #000;
+      position: absolute;
+      border: 2px solid #374151;
+    }
+
+    /* Positioning 6 holes around cylinder */
+    .chamber-hole:nth-child(1) { top: 12px; left: 51px; }
+    .chamber-hole:nth-child(2) { top: 32px; right: 14px; }
+    .chamber-hole:nth-child(3) { bottom: 32px; right: 14px; }
+    .chamber-hole:nth-child(4) { bottom: 12px; left: 51px; }
+    .chamber-hole:nth-child(5) { bottom: 32px; left: 14px; }
+    .chamber-hole:nth-child(6) { top: 32px; left: 14px; }
+
+    .bullet-inside {
+      background: #f59e0b !important;
+      box-shadow: 0 0 10px #f59e0b;
+      border-color: #d97706 !important;
+    }
+
+    .turn-indicator {
+      font-size: 16px;
+      font-weight: 800;
+      color: var(--mint);
+      background: rgba(87, 242, 135, 0.1);
+      border: 1px solid rgba(87, 242, 135, 0.2);
+      padding: 10px 20px;
+      border-radius: 12px;
+      width: 100%;
+      text-align: center;
+    }
+
+    .btn-pull {
+      background: linear-gradient(135deg, var(--ruby), #c0392b);
+      color: #fff;
+      border: none;
+      border-radius: 12px;
+      padding: 16px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      width: 100%;
+      box-shadow: 0 5px 15px rgba(231, 76, 60, 0.3);
+      transition: all 0.2s;
+    }
+
+    .btn-pull:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 20px rgba(231, 76, 60, 0.4);
+    }
+
+    .btn-pull:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .history-log {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border-radius: 12px;
+      padding: 15px;
+      min-height: 120px;
+      max-height: 160px;
+      overflow-y: auto;
+      text-align: left;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 12px;
+      border: 1px solid var(--border);
+    }
+
+    .history-entry {
+      margin-bottom: 6px;
+      line-height: 1.4;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
+      padding-bottom: 4px;
+    }
+
+    .history-entry.win { color: var(--mint); }
+    .history-entry.fail { color: var(--ruby); }
+
+    /* Player list item styling */
+    .players-list {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .player-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+    }
+
+    .player-row.dead {
+      opacity: 0.5;
+      text-decoration: line-through;
+      border-color: rgba(231, 76, 60, 0.2);
+      background: rgba(231, 76, 60, 0.02);
+    }
+
+    .player-row.turn {
+      border-color: var(--mint);
+      background: rgba(87, 242, 135, 0.03);
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/jogos.html" class="btn-back">⬅️ Voltar à Sala</a>
+    <div class="balance-display" id="userBalance">0 🪙</div>
+  </header>
+
+  <div class="main-container">
+    <!-- Left Column: Active Room Arena / Creation -->
+    <div class="panel">
+      <div id="lobbyView">
+        <h2 class="panel-title">🔫 Roleta Russa Arena</h2>
+        <div style="margin-bottom: 25px; text-align: left;">
+          <h3 style="font-size: 15px; margin-bottom: 10px;">Criar Nova Sala</h3>
+          <div style="display: flex; gap: 10px;">
+            <input type="number" id="createBetInput" value="500" min="100" style="width: 150px; background: rgba(0,0,0,0.3); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color: #fff; font-weight: 700; text-align: center;">
+            <button onclick="createRoom()" class="btn-action" style="padding: 10px 20px;">Criar Sala 🎮</button>
+          </div>
+        </div>
+
+        <h3 style="font-size: 15px; margin-bottom: 12px; text-align: left;">Salas Disponíveis</h3>
+        <div class="rooms-list" id="roomsList">
+          <p style="color: var(--text-muted); font-size: 12px; padding: 20px 0;">Nenhuma sala ativa encontrada. Cria uma nova!</p>
+        </div>
+      </div>
+
+      <!-- Game Arena Screen -->
+      <div id="arenaView" style="display: none;">
+        <h2 class="panel-title">🔫 Duelo de Roleta Russa</h2>
+        
+        <div class="arena-grid">
+          <!-- Revolver Cylinder -->
+          <div class="cylinder-visual" id="cylinder">
+            <div class="chamber-hole"></div>
+            <div class="chamber-hole"></div>
+            <div class="chamber-hole"></div>
+            <div class="chamber-hole"></div>
+            <div class="chamber-hole"></div>
+            <div class="chamber-hole"></div>
+          </div>
+
+          <!-- Turn Alert -->
+          <div class="turn-indicator" id="turnIndicator">
+            A aguardar início do jogo...
+          </div>
+
+          <!-- Pull Trigger Button -->
+          <button id="btnPull" class="btn-pull" onclick="pullTrigger()" disabled>
+            🔫 PUXAR GATILHO
+          </button>
+
+          <!-- Action Log -->
+          <div class="history-log" id="historyLog">
+            <div class="history-entry">Sala iniciada. À espera que o jogo comece...</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Room Details & Alive Players -->
+    <div class="panel">
+      <h2 class="panel-title">👥 Jogadores na Mesa</h2>
+      <div id="noActiveRoomAlert" style="color: var(--text-muted); font-size: 12px; padding: 30px 0;">
+        Entra numa sala para veres os jogadores.
+      </div>
+      <div id="roomDetails" style="display: none;">
+        <div style="display: flex; justify-content: space-between; margin-bottom: 20px; font-size: 13px;">
+          <div>Pote da Mesa: <b style="color: var(--gold);" id="tablePot">0 🪙</b></div>
+          <div>Aposta: <b style="color: var(--gold);" id="tableBet">0 🪙</b></div>
+        </div>
+        <div class="players-list" id="playersList">
+          <!-- Players rows loaded dynamically -->
+        </div>
+        <button id="btnLeave" onclick="leaveRoom()" class="btn-action" style="margin-top: 25px; width: 100%; background: transparent; border: 1px solid var(--ruby); color: var(--ruby);">
+          Sair da Sala
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentRoomId = null;
+    let pollInterval = null;
+    let currentUserId = null;
+
+    // Load Token
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) localStorage.setItem('token', tokenParam);
+    })();
+
+    async function loadBalance() {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch('/api/dashboard/data', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          currentUserId = data.userId;
+          document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        }
+      } catch (e) {}
+    }
+
+    async function loadRooms() {
+      if (currentRoomId) return;
+      try {
+        const res = await fetch('/api/games/russa-multi/rooms');
+        const data = await res.json();
+        const container = document.getElementById('roomsList');
+        container.innerHTML = '';
+        
+        if (data.length === 0) {
+          container.innerHTML = '<p style="color: var(--text-muted); font-size: 12px; padding: 20px 0;">Nenhuma sala ativa encontrada. Cria uma nova!</p>';
+          return;
+        }
+
+        data.forEach(room => {
+          const card = document.createElement('div');
+          card.className = 'room-card';
+          card.innerHTML = `
+            <div class="room-info">
+              <div class="room-bet">Aposta: ${room.bet.toLocaleString('pt-PT')} 🪙</div>
+              <div class="room-players">Jogadores: ${room.players.length}/6 | Status: ${room.status === 'waiting' ? 'Lobby' : 'Em Jogo'}</div>
+            </div>
+            <button onclick="joinRoom('${room.id}')" class="btn-action" ${room.status !== 'waiting' || room.players.length >= 6 ? 'disabled' : ''}>
+              ${room.status !== 'waiting' ? 'Em Jogo' : (room.players.length >= 6 ? 'Cheio' : 'Entrar')}
+            </button>
+          `;
+          container.appendChild(card);
+        });
+      } catch (e) {}
+    }
+
+    async function createRoom() {
+      const betInput = document.getElementById('createBetInput');
+      const bet = parseInt(betInput.value, 10);
+      if (isNaN(bet) || bet < 100) {
+        alert("Aposta mínima de 100 moedas.");
+        return;
+      }
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/games/russa-multi/join', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ bet })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error);
+          return;
+        }
+        currentRoomId = data.roomId;
+        enterRoomUI();
+        startPolling();
+      } catch(e) {}
+    }
+
+    async function joinRoom(roomId) {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/games/russa-multi/join', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ roomId })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error);
+          return;
+        }
+        currentRoomId = roomId;
+        enterRoomUI();
+        startPolling();
+      } catch(e) {}
+    }
+
+    function enterRoomUI() {
+      document.getElementById('lobbyView').style.display = 'none';
+      document.getElementById('arenaView').style.display = 'block';
+      document.getElementById('noActiveRoomAlert').style.display = 'none';
+      document.getElementById('roomDetails').style.display = 'block';
+    }
+
+    function exitRoomUI() {
+      document.getElementById('lobbyView').style.display = 'block';
+      document.getElementById('arenaView').style.display = 'none';
+      document.getElementById('noActiveRoomAlert').style.display = 'block';
+      document.getElementById('roomDetails').style.display = 'none';
+    }
+
+    async function leaveRoom() {
+      if (!currentRoomId) return;
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        await fetch('/api/games/russa-multi/leave', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ roomId: currentRoomId })
+        });
+      } catch(e) {}
+      stopPolling();
+      currentRoomId = null;
+      exitRoomUI();
+      loadRooms();
+      loadBalance();
+    }
+
+    function startPolling() {
+      if (pollInterval) clearInterval(pollInterval);
+      pollRoomState();
+      pollInterval = setInterval(pollRoomState, 1500);
+    }
+
+    function stopPolling() {
+      if (pollInterval) {
+        clearInterval(pollInterval);
+        pollInterval = null;
+      }
+    }
+
+    async function pollRoomState() {
+      if (!currentRoomId) return;
+      try {
+        const res = await fetch(`/api/games/russa-multi/state/${currentRoomId}`);
+        if (!res.ok) {
+          // Room vanished or error
+          leaveRoom();
+          return;
+        }
+        const room = await res.json();
+        renderRoom(room);
+      } catch (e) {}
+    }
+
+    function renderRoom(room) {
+      document.getElementById('tablePot').textContent = room.pot.toLocaleString('pt-PT') + ' 🪙';
+      document.getElementById('tableBet').textContent = room.bet.toLocaleString('pt-PT') + ' 🪙';
+
+      // Render players
+      const plist = document.getElementById('playersList');
+      plist.innerHTML = '';
+
+      let activePlayerName = '';
+      let isMyTurn = false;
+
+      room.players.forEach((p, idx) => {
+        const row = document.createElement('div');
+        const isCurrentTurn = room.status === 'playing' && room.turnIdx === idx;
+        
+        row.className = `player-row ${p.status === 'dead' ? 'dead' : ''} ${isCurrentTurn ? 'turn' : ''}`;
+        
+        let statusBadge = '';
+        if (p.status === 'dead') statusBadge = '💀 Eliminado';
+        else if (isCurrentTurn) statusBadge = `⚡ A Jogar (${room.timer}s)`;
+        else statusBadge = '🟢 Vivo';
+
+        row.innerHTML = `
+          <div style="display:flex; align-items:center; gap:8px;">
+            <img src="${p.avatar}" style="width:24px; height:24px; border-radius:50%;">
+            <span style="font-size:12px; font-weight:700;">${p.username}</span>
+          </div>
+          <span style="font-size:10px; font-weight:800; color:${p.status === 'dead' ? 'var(--ruby)' : (isCurrentTurn ? 'var(--mint)' : 'var(--text-muted)')};">${statusBadge}</span>
+        `;
+        plist.appendChild(row);
+
+        if (isCurrentTurn) {
+          activePlayerName = p.username;
+          if (p.userId === currentUserId) isMyTurn = true;
+        }
+      });
+
+      // Render cylinder rotation
+      const cylinder = document.getElementById('cylinder');
+      // Rotate cylinder visual based on chamber count
+      const angle = room.currentChamber * 60;
+      cylinder.style.transform = `rotate(${angle}deg)`;
+
+      // Render history
+      const historyLog = document.getElementById('historyLog');
+      historyLog.innerHTML = '';
+      room.history.forEach(log => {
+        const div = document.createElement('div');
+        div.className = 'history-entry';
+        if (log.includes('BANG') || log.includes('morreu')) div.className += ' fail';
+        else if (log.includes('sobreviveu') || log.includes('VENCEDOR')) div.className += ' win';
+        div.textContent = log;
+        historyLog.appendChild(div);
+      });
+      historyLog.scrollTop = historyLog.scrollHeight;
+
+      // Update indicators and buttons
+      const turnIndicator = document.getElementById('turnIndicator');
+      const btnPull = document.getElementById('btnPull');
+
+      if (room.status === 'waiting') {
+        turnIndicator.textContent = `A aguardar jogadores (${room.players.length}/2)...`;
+        btnPull.disabled = true;
+      } else if (room.status === 'playing') {
+        if (isMyTurn) {
+          turnIndicator.textContent = `⚡ É O TEU TURNO! Puxa o gatilho (${room.timer}s)!`;
+          btnPull.disabled = false;
+        } else {
+          turnIndicator.textContent = `Turno de: ${activePlayerName} (${room.timer}s)...`;
+          btnPull.disabled = true;
+        }
+      } else if (room.status === 'finished') {
+        turnIndicator.innerHTML = `🏆 <b>VENCEDOR DA MESA:</b> <span style="color:var(--gold);">${room.winner}</span>!`;
+        btnPull.disabled = true;
+      }
+    }
+
+    async function pullTrigger() {
+      if (!currentRoomId) return;
+      const btnPull = document.getElementById('btnPull');
+      btnPull.disabled = true;
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const res = await fetch('/api/games/russa-multi/pull', {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ roomId: currentRoomId })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error);
+          return;
+        }
+        
+        // Spin cylinder animation
+        const cylinder = document.getElementById('cylinder');
+        cylinder.style.transform = `rotate(${Math.random() * 360 + 1080}deg)`;
+
+        // Refresh immediately after action
+        setTimeout(pollRoomState, 400);
+        loadBalance();
+      } catch(e) {}
+    }
+
+    window.onload = () => {
+      loadBalance();
+      loadRooms();
+      setInterval(loadRooms, 4000);
+    };
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>
