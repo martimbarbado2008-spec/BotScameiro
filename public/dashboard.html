@@ -1092,6 +1092,9 @@
         <div class="profile-info">
           <h1 style="display:flex; align-items:center; gap:10px;">
             <span id="userTag">...</span>
+            <button onclick="copyUserId()" title="Copiar ID" style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #fff; cursor: pointer; padding: 4px 8px; font-size: 11px; font-weight: 700; display: inline-flex; align-items: center; gap: 4px; transition: background 0.15s; font-family: inherit;">
+              📋 <span style="font-size: 10px; opacity: 0.8;">Copiar ID</span>
+            </button>
             <span id="staffTag" style="display:none; background: linear-gradient(135deg, #ff3366, #ff0055); color:#fff; font-size:10px; font-weight:900; padding:3px 8px; border-radius:6px; text-transform:uppercase; box-shadow:0 0 10px rgba(255,51,102,0.4); border:1px solid rgba(255,255,255,0.15); letter-spacing:1px; line-height:1.2;">🛡️ Staff</span>
           </h1>
           <p>Nível <span id="userLevel">0</span> | VIP: <span id="userVip" style="color:var(--gold); font-weight:700;">Nenhum</span> <a href="/admin.html" id="adminLink" style="display:none; margin-left: 10px; background: rgba(87, 242, 135, 0.1); border: 1px solid var(--mint); color: var(--mint); padding: 2px 6px; border-radius: 6px; font-size: 10px; font-weight: 800; text-decoration: none;">⚙️ Painel Admin</a></p>
@@ -1763,7 +1766,12 @@
             <span style="font-family:'Outfit'; font-weight:700;">${medal}</span>
             <img class="lead-avatar" src="${user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png'}">
             <div>
-              <div class="lead-name">${user.username}</div>
+              <div class="lead-name" style="display: flex; align-items: center; gap: 6px;">
+                <span>${user.username}</span>
+                <button onclick="event.stopPropagation(); navigator.clipboard.writeText('${user.userId}'); alert('ID do Utilizador copiado!');" title="Copiar ID" style="background: rgba(255,255,255,0.06); border: none; border-radius: 4px; color: #fff; cursor: pointer; padding: 2px 5px; font-size: 9px; line-height: 1; font-family: inherit;">
+                  📋
+                </button>
+              </div>
               <div class="lead-level">Nível ${user.level}</div>
             </div>
           </div>
@@ -1899,7 +1907,12 @@
                 <span style="font-family: 'Outfit'; font-weight:700;">${medal}</span>
                 <img class="lead-avatar" src="${user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png'}">
                 <div>
-                  <div class="lead-name">${user.username}</div>
+                  <div class="lead-name" style="display: flex; align-items: center; gap: 6px;">
+                    <span>${user.username}</span>
+                    <button onclick="event.stopPropagation(); navigator.clipboard.writeText('${user.userId}'); alert('ID do Utilizador copiado!');" title="Copiar ID" style="background: rgba(255,255,255,0.06); border: none; border-radius: 4px; color: #fff; cursor: pointer; padding: 2px 5px; font-size: 9px; line-height: 1; font-family: inherit;">
+                      📋
+                    </button>
+                  </div>
                 </div>
               </div>
               <div class="lead-right">
@@ -2635,6 +2648,13 @@
         loadDashboard();
       } catch (e) {
         alert("Erro de ligação.");
+      }
+    }
+
+    function copyUserId() {
+      if (appData && appData.userId) {
+        navigator.clipboard.writeText(appData.userId);
+        alert("ID do Utilizador copiado para a área de transferência!");
       }
     }
 

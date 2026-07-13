@@ -342,7 +342,12 @@
           <td>
             <div class="user-col">
               <img src="${user.avatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png'}">
-              <div>${user.username}</div>
+              <div style="display: flex; align-items: center; gap: 6px;">
+                <span>${user.username}</span>
+                <button onclick="event.stopPropagation(); navigator.clipboard.writeText('${user.userId}'); alert('ID do Utilizador copiado!');" title="Copiar ID" style="background: rgba(255,255,255,0.06); border: none; border-radius: 4px; color: #fff; cursor: pointer; padding: 2px 5px; font-size: 9px; line-height: 1; font-family: inherit;">
+                  📋
+                </button>
+              </div>
             </div>
           </td>
           <td style="font-weight: 600; color: var(--mint);">Nível ${user.level}</td>
