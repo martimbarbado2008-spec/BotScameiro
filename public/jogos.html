@@ -133,13 +133,9 @@
 
     /* Main layout grid */
     .game-grid {
-      display: grid;
-      grid-template-columns: 1.4fr 1fr;
-      gap: 20px;
-    }
-
-    @media (max-width: 850px) {
-      .game-grid { grid-template-columns: 1fr; }
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
     }
 
     .panel {
@@ -260,11 +256,24 @@
       color: var(--text-muted);
     }
 
-    /* Lobby Items list (Bricks Grid) */
+    /* Lobby Items list (5 Bricks Grid) */
     .lobby-list {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+      grid-template-columns: repeat(5, 1fr);
       gap: 16px;
+    }
+
+    @media (max-width: 1100px) {
+      .lobby-list { grid-template-columns: repeat(4, 1fr); }
+    }
+    @media (max-width: 900px) {
+      .lobby-list { grid-template-columns: repeat(3, 1fr); }
+    }
+    @media (max-width: 700px) {
+      .lobby-list { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .lobby-list { grid-template-columns: 1fr; }
     }
 
     .lobby-item {
@@ -418,7 +427,7 @@
       </div>
     </header>
 
-    <div class="game-grid" style="display: block; max-width: 800px; margin: 0 auto;">
+    <div class="game-grid" style="display: block; max-width: 1200px; margin: 0 auto;">
       <!-- Sala de Jogos Casino -->
       <div class="panel">
         <h2 class="panel-title"><span class="emoji">🎲</span> Sala de Jogos Casino</h2>
