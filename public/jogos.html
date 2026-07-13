@@ -498,15 +498,27 @@
           </a>
 
           <!-- Roleta Russa -->
-          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa o comando /roleta-russa no Discord para desafiares a tua sorte!');">
+          <a href="/russa.html" class="lobby-item">
             <div class="lobby-info">
               <div class="lobby-icon">🔫</div>
               <div class="lobby-detail">
                 <h3>Roleta Russa</h3>
-                <p>Testa a tua sorte contra o tambor do bot</p>
+                <p>Testa a tua sorte contra o tambor de 6 câmaras e multiplica até 5x!</p>
               </div>
             </div>
-            <span class="lobby-action-btn soon">DISCORD</span>
+            <span class="lobby-action-btn">JOGAR</span>
+          </a>
+
+          <!-- Poker Draw vs Bot -->
+          <a href="/poker.html" class="lobby-item">
+            <div class="lobby-info">
+              <div class="lobby-icon">🃏</div>
+              <div class="lobby-detail">
+                <h3>Poker vs Bot (Draw)</h3>
+                <p>5-Card Draw poker: troca até 3 cartas e bate a mão do bot!</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn">JOGAR</span>
           </a>
 
           <!-- Dados contra o Bot -->
@@ -526,8 +538,8 @@
             <div class="lobby-info">
               <div class="lobby-icon">↕️</div>
               <div class="lobby-detail">
-                <h3>Maior ou Menor (Higher/Lower)</h3>
-                <p>Adivinha se a próxima carta do baralho é maior ou menor</p>
+                <h3>Maior ou Menor</h3>
+                <p>Adivinha se a próxima carta é mais alta ou mais baixa e acumula multiplicador</p>
               </div>
             </div>
             <span class="lobby-action-btn">JOGAR</span>
@@ -539,7 +551,7 @@
               <div class="lobby-icon">🪙</div>
               <div class="lobby-detail">
                 <h3>Cara ou Coroa Solo</h3>
-                <p>Aposta na moeda e tenta duplicar a tua aposta</p>
+                <p>Aposta na cara ou coroa e duplica as tuas moedas instantaneamente</p>
               </div>
             </div>
             <span class="lobby-action-btn">JOGAR</span>
@@ -548,55 +560,46 @@
 
         <!-- Multijogador (Multiplayer) -->
         <div id="lobbyTabMulti" class="lobby-list" style="display: none;">
-          <!-- Blackjack Multiplayer -->
-          <a href="/blackjack.html" class="lobby-item">
-            <div class="lobby-info">
-              <div class="lobby-icon">🃏</div>
-              <div class="lobby-detail">
-                <h3>Blackjack Online Multiplayer</h3>
-                <p>Junta-te a outros jogadores na mesa em tempo real contra o Dealer</p>
-              </div>
+          <div class="lobby-category">
+            <h2 class="category-title">👥 Jogos Multijogador</h2>
+            <div class="lobby-grid">
+              <!-- Blackjack Online -->
+              <a href="/blackjack.html" class="lobby-item">
+                <div class="lobby-info">
+                  <div class="lobby-icon">🃏</div>
+                  <div class="lobby-detail">
+                    <h3>Blackjack Online</h3>
+                    <p>Joga contra o Dealer na mesa multijogador em tempo real</p>
+                  </div>
+                </div>
+                <span class="lobby-action-btn">JOGAR</span>
+              </a>
+
+              <!-- Roleta Multiplayer -->
+              <a href="/roleta.html" class="lobby-item">
+                <div class="lobby-info">
+                  <div class="lobby-icon">🎡</div>
+                  <div class="lobby-detail">
+                    <h3>Roleta Multiplayer</h3>
+                    <p>Aposta na roleta online juntamente com outros jogadores</p>
+                  </div>
+                </div>
+                <span class="lobby-action-btn">JOGAR</span>
+              </a>
+
+              <!-- Duelo Coinflip / PvP -->
+              <a href="/duelos.html" class="lobby-item">
+                <div class="lobby-info">
+                  <div class="lobby-icon">🪙</div>
+                  <div class="lobby-detail">
+                    <h3>Duelo PvP (Coinflip)</h3>
+                    <p>Desafia outro jogador num cara ou coroa 50/50 em tempo real!</p>
+                  </div>
+                </div>
+                <span class="lobby-action-btn">DUELAR</span>
+              </a>
             </div>
-            <span class="lobby-action-btn">ENTRAR</span>
-          </a>
-
-          <!-- Roleta Multiplayer -->
-          <a href="/roleta-multi.html" class="lobby-item">
-            <div class="lobby-info">
-              <div class="lobby-icon">👥</div>
-              <div class="lobby-detail">
-                <h3>Roleta Multiplayer</h3>
-                <p>Junta-te à comunidade e aposta em tempo real a cada 40s!</p>
-              </div>
-            </div>
-            <span class="lobby-action-btn">JOGAR</span>
-          </a>
-
-
-
-          <!-- Duelo Coinflip / PvP -->
-          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa os comandos /duel ou /coinflip no Discord para desafiares outro jogador!');">
-            <div class="lobby-info">
-              <div class="lobby-icon">🪙</div>
-              <div class="lobby-detail">
-                <h3>Duelo Coinflip PvP</h3>
-                <p>Desafia outro jogador para um cara ou coroa apostado</p>
-              </div>
-            </div>
-            <span class="lobby-action-btn soon">DISCORD</span>
-          </a>
-
-          <!-- Poker Multiplayer -->
-          <a href="#" class="lobby-item locked" onclick="event.preventDefault(); alert('Usa o comando /poker no Discord para criar uma mesa de Texas Hold\'em!');">
-            <div class="lobby-info">
-              <div class="lobby-icon">🂡</div>
-              <div class="lobby-detail">
-                <h3>Poker Multiplayer</h3>
-                <p>Junta-te a uma mesa de Texas Hold'em clássica com os teus amigos</p>
-              </div>
-            </div>
-            <span class="lobby-action-btn soon">DISCORD</span>
-          </a>
+          </div>
         </div>
       </div>
     </div>

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roleta Russa Solo — Casino Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #f1c40f;
+      --mint: #57f287;
+      --ruby: #e74c3c;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .balance-display {
+      background: rgba(87, 242, 135, 0.1);
+      border: 1px solid rgba(87, 242, 135, 0.2);
+      color: var(--mint);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .game-container {
+      width: 100%;
+      max-width: 600px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 30px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 32px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .instructions {
+      color: var(--text-muted);
+      font-size: 14px;
+      margin-bottom: 25px;
+    }
+
+    /* 🔫 Cylinder Styling */
+    .cylinder-wrapper {
+      position: relative;
+      width: 180px;
+      height: 180px;
+      margin: 30px auto;
+    }
+
+    .revolver-cylinder {
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, #374151 20%, #111827 70%);
+      border: 6px solid #4b5563;
+      border-radius: 50%;
+      position: relative;
+      transition: transform 1.5s cubic-bezier(0.25, 1, 0.5, 1);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+    }
+
+    .chamber {
+      width: 32px;
+      height: 32px;
+      background: #1f2937;
+      border: 3px solid #374151;
+      border-radius: 50%;
+      position: absolute;
+      transition: all 0.3s;
+    }
+
+    .chamber.active {
+      border-color: var(--gold);
+      box-shadow: 0 0 10px var(--gold);
+    }
+
+    .chamber.fired {
+      background: #111827;
+      border-color: rgba(255,255,255,0.1);
+    }
+
+    /* Positions around cylinder circle */
+    .ch-0 { top: 15px; left: 74px; }
+    .ch-1 { top: 45px; right: 20px; }
+    .ch-2 { bottom: 45px; right: 20px; }
+    .ch-3 { bottom: 15px; left: 74px; }
+    .ch-4 { bottom: 45px; left: 20px; }
+    .ch-5 { top: 45px; left: 20px; }
+
+    /* Barrel pointer */
+    .barrel-indicator {
+      position: absolute;
+      top: -15px;
+      left: 82px;
+      font-size: 24px;
+      animation: bounce 1s infinite alternate;
+      z-index: 2;
+    }
+
+    @keyframes bounce {
+      0% { transform: translateY(0); }
+      100% { transform: translateY(-5px); }
+    }
+
+    .multiplier-ladder {
+      display: flex;
+      justify-content: space-between;
+      margin: 30px 0;
+      background: rgba(0, 0, 0, 0.2);
+      border-radius: 12px;
+      padding: 10px;
+    }
+
+    .ladder-step {
+      flex: 1;
+      text-align: center;
+      padding: 8px 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      border-radius: 8px;
+      transition: all 0.2s;
+    }
+
+    .ladder-step.active {
+      background: var(--gold);
+      color: #000;
+      box-shadow: 0 0 10px rgba(241, 196, 15, 0.4);
+    }
+
+    .ladder-step.passed {
+      color: var(--mint);
+    }
+
+    .input-section {
+      max-width: 320px;
+      margin: 0 auto 20px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      font-family: inherit;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .btn-action {
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+    }
+
+    .btn-action:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(241, 196, 15, 0.4);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn-cashout {
+      background: linear-gradient(135deg, var(--mint), #2ecc71);
+      box-shadow: 0 4px 15px rgba(87, 242, 135, 0.3);
+    }
+
+    .game-info {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 70px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/jogos.html" class="btn-back">⬅️ Voltar à Sala</a>
+    <div class="balance-display" id="userBalance">0 🪙</div>
+  </header>
+
+  <div class="game-container">
+    <h1>🔫 Roleta Russa</h1>
+    <p class="instructions">Mete a aposta, gira o tambor e puxa o gatilho. Arrisca até 5x o teu valor!</p>
+
+    <div class="cylinder-wrapper">
+      <div class="barrel-indicator">👇</div>
+      <div class="revolver-cylinder" id="cylinder">
+        <div class="chamber ch-0 active" id="ch-0"></div>
+        <div class="chamber ch-1" id="ch-1"></div>
+        <div class="chamber ch-2" id="ch-2"></div>
+        <div class="chamber ch-3" id="ch-3"></div>
+        <div class="chamber ch-4" id="ch-4"></div>
+        <div class="chamber ch-5" id="ch-5"></div>
+      </div>
+    </div>
+
+    <div class="multiplier-ladder">
+      <div class="ladder-step" id="step-0">R1<br>x1.2</div>
+      <div class="ladder-step" id="step-1">R2<br>x1.5</div>
+      <div class="ladder-step" id="step-2">R3<br>x2.0</div>
+      <div class="ladder-step" id="step-3">R4<br>x3.0</div>
+      <div class="ladder-step" id="step-4">R5<br>x5.0</div>
+    </div>
+
+    <div class="input-section">
+      <div class="input-wrapper" id="betWrapper">
+        <input type="number" id="betInput" placeholder="Quantidade a apostar..." value="100">
+      </div>
+      <button class="btn-action" id="btnMain" onclick="handleMainAction()">COMEÇAR JOGO 💥</button>
+      <button class="btn-action btn-cashout" id="btnCashout" onclick="cashout()" style="display:none;">RETIRAR 💰</button>
+    </div>
+
+    <div class="game-info" id="gameInfo">
+      Aposta moedas no tambor e puxa o gatilho para iniciar!
+    </div>
+  </div>
+
+  <script>
+    let isPlaying = false;
+    let currentRound = 1;
+    let rotationDegrees = 0;
+    
+    // Sobrecarga fetch
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) localStorage.setItem('token', tokenParam);
+    })();
+
+    async function req(url, body = {}) {
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro na requisição');
+      }
+      return res.json();
+    }
+
+    async function loadBalance() {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch('/api/dashboard/data', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        }
+      } catch (e) {}
+    }
+
+    async function handleMainAction() {
+      const btn = document.getElementById('btnMain');
+      const info = document.getElementById('gameInfo');
+      
+      if (!isPlaying) {
+        // Start game
+        const bet = parseInt(document.getElementById('betInput').value);
+        if (isNaN(bet) || bet < 10) {
+          alert('Aposta mínima é de 10 🪙!');
+          return;
+        }
+        
+        btn.disabled = true;
+        info.textContent = 'A carregar bala no tambor...';
+        
+        try {
+          const res = await req('/api/games/russa/start', { bet });
+          isPlaying = true;
+          currentRound = 1;
+          
+          document.getElementById('betInput').disabled = true;
+          document.getElementById('btnCashout').style.display = 'none';
+          
+          btn.textContent = 'Puxar Gatilho 💥';
+          btn.disabled = false;
+          
+          // Reset chambers visual
+          for (let i = 0; i < 6; i++) {
+            const ch = document.getElementById(`ch-${i}`);
+            ch.className = `chamber ch-${i}`;
+            if (i === 0) ch.classList.add('active');
+          }
+          
+          // Reset multipliers visual
+          for (let i = 0; i < 5; i++) {
+            document.getElementById(`step-${i}`).className = 'ladder-step';
+          }
+          
+          info.textContent = `Aposta de ${bet.toLocaleString('pt-PT')} 🪙 colocada. Risco de tiro: 16.6% (1/6). Puxa o gatilho!`;
+          loadBalance();
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+          info.textContent = 'Tenta novamente.';
+        }
+      } else {
+        // Pull trigger action
+        btn.disabled = true;
+        document.getElementById('btnCashout').disabled = true;
+        info.textContent = 'A rodar o tambor...';
+        
+        // Audio sound trigger click
+        try {
+          if (window.playClickSound) window.playClickSound();
+        } catch (e) {}
+
+        // Spin cylinder animation
+        const cylinder = document.getElementById('cylinder');
+        rotationDegrees += 720 + (Math.floor(Math.random() * 6) * 60);
+        cylinder.style.transform = `rotate(${rotationDegrees}deg)`;
+        
+        setTimeout(async () => {
+          try {
+            const res = await req('/api/games/russa/action', { choice: 'trigger' });
+            
+            // Mark previous active chambers as fired
+            const activeIdx = (currentRound - 1) % 6;
+            document.getElementById(`ch-${activeIdx}`).classList.remove('active');
+            document.getElementById(`ch-${activeIdx}`).classList.add('fired');
+            
+            if (res.status === 'dead') {
+              info.innerHTML = `<span style="color:var(--ruby); font-weight:800;">💥 DISPAROU! Morreste.</span> Perdeste a tua aposta.`;
+              resetGame();
+            } else if (res.status === 'autowin') {
+              info.innerHTML = `<span style="color:var(--mint); font-weight:800;">🏆 SURVIVED!</span> Conseguiste sobreviver a todas as rondas! Ganhaste **${res.winnings.toLocaleString('pt-PT')} 🪙**!`;
+              resetGame();
+            } else {
+              // Survived round
+              const nextIdx = res.currentChamber % 6;
+              document.getElementById(`ch-${nextIdx}`).classList.add('active');
+              
+              // Set multipliers visual
+              for (let i = 0; i < 5; i++) {
+                const el = document.getElementById(`step-${i}`);
+                if (i < res.round - 1) el.className = 'ladder-step passed';
+                else if (i === res.round - 1) el.className = 'ladder-step active';
+              }
+              
+              currentRound = res.round;
+              info.innerHTML = `<span style="color:var(--mint); font-weight:800;">👉 Clique! Sobreviveste à Ronda ${currentRound - 1}.</span> Próxima ronda: R${currentRound} (Risco: ${[20, 25, 33, 50][currentRound-2]}%)`;
+              
+              btn.textContent = 'Puxar Gatilho 💥';
+              btn.disabled = false;
+              
+              const cashBtn = document.getElementById('btnCashout');
+              cashBtn.style.display = 'block';
+              cashBtn.disabled = false;
+              
+              const MULTIPLIERS = [1.2, 1.5, 2.0, 3.0, 5.0];
+              const curMult = MULTIPLIERS[currentRound - 2];
+              const betVal = parseInt(document.getElementById('betInput').value);
+              cashBtn.textContent = `RETIRAR ${Math.round(betVal * curMult).toLocaleString('pt-PT')} 💰`;
+            }
+            loadBalance();
+          } catch (err) {
+            alert(err.message);
+            btn.disabled = false;
+            document.getElementById('btnCashout').disabled = false;
+          }
+        }, 1500);
+      }
+    }
+
+    async function cashout() {
+      const btn = document.getElementById('btnMain');
+      const cashBtn = document.getElementById('btnCashout');
+      const info = document.getElementById('gameInfo');
+      
+      btn.disabled = true;
+      cashBtn.disabled = true;
+      
+      try {
+        const res = await req('/api/games/russa/action', { choice: 'cashout' });
+        info.innerHTML = `<span style="color:var(--mint); font-weight:800;">💰 SAQUE SEGURO!</span> Sobreviveste e retiraste **${res.winnings.toLocaleString('pt-PT')} 🪙**!`;
+        resetGame();
+        loadBalance();
+      } catch (err) {
+        alert(err.message);
+        btn.disabled = false;
+        cashBtn.disabled = false;
+      }
+    }
+
+    function resetGame() {
+      isPlaying = false;
+      document.getElementById('betInput').disabled = false;
+      document.getElementById('btnCashout').style.display = 'none';
+      
+      const btn = document.getElementById('btnMain');
+      btn.textContent = 'COMEÇAR JOGO 💥';
+      btn.disabled = false;
+    }
+
+    window.onload = () => {
+      loadBalance();
+    };
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>

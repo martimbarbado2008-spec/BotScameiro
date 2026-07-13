@@ -1,0 +1,457 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Duelos PvP (Coinflip) — Casino Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #f1c40f;
+      --mint: #57f287;
+      --ruby: #e74c3c;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 900px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 25px;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .balance-display {
+      background: rgba(87, 242, 135, 0.1);
+      border: 1px solid rgba(87, 242, 135, 0.2);
+      color: var(--mint);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .lobby-container {
+      width: 100%;
+      max-width: 900px;
+      display: grid;
+      grid-template-columns: 1fr 320px;
+      gap: 20px;
+    }
+
+    @media (max-width: 768px) {
+      .lobby-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 25px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 28px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 700;
+      font-size: 18px;
+      margin-bottom: 15px;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .instructions {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    .duels-list {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      min-height: 200px;
+    }
+
+    .duel-item {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 15px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s;
+    }
+
+    .duel-item:hover {
+      border-color: rgba(255, 255, 255, 0.15);
+      background: rgba(255, 255, 255, 0.04);
+    }
+
+    .duel-left {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .duel-avatar {
+      width: 44px;
+      height: 44px;
+      border-radius: 50%;
+      border: 2px solid var(--gold);
+    }
+
+    .duel-info-text {
+      text-align: left;
+    }
+
+    .duel-creator {
+      font-weight: 700;
+      font-size: 14px;
+      color: #fff;
+    }
+
+    .duel-choice {
+      font-size: 11px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .duel-value {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      color: var(--gold);
+      font-size: 16px;
+    }
+
+    .btn-action {
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      border: none;
+      border-radius: 10px;
+      padding: 10px 16px;
+      font-size: 13px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+    }
+
+    .btn-action:hover {
+      transform: translateY(-1px);
+    }
+
+    .btn-cancel {
+      background: rgba(231, 76, 60, 0.15);
+      border: 1px solid var(--ruby);
+      color: var(--ruby);
+    }
+
+    .btn-cancel:hover {
+      background: var(--ruby);
+      color: #fff;
+    }
+
+    /* Form control styling */
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      margin-bottom: 15px;
+      text-align: left;
+    }
+
+    label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    input, select {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 600;
+      font-family: inherit;
+    }
+
+    input:focus, select:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 12px;
+      font-size: 15px;
+      font-weight: 800;
+      border-radius: 10px;
+      margin-top: 10px;
+    }
+
+    .empty-state {
+      font-size: 13px;
+      color: var(--text-muted);
+      padding: 40px 10px;
+      text-align: center;
+      border: 1px dashed var(--border);
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/jogos.html" class="btn-back">⬅️ Voltar à Sala</a>
+    <div class="balance-display" id="userBalance">0 🪙</div>
+  </header>
+
+  <div class="lobby-container">
+    <!-- Active Duels List -->
+    <div class="panel">
+      <h1>⚔️ Lobby de Duelos PvP</h1>
+      <p class="instructions">Cria um desafio de Cara ou Coroa ou aceita o duelo de outro jogador. O vencedor leva o pote duplo!</p>
+
+      <div class="panel-title">🥊 Desafios Ativos</div>
+      <div class="duels-list" id="duelsList">
+        <div class="empty-state">A carregar duelos...</div>
+      </div>
+    </div>
+
+    <!-- Create Duel Form -->
+    <div class="panel" style="height: fit-content;">
+      <div class="panel-title">⚔️ Criar Desafio</div>
+      
+      <div class="form-group">
+        <label>Quantidade a apostar</label>
+        <input type="number" id="betInput" placeholder="Ex: 500" value="100">
+      </div>
+
+      <div class="form-group">
+        <label>O teu palpite</label>
+        <select id="choiceInput">
+          <option value="cara">🪙 Cara</option>
+          <option value="coroa">🪙 Coroa</option>
+        </select>
+      </div>
+
+      <button class="btn-action btn-submit" onclick="createDuel()">CRIAR DESAFIO ⚔️</button>
+    </div>
+  </div>
+
+  <script>
+    let myUserId = '';
+    
+    // Sobrecarga fetch
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) localStorage.setItem('token', tokenParam);
+    })();
+
+    async function req(url, body = {}) {
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro na requisição');
+      }
+      return res.json();
+    }
+
+    async function loadData() {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch('/api/dashboard/data', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          myUserId = data.userId;
+          document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        }
+      } catch (e) {}
+    }
+
+    async function loadDuels() {
+      try {
+        const res = await fetch('/api/duels');
+        if (!res.ok) return;
+        const duels = await res.json();
+        
+        const list = document.getElementById('duelsList');
+        list.innerHTML = '';
+        
+        if (duels.length === 0) {
+          list.innerHTML = '<div class="empty-state">Não há duelos ativos no momento. Sê o primeiro a criar um!</div>';
+          return;
+        }
+        
+        duels.forEach(d => {
+          const item = document.createElement('div');
+          item.className = 'duel-item';
+          
+          const isCreator = d.creatorId === myUserId;
+          const creatorAvatar = d.creatorAvatar || 'https://discord.com/assets/c09a8c6637e654c9e832190a2d44b40a.png';
+          
+          let buttonHtml = '';
+          if (isCreator) {
+            buttonHtml = `<button class="btn-action btn-cancel" onclick="cancelDuel('${d.id}')">Cancelar ❌</button>`;
+          } else {
+            buttonHtml = `<button class="btn-action" onclick="joinDuel('${d.id}')">Aceitar Duelo ⚔️</button>`;
+          }
+          
+          item.innerHTML = `
+            <div class="duel-left">
+              <img class="duel-avatar" src="${creatorAvatar}">
+              <div class="duel-info-text">
+                <div class="duel-creator">${d.creatorName}</div>
+                <div class="duel-choice">Aposta em: <strong>${d.creatorChoice.toUpperCase()}</strong></div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 15px;">
+              <div class="duel-value">${d.bet.toLocaleString('pt-PT')} 🪙</div>
+              ${buttonHtml}
+            </div>
+          `;
+          list.appendChild(item);
+        });
+      } catch (e) {}
+    }
+
+    async function createDuel() {
+      const bet = parseInt(document.getElementById('betInput').value);
+      const choice = document.getElementById('choiceInput').value;
+      
+      if (isNaN(bet) || bet < 10) {
+        alert('Aposta mínima é de 10 🪙!');
+        return;
+      }
+      
+      try {
+        await req('/api/duels/create', { bet, choice });
+        alert('Duelo criado com sucesso no Lobby! Aguarda que outro jogador o aceite.');
+        loadData();
+        loadDuels();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function joinDuel(duelId) {
+      try {
+        const res = await req('/api/duels/join', { duelId });
+        
+        // Play win sound if I won
+        const won = res.winnerId === myUserId;
+        try {
+          if (won && window.playLevelUpSound) window.playLevelUpSound();
+          else if (window.playClickSound) window.playClickSound();
+        } catch (e) {}
+
+        if (won) {
+          alert(`🏆 PARABÉNS! Venceste o Duelo PvP! A moeda caiu em ${res.roll.toUpperCase()} e ganhaste ${res.winnings.toLocaleString('pt-PT')} 🪙!`);
+        } else {
+          alert(`🚨 DERROTA! Perdeste o Duelo PvP. A moeda caiu em ${res.roll.toUpperCase()} e o adversário levou o pote.`);
+        }
+        
+        loadData();
+        loadDuels();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    async function cancelDuel(duelId) {
+      try {
+        await req('/api/duels/cancel', { duelId });
+        alert('Duelo cancelado e aposta devolvida.');
+        loadData();
+        loadDuels();
+      } catch (err) {
+        alert(err.message);
+      }
+    }
+
+    window.onload = async () => {
+      await loadData();
+      await loadDuels();
+      // Poll duels list every 3 seconds to keep it live
+      setInterval(loadDuels, 3000);
+    };
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>

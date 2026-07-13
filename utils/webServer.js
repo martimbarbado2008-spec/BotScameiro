@@ -2153,6 +2153,492 @@ app.post('/api/games/higherlower/action', async (req, res) => {
   }
 });
 
+// ─── ROLETA RUSSA SOLO ────────────────────────────────────────────────────────
+const russaSessions = new Map();
+
+app.post('/api/games/russa/start', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet } = req.body;
+    
+    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    
+    const user = db.getUser(guildId, userId);
+    const cfg = db.getGuildConfig(guildId);
+    
+    if (bet > user.balance) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    if (bet < cfg.minBet || bet > cfg.maxBet) return res.status(400).json({ error: `Aposta fora dos limites (${cfg.minBet} - ${cfg.maxBet}).` });
+    
+    const cooldown = db.getCooldown(guildId, userId, 'roleta-russa');
+    if (cooldown > 0) return res.status(400).json({ error: `Espera mais ${(cooldown/1000).toFixed(1)}s.` });
+    db.setCooldown(guildId, userId, 'roleta-russa', 4000);
+    
+    // Deduct bet
+    user.balance -= bet;
+    db.saveUser(guildId, userId, user);
+    
+    const bulletPosition = Math.floor(Math.random() * 6);
+    const russaSession = {
+      guildId,
+      userId,
+      bet,
+      bulletPosition,
+      currentChamber: 0,
+      round: 1
+    };
+    
+    russaSessions.set(`${guildId}:${userId}`, russaSession);
+    
+    return res.json({
+      success: true,
+      round: russaSession.round,
+      currentChamber: russaSession.currentChamber,
+      newBalance: user.balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/games/russa/action', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { choice } = req.body;
+    
+    const key = `${guildId}:${userId}`;
+    const game = russaSessions.get(key);
+    if (!game) return res.status(400).json({ error: 'Nenhum jogo ativo.' });
+    
+    const user = db.getUser(guildId, userId);
+    const MULTIPLIERS = [1.2, 1.5, 2.0, 3.0, 5.0];
+    
+    if (choice === 'cashout') {
+      if (game.round <= 1) return res.status(400).json({ error: 'Não podes sacar na primeira ronda.' });
+      
+      const mult = MULTIPLIERS[game.round - 2];
+      const winnings = Math.round(game.bet * mult);
+      const net = winnings - game.bet;
+      
+      user.balance += winnings;
+      db.saveUser(guildId, userId, user);
+      
+      db.recordResult(guildId, userId, true, game.bet);
+      db.addTournamentScore(guildId, userId, net);
+      
+      const progression = require('./progression');
+      const ctx = {
+        guildId, userId, member: null, client: discordClient, channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+      };
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Roleta Russa', bet: game.bet, net, won: true, isWeb: true });
+      
+      const cfg = db.getGuildConfig(guildId);
+      if (winnings >= cfg.bigWinThreshold) {
+        const displayName = user.username || userId;
+        const title = '💥 Vitória na Roleta Russa!';
+        const msg = `🎉 **${displayName}** sobreviveu e sacou **${winnings} 🪙** na Roleta Russa (x${mult.toFixed(2)})! 🔫`;
+        announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Roleta Russa', amount: winnings, bet: game.bet, isJackpot: false });
+      }
+      
+      russaSessions.delete(key);
+      
+      return res.json({
+        success: true,
+        status: 'cashout',
+        winnings,
+        netReward: net,
+        newBalance: user.balance,
+        xpResult: prog.xpResult,
+        newBadges: prog.newBadges
+      });
+    }
+    
+    // Pulling trigger
+    const isBullet = game.currentChamber === game.bulletPosition;
+    
+    if (isBullet) {
+      const net = -game.bet;
+      db.recordResult(guildId, userId, false, game.bet);
+      db.addTournamentScore(guildId, userId, net);
+      
+      const progression = require('./progression');
+      const ctx = {
+        guildId, userId, member: null, client: discordClient, channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+      };
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Roleta Russa', bet: game.bet, net, won: false, isWeb: true });
+      
+      russaSessions.delete(key);
+      
+      return res.json({
+        success: true,
+        status: 'dead',
+        chamber: game.currentChamber,
+        netReward: net,
+        newBalance: user.balance,
+        xpResult: prog.xpResult,
+        newBadges: prog.newBadges
+      });
+    }
+    
+    // Survived
+    const nextChamber = game.currentChamber + 1;
+    const currentRound = game.round;
+    
+    if (currentRound >= 5) {
+      // Auto cashout maximum multiplier (5.0x)
+      const mult = 5.0;
+      const winnings = Math.round(game.bet * mult);
+      const net = winnings - game.bet;
+      
+      user.balance += winnings;
+      db.saveUser(guildId, userId, user);
+      
+      db.recordResult(guildId, userId, true, game.bet);
+      db.addTournamentScore(guildId, userId, net);
+      
+      const progression = require('./progression');
+      const ctx = {
+        guildId, userId, member: null, client: discordClient, channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+      };
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Roleta Russa', bet: game.bet, net, won: true, isWeb: true });
+      
+      const cfg = db.getGuildConfig(guildId);
+      if (winnings >= cfg.bigWinThreshold) {
+        const displayName = user.username || userId;
+        const title = '💥 VITÓRIA MÁXIMA na Roleta Russa!';
+        const msg = `🎉 **${displayName}** sobreviveu a todas as 5 rondas da Roleta Russa e ganhou **${winnings} 🪙** (x5.00)! 🔫`;
+        announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Roleta Russa', amount: winnings, bet: game.bet, isJackpot: true });
+      }
+      
+      russaSessions.delete(key);
+      
+      return res.json({
+        success: true,
+        status: 'autowin',
+        winnings,
+        netReward: net,
+        newBalance: user.balance,
+        xpResult: prog.xpResult,
+        newBadges: prog.newBadges
+      });
+    }
+    
+    // Prepare next round
+    game.currentChamber = nextChamber;
+    game.round += 1;
+    
+    return res.json({
+      success: true,
+      status: 'survived',
+      round: game.round,
+      currentChamber: game.currentChamber
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+// ─── POKER SOLO ───────────────────────────────────────────────────────────────
+const pokerSessions = new Map();
+
+app.post('/api/games/poker/start', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet } = req.body;
+    
+    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    
+    const user = db.getUser(guildId, userId);
+    const cfg = db.getGuildConfig(guildId);
+    
+    if (bet > user.balance) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    if (bet < cfg.minBet || bet > cfg.maxBet) return res.status(400).json({ error: `Aposta fora dos limites (${cfg.minBet} - ${cfg.maxBet}).` });
+    
+    const cooldown = db.getCooldown(guildId, userId, 'poker');
+    if (cooldown > 0) return res.status(400).json({ error: `Espera mais ${(cooldown/1000).toFixed(1)}s.` });
+    db.setCooldown(guildId, userId, 'poker', 6000);
+    
+    // Deduct bet
+    user.balance -= bet;
+    db.saveUser(guildId, userId, user);
+    
+    const deck = require('./deck');
+    const d = deck.newDeck();
+    
+    const playerCards = [d.pop(), d.pop(), d.pop(), d.pop(), d.pop()];
+    const botCards = [d.pop(), d.pop(), d.pop(), d.pop(), d.pop()];
+    
+    const key = `${guildId}:${userId}`;
+    pokerSessions.set(key, {
+      guildId,
+      userId,
+      bet,
+      deck: d,
+      playerCards,
+      botCards
+    });
+    
+    return res.json({
+      success: true,
+      playerCards,
+      newBalance: user.balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/games/poker/swap', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { swapIndices } = req.body;
+    
+    if (!Array.isArray(swapIndices)) return res.status(400).json({ error: 'swapIndices inválido.' });
+    
+    const key = `${guildId}:${userId}`;
+    const game = pokerSessions.get(key);
+    if (!game) return res.status(400).json({ error: 'Nenhum jogo ativo.' });
+    
+    const user = db.getUser(guildId, userId);
+    const d = game.deck;
+    const playerCards = [...game.playerCards];
+    const botCards = game.botCards;
+    
+    const swapped = [];
+    swapIndices.slice(0, 3).forEach(idx => {
+      if (idx >= 0 && idx < 5) {
+        playerCards[idx] = d.pop();
+        swapped.push(idx);
+      }
+    });
+    
+    const pokerHand = require('./pokerHand');
+    const pEval = pokerHand.evaluateHand(playerCards);
+    const bEval = pokerHand.evaluateHand(botCards);
+    const cmp = pokerHand.compareHands(pEval, bEval);
+    
+    let result = '';
+    let winnings = 0;
+    
+    if (cmp > 0) {
+      result = 'win';
+      winnings = game.bet * 2;
+    } else if (cmp === 0) {
+      result = 'push';
+      winnings = game.bet;
+    } else {
+      result = 'lose';
+      winnings = 0;
+    }
+    
+    const net = winnings - game.bet;
+    user.balance += winnings;
+    db.saveUser(guildId, userId, user);
+    
+    const won = result === 'win';
+    db.recordResult(guildId, userId, won, game.bet);
+    db.addTournamentScore(guildId, userId, net);
+    
+    db.pushHistory(guildId, userId, { game: `Poker vs Bot (Resultado)`, bet: game.bet, net });
+    
+    const progression = require('./progression');
+    const ctx = {
+      guildId, userId, member: null, client: discordClient, channelId: null,
+      user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+    };
+    const prog = await progression.applyProgressionFor(ctx, { game: 'Poker', bet: game.bet, net, won, isWeb: true });
+    
+    const cfg = db.getGuildConfig(guildId);
+    if (won && winnings >= cfg.bigWinThreshold) {
+      const displayName = user.username || userId;
+      const title = '🃏 Vitória no Poker!';
+      const msg = `🎉 **${displayName}** ganhou **${winnings} 🪙** no Poker com ${pEval.name} contra ${bEval.name}! 🚀`;
+      announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Poker', amount: winnings, bet: game.bet, isJackpot: false });
+    }
+    
+    pokerSessions.delete(key);
+    
+    return res.json({
+      success: true,
+      playerCards,
+      botCards,
+      swapped,
+      playerHand: pEval,
+      botHand: bEval,
+      result,
+      winnings,
+      netReward: net,
+      newBalance: user.balance,
+      xpResult: prog.xpResult,
+      newBadges: prog.newBadges
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+// ─── DUELOS & COINFLIP PVP ───────────────────────────────────────────────────
+
+app.get('/api/duels', (req, res) => {
+  try {
+    const list = Array.from(activeDuels.values());
+    return res.json(list);
+  } catch (err) {
+    return res.status(500).json({ error: 'Erro ao listar duelos' });
+  }
+});
+
+app.post('/api/duels/create', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet, choice } = req.body;
+    
+    if (typeof bet !== 'number' || bet < 10 || !['cara', 'coroa'].includes(choice)) {
+      return res.status(400).json({ error: 'Parâmetros inválidos.' });
+    }
+    
+    const user = db.getUser(guildId, userId);
+    if (user.balance < bet) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    
+    const duelId = require('crypto').randomBytes(8).toString('hex');
+    const newDuel = {
+      id: duelId,
+      guildId,
+      creatorId: userId,
+      creatorName: user.username || userId,
+      creatorAvatar: user.avatar,
+      creatorChoice: choice,
+      bet,
+      createdAt: Date.now()
+    };
+    
+    user.balance -= bet;
+    db.saveUser(guildId, userId, user);
+    
+    activeDuels.set(duelId, newDuel);
+    
+    return res.json({ success: true, duel: newDuel, newBalance: user.balance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/duels/join', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { duelId } = req.body;
+    
+    const duel = activeDuels.get(duelId);
+    if (!duel) return res.status(404).json({ error: 'Duelo não encontrado ou já resolvido.' });
+    
+    if (duel.creatorId === userId) {
+      return res.status(400).json({ error: 'Não podes aceitar o teu próprio duelo!' });
+    }
+    
+    const joiner = db.getUser(guildId, userId);
+    if (joiner.balance < duel.bet) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    
+    joiner.balance -= duel.bet;
+    db.saveUser(guildId, userId, joiner);
+    
+    const roll = Math.random() < 0.50 ? 'cara' : 'coroa';
+    const creatorWon = duel.creatorChoice === roll;
+    
+    const winnerId = creatorWon ? duel.creatorId : userId;
+    const loserId = creatorWon ? userId : duel.creatorId;
+    
+    const totalWinnings = duel.bet * 2;
+    
+    const winnerUser = db.getUser(guildId, winnerId);
+    winnerUser.balance += totalWinnings;
+    db.saveUser(guildId, winnerId, winnerUser);
+    
+    const loserUser = db.getUser(guildId, loserId);
+    
+    db.recordResult(guildId, winnerId, true, duel.bet);
+    db.recordResult(guildId, loserId, false, duel.bet);
+    db.addTournamentScore(guildId, winnerId, duel.bet);
+    db.addTournamentScore(guildId, loserId, -duel.bet);
+    
+    db.pushHistory(guildId, winnerId, { game: `Duelo Coinflip PvP (Vitória)`, bet: duel.bet, net: duel.bet });
+    db.pushHistory(guildId, loserId, { game: `Duelo Coinflip PvP (Derrota)`, bet: duel.bet, net: -duel.bet });
+    
+    const cfg = db.getGuildConfig(guildId);
+    if (totalWinnings >= cfg.bigWinThreshold) {
+      const displayName = winnerUser.username || winnerId;
+      const title = '⚔️ Vitória em Duelo PvP!';
+      const msg = `🎉 **${displayName}** venceu o Duelo Coinflip contra **${loserUser.username || loserId}** e levou o pote de **${totalWinnings} 🪙**! 🚀`;
+      announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Duelo PvP', amount: totalWinnings, bet: duel.bet, isJackpot: false });
+    }
+    
+    activeDuels.delete(duelId);
+    
+    return res.json({
+      success: true,
+      roll,
+      winnerId,
+      creatorWon,
+      winnings: totalWinnings,
+      newBalance: joiner.balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/duels/cancel', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { duelId } = req.body;
+    
+    const duel = activeDuels.get(duelId);
+    if (!duel) return res.status(404).json({ error: 'Duelo não encontrado.' });
+    
+    if (duel.creatorId !== userId) {
+      return res.status(403).json({ error: 'Apenas o criador pode cancelar este duelo.' });
+    }
+    
+    const user = db.getUser(guildId, userId);
+    user.balance += duel.bet;
+    db.saveUser(guildId, userId, user);
+    
+    activeDuels.delete(duelId);
+    
+    return res.json({ success: true, newBalance: user.balance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
 app.get('/api/bank/loan', async (req, res) => {
   try {
     const session = getSession(req);

@@ -1,0 +1,528 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Poker Draw Solo — Casino Arena</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;800&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #0b0f19;
+      --panel-bg: rgba(17, 24, 39, 0.7);
+      --border: rgba(255, 255, 255, 0.08);
+      --gold: #f1c40f;
+      --mint: #57f287;
+      --ruby: #e74c3c;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    header {
+      width: 100%;
+      max-width: 800px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 20px;
+    }
+
+    .btn-back {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      padding: 8px 16px;
+      border-radius: 8px;
+      font-weight: 600;
+      text-decoration: none;
+      font-size: 13px;
+      transition: all 0.2s;
+    }
+
+    .btn-back:hover {
+      background: rgba(255, 255, 255, 0.1);
+      color: #fff;
+    }
+
+    .balance-display {
+      background: rgba(87, 242, 135, 0.1);
+      border: 1px solid rgba(87, 242, 135, 0.2);
+      color: var(--mint);
+      padding: 8px 16px;
+      border-radius: 20px;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+    }
+
+    .game-container {
+      width: 100%;
+      max-width: 700px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--border);
+      border-radius: 24px;
+      padding: 25px;
+      text-align: center;
+      box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
+      margin-bottom: 20px;
+    }
+
+    h1 {
+      font-family: 'Outfit', sans-serif;
+      font-weight: 800;
+      font-size: 30px;
+      margin-bottom: 10px;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+    }
+
+    .instructions {
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 20px;
+    }
+
+    /* 🃏 Card Deck Styles */
+    .poker-section {
+      margin: 20px 0;
+      padding: 15px;
+      background: rgba(0, 0, 0, 0.15);
+      border-radius: 16px;
+      border: 1px solid rgba(255, 255, 255, 0.03);
+    }
+
+    .poker-section-title {
+      font-size: 11px;
+      font-weight: 800;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 12px;
+      text-align: left;
+    }
+
+    .cards-row {
+      display: flex;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 10px;
+      flex-wrap: wrap;
+    }
+
+    .poker-card {
+      width: 90px;
+      height: 130px;
+      background: #fff;
+      border-radius: 12px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 8px 10px;
+      font-weight: 800;
+      font-family: 'Outfit', sans-serif;
+      font-size: 20px;
+      color: #000;
+      cursor: pointer;
+      position: relative;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+      user-select: none;
+      transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+
+    .poker-card.red {
+      color: var(--ruby);
+    }
+
+    .poker-card.back {
+      background: linear-gradient(135deg, #1f2937, #111827);
+      border: 2px solid rgba(255, 255, 255, 0.15);
+      color: transparent;
+      cursor: default;
+    }
+
+    .poker-card.back::after {
+      content: '🃏';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      font-size: 32px;
+      color: rgba(255,255,255,0.1);
+    }
+
+    .poker-card.selected {
+      transform: translateY(-10px);
+      box-shadow: 0 0 15px var(--gold);
+      border: 3px solid var(--gold);
+    }
+
+    .poker-card.selected::before {
+      content: 'TROCAR ❌';
+      position: absolute;
+      top: -12px;
+      left: 50%;
+      transform: translateX(-50%);
+      background: var(--gold);
+      color: #000;
+      font-size: 9px;
+      font-weight: 900;
+      padding: 2px 6px;
+      border-radius: 4px;
+      white-space: nowrap;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.3);
+    }
+
+    .card-top {
+      text-align: left;
+      line-height: 1;
+    }
+    .card-suit {
+      font-size: 28px;
+      align-self: center;
+    }
+    .card-bottom {
+      text-align: right;
+      line-height: 1;
+      transform: rotate(180deg);
+    }
+
+    .hand-eval-badge {
+      display: inline-block;
+      background: rgba(255,255,255,0.06);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+      font-size: 12px;
+      font-weight: 700;
+      margin-top: 10px;
+      color: var(--gold);
+    }
+
+    .input-section {
+      max-width: 320px;
+      margin: 25px auto 15px;
+    }
+
+    .input-wrapper {
+      position: relative;
+      margin-bottom: 12px;
+    }
+
+    input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 16px;
+      color: #fff;
+      font-size: 16px;
+      font-weight: 600;
+      text-align: center;
+      font-family: inherit;
+    }
+
+    input:focus {
+      outline: none;
+      border-color: var(--gold);
+    }
+
+    .btn-action {
+      width: 100%;
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      color: #000;
+      border: none;
+      border-radius: 12px;
+      padding: 14px;
+      font-size: 16px;
+      font-weight: 800;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.2s;
+      margin-bottom: 10px;
+      box-shadow: 0 4px 15px rgba(241, 196, 15, 0.3);
+    }
+
+    .btn-action:hover:not(:disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 6px 20px rgba(241, 196, 15, 0.4);
+    }
+
+    .btn-action:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .game-info {
+      background: rgba(255, 255, 255, 0.02);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 15px;
+      font-size: 14px;
+      line-height: 1.5;
+      min-height: 60px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <a href="/jogos.html" class="btn-back">⬅️ Voltar à Sala</a>
+    <div class="balance-display" id="userBalance">0 🪙</div>
+  </header>
+
+  <div class="game-container">
+    <h1>🃏 Poker Draw vs Bot</h1>
+    <p class="instructions">5-Card Draw: aposta, seleciona até 3 cartas para trocar e compara mãos com o bot!</p>
+
+    <!-- Bot hand section -->
+    <div class="poker-section" id="botSection" style="display:none;">
+      <div class="poker-section-title">Mão do Bot</div>
+      <div class="cards-row" id="botCardsRow">
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+      </div>
+      <div class="hand-eval-badge" id="botHandEval">A avaliar...</div>
+    </div>
+
+    <!-- Player hand section -->
+    <div class="poker-section">
+      <div class="poker-section-title" id="playerTitle">A tua Mão</div>
+      <div class="cards-row" id="playerCardsRow">
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+        <div class="poker-card back"></div>
+      </div>
+      <div class="hand-eval-badge" id="playerHandEval" style="display:none;"></div>
+    </div>
+
+    <div class="input-section">
+      <div class="input-wrapper" id="betWrapper">
+        <input type="number" id="betInput" placeholder="Quantidade a apostar..." value="100">
+      </div>
+      <button class="btn-action" id="btnMain" onclick="handleMainAction()">DAR CARTAS 🃏</button>
+    </div>
+
+    <div class="game-info" id="gameInfo">
+      Define a tua aposta e clica em "Dar Cartas" para iniciar!
+    </div>
+  </div>
+
+  <script>
+    let isPlaying = false;
+    let selectedIndices = new Set();
+    let initialCards = [];
+    let betValue = 0;
+    
+    // Sobrecarga fetch
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) localStorage.setItem('token', tokenParam);
+    })();
+
+    async function req(url, body = {}) {
+      const token = localStorage.getItem('token');
+      const headers = { 'Content-Type': 'application/json' };
+      if (token) headers['Authorization'] = 'Bearer ' + token;
+      
+      const res = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(body)
+      });
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Erro na requisição');
+      }
+      return res.json();
+    }
+
+    async function loadBalance() {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        const res = await fetch('/api/dashboard/data', { headers });
+        if (res.ok) {
+          const data = await res.json();
+          document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
+        }
+      } catch (e) {}
+    }
+
+    // Helper for suit formatting
+    const SUIT_EMOJIS = { H: '♥️', D: '♦️', C: '♣️', S: '♠️' };
+    const SUIT_NAMES = { H: 'red', D: 'red', C: 'black', S: 'black' };
+    
+    function createCardElement(card, idx, interactive = false) {
+      const el = document.createElement('div');
+      const suitClass = SUIT_NAMES[card.suit] || 'black';
+      el.className = `poker-card ${suitClass}`;
+      el.innerHTML = `
+        <div class="card-top">${card.rank}</div>
+        <div class="card-suit">${SUIT_EMOJIS[card.suit]}</div>
+        <div class="card-bottom">${card.rank}</div>
+      `;
+      
+      if (interactive) {
+        el.onclick = () => {
+          if (selectedIndices.has(idx)) {
+            selectedIndices.delete(idx);
+            el.classList.remove('selected');
+          } else {
+            if (selectedIndices.size >= 3) {
+              alert('Só podes trocar até 3 cartas!');
+              return;
+            }
+            selectedIndices.add(idx);
+            el.classList.add('selected');
+          }
+        };
+      }
+      return el;
+    }
+
+    async function handleMainAction() {
+      const btn = document.getElementById('btnMain');
+      const info = document.getElementById('gameInfo');
+      
+      if (!isPlaying) {
+        // Start game & deal initial cards
+        betValue = parseInt(document.getElementById('betInput').value);
+        if (isNaN(betValue) || betValue < 10) {
+          alert('Aposta mínima é de 10 🪙!');
+          return;
+        }
+        
+        btn.disabled = true;
+        info.textContent = 'A dar cartas...';
+        
+        try {
+          const res = await req('/api/games/poker/start', { bet: betValue });
+          isPlaying = true;
+          selectedIndices.clear();
+          
+          document.getElementById('betInput').disabled = true;
+          document.getElementById('botSection').style.display = 'none';
+          document.getElementById('playerHandEval').style.display = 'none';
+          
+          // Render player cards
+          const playerRow = document.getElementById('playerCardsRow');
+          playerRow.innerHTML = '';
+          res.playerCards.forEach((card, idx) => {
+            playerRow.appendChild(createCardElement(card, idx, true));
+          });
+          
+          btn.textContent = 'CONFIRMAR TROCA 🔄';
+          btn.disabled = false;
+          info.textContent = 'Escolha até 3 cartas para trocar e depois confirme a troca!';
+          
+          loadBalance();
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+          info.textContent = 'Tenta novamente.';
+        }
+      } else {
+        // Swap cards and resolve final results
+        btn.disabled = true;
+        info.textContent = 'A avaliar mãos finais...';
+        
+        try {
+          const swapIndices = Array.from(selectedIndices);
+          const res = await req('/api/games/poker/swap', { swapIndices });
+          
+          // Render final player cards (non-interactive)
+          const playerRow = document.getElementById('playerCardsRow');
+          playerRow.innerHTML = '';
+          res.playerCards.forEach((card, idx) => {
+            playerRow.appendChild(createCardElement(card, idx, false));
+          });
+          
+          // Render bot cards
+          const botRow = document.getElementById('botCardsRow');
+          botRow.innerHTML = '';
+          res.botCards.forEach((card, idx) => {
+            botRow.appendChild(createCardElement(card, idx, false));
+          });
+          
+          document.getElementById('botSection').style.display = 'block';
+          
+          // Show evaluations
+          const playerEval = document.getElementById('playerHandEval');
+          playerEval.textContent = res.playerHand.name;
+          playerEval.style.display = 'inline-block';
+          
+          document.getElementById('botHandEval').textContent = res.botHand.name;
+          
+          // Play audio click or win sound
+          try {
+            if (res.result === 'win' && window.playLevelUpSound) window.playLevelUpSound();
+            else if (window.playClickSound) window.playClickSound();
+          } catch (e) {}
+
+          // Display outcome
+          if (res.result === 'win') {
+            info.innerHTML = `<span style="color:var(--mint); font-weight:800;">🏆 GANHASTE!</span> A tua mão (**${res.playerHand.name}**) venceu a mão do bot (**${res.botHand.name}**)! Ganhaste **${res.winnings.toLocaleString('pt-PT')} 🪙**!`;
+          } else if (res.result === 'push') {
+            info.innerHTML = `<span style="color:var(--gold); font-weight:800;">⚖️ EMPATE!</span> Ambos com a mesma mão (**${res.playerHand.name}**). Recebeste a tua aposta de volta.`;
+          } else {
+            info.innerHTML = `<span style="color:var(--ruby); font-weight:800;">🚨 PERDESTE!</span> A mão do bot (**${res.botHand.name}**) bateu a tua mão (**${res.playerHand.name}**).`;
+          }
+          
+          resetGame();
+          loadBalance();
+        } catch (err) {
+          alert(err.message);
+          btn.disabled = false;
+        }
+      }
+    }
+
+    function resetGame() {
+      isPlaying = false;
+      document.getElementById('betInput').disabled = false;
+      
+      const btn = document.getElementById('btnMain');
+      btn.textContent = 'DAR CARTAS 🃏';
+      btn.disabled = false;
+    }
+
+    window.onload = () => {
+      loadBalance();
+    };
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>
