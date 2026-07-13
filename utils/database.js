@@ -269,12 +269,12 @@ function getGlobalTournamentLeaderboard(limit = 10) {
     if (!globalUsers[userId]) {
       globalUsers[userId] = {
         userId,
-        tournamentScore: 0,
+        score: 0,
         username: v.username || userId,
         vipLevel: v.vipLevel || 0
       };
     }
-    globalUsers[userId].tournamentScore += v.tournamentScore || 0;
+    globalUsers[userId].score += v.tournamentScore || 0;
     if (v.username && v.username !== userId) {
       globalUsers[userId].username = v.username;
     }
@@ -283,8 +283,8 @@ function getGlobalTournamentLeaderboard(limit = 10) {
     }
   }
   return Object.values(globalUsers)
-    .filter(u => u.tournamentScore > 0)
-    .sort((a, b) => b.tournamentScore - a.tournamentScore)
+    .filter(u => u.score > 0)
+    .sort((a, b) => b.score - a.score)
     .slice(0, limit);
 }
 
