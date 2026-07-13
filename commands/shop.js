@@ -10,9 +10,10 @@ const ITEMS = [
   { id: 'frame_neon', name: '🖼️ Moldura Neon', price: 5000, desc: 'Borda neon verde com efeito pulsar' },
   { id: 'frame_ruby', name: '🖼️ Moldura Rubi', price: 7500, desc: 'Borda rubi avermelhada brilhante' },
   { id: 'frame_rainbow', name: '🖼️ Moldura RGB', price: 15000, desc: 'Borda arco-íris rotativa animada' },
-  { id: 'bg_matrix', name: '🌌 Fundo Matrix', price: 10000, desc: 'Fundo animado estilo chuva de códigos da Matrix' },
-  { id: 'bg_casino', name: '🌌 Fundo Las Vegas', price: 15000, desc: 'Fundo animado neon de casino vintage' },
-  { id: 'bg_space', name: '🌌 Fundo Espacial', price: 20000, desc: 'Fundo animado de nebulosa espacial realista' }
+  { id: 'bg_matrix', name: '🌌 Banner Matrix', price: 10000, desc: 'Banner animado de chuva de códigos Matrix' },
+  { id: 'bg_casino', name: '🌌 Banner Las Vegas', price: 15000, desc: 'Banner animado neon retro Las Vegas' },
+  { id: 'bg_space', name: '🌌 Banner Espacial', price: 20000, desc: 'Banner animado de nebulosa espacial realista' },
+  { id: 'bg_anime', name: '🌌 Banner Anime', price: 25000, desc: 'Banner estilizado anime de alta definição com foto' }
 ];
 
 module.exports = {

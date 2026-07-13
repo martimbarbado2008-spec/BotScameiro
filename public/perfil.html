@@ -47,16 +47,38 @@
       align-items: center;
       flex-wrap: wrap;
       gap: 16px;
-      padding: 20px;
+      padding: 110px 20px 20px;
       background: var(--panel-bg);
       backdrop-filter: blur(16px);
       -webkit-backdrop-filter: blur(16px);
       border-radius: 20px;
       border: 1px solid var(--border-glow);
       box-shadow: var(--shadow);
+      position: relative;
+      overflow: hidden;
     }
 
+    .profile-banner {
+      position: absolute;
+      top: 0; left: 0; right: 0;
+      height: 90px;
+      background: linear-gradient(90deg, #1e293b, #0f172a);
+      background-size: cover;
+      background-position: center;
+      border-bottom: 1px solid var(--border-glow);
+      z-index: 0;
+      transition: background 0.3s;
+    }
+
+    /* Banner background themes (GIFs & Images) */
+    .profile-banner.bg-matrix { background-image: url('https://i.imgur.com/83pL3eL.gif'); }
+    .profile-banner.bg-casino { background-image: url('https://i.imgur.com/e9wU1Dk.gif'); }
+    .profile-banner.bg-space { background-image: url('https://i.imgur.com/Z4254vS.gif'); }
+    .profile-banner.bg-anime { background-image: url('https://i.imgur.com/mP7p4aX.gif'); }
+
     .profile-section {
+      position: relative;
+      z-index: 1;
       display: flex;
       align-items: center;
       gap: 16px;
@@ -64,13 +86,15 @@
 
     .avatar-wrapper {
       position: relative;
-      width: 64px;
-      height: 64px;
+      width: 72px;
+      height: 72px;
       border-radius: 50%;
-      padding: 3.5px;
+      padding: 4px;
       background: linear-gradient(135deg, var(--gold), var(--mint));
       box-shadow: 0 0 15px rgba(250, 202, 43, 0.3);
       transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      margin-top: -30px;
+      border: 4px solid #09130e;
     }
     .avatar-wrapper:hover {
       transform: scale(1.15) rotate(5deg);
@@ -261,6 +285,8 @@
       font-weight: 600;
       font-size: 13px;
       transition: var(--transition);
+      position: relative;
+      z-index: 1;
     }
 
     .btn-back:hover {
@@ -455,6 +481,7 @@
 
   <div id="perfilApp" style="display: none; width: 100%; max-width: 900px;">
     <header>
+      <div class="profile-banner" id="profileBanner"></div>
       <div class="profile-section">
         <div class="avatar-wrapper">
           <img id="userAvatar" src="" alt="Avatar">
@@ -672,11 +699,14 @@
         }
       }
 
-      // Aplicar fundo cosmético da página
+      // Aplicar fundo cosmético da página e banner
       document.body.className = ''; // reset
+      const banner = document.getElementById('profileBanner');
+      if (banner) banner.className = 'profile-banner'; // reset
       if (data.equippedBg) {
         const bgClass = data.equippedBg.replace('bg_', 'bg-');
         document.body.classList.add(bgClass);
+        if (banner) banner.classList.add(bgClass);
       } else {
         document.body.classList.add('bg-none');
       }
