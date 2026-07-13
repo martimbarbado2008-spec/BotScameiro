@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Roleta Europeia — Casino Arena 🎡</title>
+  <script src="/utils.js"></script>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -630,6 +631,9 @@
             <option value="preto">Preto (Paga 2x)</option>
             <option value="par">Par (Paga 2x)</option>
             <option value="impar">Ímpar (Paga 2x)</option>
+            <option value="coluna1">Coluna 1 [1-34] (Paga 3x)</option>
+            <option value="coluna2">Coluna 2 [2-35] (Paga 3x)</option>
+            <option value="coluna3">Coluna 3 [3-36] (Paga 3x)</option>
             <option value="numero">Número Exato (Paga 35x)</option>
           </select>
         </div>
@@ -773,13 +777,15 @@
           board.appendChild(cell);
         }
         
-        // Célula 2to1 fictícia no final de cada linha (opcional)
+        // Célula 2to1 real no final de cada linha
         const cell2to1 = document.createElement('div');
         cell2to1.className = 'board-cell outer-bet-cell';
         cell2to1.textContent = '2:1';
         cell2to1.style.fontSize = '9px';
         cell2to1.style.background = '#2d3039';
-        cell2to1.onclick = () => alert('Aposta 2:1 indisponível no site temporariamente. Escolhe outra opção!');
+        const colType = r === 0 ? 'coluna3' : (r === 1 ? 'coluna2' : 'coluna1');
+        cell2to1.id = `cell-type-${colType}`;
+        cell2to1.onclick = () => selectCell(colType);
         board.appendChild(cell2to1);
       }
 

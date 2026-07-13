@@ -748,6 +748,9 @@ app.post('/api/games/roulette/spin', async (req, res) => {
     else if (type === 'preto' && color === 'preto') { won = true; mult = 2; }
     else if (type === 'par' && spin !== 0 && spin % 2 === 0) { won = true; mult = 2; }
     else if (type === 'impar' && spin % 2 !== 0) { won = true; mult = 2; }
+    else if (type === 'coluna1' && [1,4,7,10,13,16,19,22,25,28,31,34].includes(spin)) { won = true; mult = 3; }
+    else if (type === 'coluna2' && [2,5,8,11,14,17,20,23,26,29,32,35].includes(spin)) { won = true; mult = 3; }
+    else if (type === 'coluna3' && [3,6,9,12,15,18,21,24,27,30,33,36].includes(spin)) { won = true; mult = 3; }
     else if (type === 'numero' && spin === parseInt(number, 10)) { won = true; mult = 35; }
 
     const winnings = won ? bet * mult : 0;
@@ -4409,6 +4412,9 @@ function tickRouletteTable() {
           else if (b.type === 'preto' && color === 'preto') { won = true; mult = 2; }
           else if (b.type === 'par' && spin !== 0 && spin % 2 === 0) { won = true; mult = 2; }
           else if (b.type === 'impar' && spin % 2 !== 0) { won = true; mult = 2; }
+          else if (b.type === 'coluna1' && [1,4,7,10,13,16,19,22,25,28,31,34].includes(spin)) { won = true; mult = 3; }
+          else if (b.type === 'coluna2' && [2,5,8,11,14,17,20,23,26,29,32,35].includes(spin)) { won = true; mult = 3; }
+          else if (b.type === 'coluna3' && [3,6,9,12,15,18,21,24,27,30,33,36].includes(spin)) { won = true; mult = 3; }
           else if (b.type === 'numero' && spin === parseInt(b.number, 10)) { won = true; mult = 35; }
           
           const winnings = won ? b.bet * mult : 0;
