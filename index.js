@@ -58,6 +58,20 @@ client.once('ready', async () => {
 });
 
 client.on('interactionCreate', async interaction => {
+  if (interaction.guildId && interaction.user) {
+    try {
+      const db = require('./utils/database');
+      const u = db.getUser(interaction.guildId, interaction.user.id);
+      const username = interaction.member?.displayName || interaction.user.username;
+      const avatar = interaction.user.displayAvatarURL({ size: 128 });
+      if (u.username !== username || u.avatar !== avatar) {
+        u.username = username;
+        u.avatar = avatar;
+        db.saveUser(interaction.guildId, interaction.user.id, u);
+      }
+    } catch (e) {}
+  }
+
   if (interaction.isButton()) {
     if (interaction.customId === 'open_portal') {
       const baseUrl = process.env.WEB_BASE_URL;

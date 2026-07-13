@@ -1,0 +1,483 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dados — Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mint: #2ecc71;
+    --mint-glow: rgba(46, 204, 113, 0.35);
+    --pine: #0a0f0d;
+    --charcoal: #e5f3eb;
+    --panel-bg: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.06);
+    --gold: #f1c40f;
+    --win: #2ecc71;
+    --lose: #e74c3c;
+    --shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    background: radial-gradient(circle at center, #1b1625 0%, #0d0a12 100%);
+    color: var(--charcoal);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+  }
+  .container {
+    width: 100%;
+    max-width: 440px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 32px 24px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, #9b59b6, #8e44ad);
+  }
+  .btn-back {
+    position: absolute;
+    top: 20px; left: 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--charcoal);
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; text-decoration: none;
+    font-size: 14px; font-weight: 700;
+    transition: all .2s;
+  }
+  .btn-back:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
+
+  h1 { font-size: 26px; font-weight: 800; margin: 20px 0 6px; }
+  p.subtitle { font-size: 13px; color: #a29ba8; margin: 0 0 30px; }
+
+  /* Dice 3D Area */
+  .dice-area {
+    width: 120px; height: 120px;
+    perspective: 600px;
+    margin: 0 auto 35px;
+  }
+  .cube {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.5s;
+  }
+  .face {
+    position: absolute;
+    width: 100%; height: 100%;
+    background: #fff;
+    border: 3px solid #ccc;
+    border-radius: 18px;
+    display: grid;
+    grid-template: repeat(3, 1fr) / repeat(3, 1fr);
+    padding: 12px;
+    box-shadow: inset 0 0 20px rgba(0,0,0,0.2), 0 0 15px rgba(0,0,0,0.2);
+  }
+  .pip {
+    background-color: #333;
+    border-radius: 50%;
+    width: 16px; height: 16px;
+    justify-self: center; align-self: center;
+  }
+  
+  /* Dice Faces positioning */
+  .face-1 { transform: rotateY(0deg) translateZ(60px); }
+  .face-2 { transform: rotateY(90deg) translateZ(60px); }
+  .face-3 { transform: rotateY(180deg) translateZ(60px); }
+  .face-4 { transform: rotateY(-90deg) translateZ(60px); }
+  .face-5 { transform: rotateX(90deg) translateZ(60px); }
+  .face-6 { transform: rotateX(-90deg) translateZ(60px); }
+
+  /* Pips placement for standard dice */
+  .face-1 .pip { grid-area: 2/2; }
+  .face-2 .pip:nth-child(1) { grid-area: 1/1; }
+  .face-2 .pip:nth-child(2) { grid-area: 3/3; }
+  .face-3 .pip:nth-child(1) { grid-area: 1/1; }
+  .face-3 .pip:nth-child(2) { grid-area: 2/2; }
+  .face-3 .pip:nth-child(3) { grid-area: 3/3; }
+  .face-4 .pip:nth-child(1) { grid-area: 1/1; }
+  .face-4 .pip:nth-child(2) { grid-area: 1/3; }
+  .face-4 .pip:nth-child(3) { grid-area: 3/1; }
+  .face-4 .pip:nth-child(4) { grid-area: 3/3; }
+  .face-5 .pip:nth-child(1) { grid-area: 1/1; }
+  .face-5 .pip:nth-child(2) { grid-area: 1/3; }
+  .face-5 .pip:nth-child(3) { grid-area: 2/2; }
+  .face-5 .pip:nth-child(4) { grid-area: 3/1; }
+  .face-5 .pip:nth-child(5) { grid-area: 3/3; }
+  .face-6 .pip:nth-child(1) { grid-area: 1/1; }
+  .face-6 .pip:nth-child(2) { grid-area: 1/3; }
+  .face-6 .pip:nth-child(3) { grid-area: 2/1; }
+  .face-6 .pip:nth-child(4) { grid-area: 2/3; }
+  .face-6 .pip:nth-child(5) { grid-area: 3/1; }
+  .face-6 .pip:nth-child(6) { grid-area: 3/3; }
+
+  /* Rotations */
+  .rot-1 { transform: rotateX(0deg) rotateY(0deg); }
+  .rot-2 { transform: rotateX(0deg) rotateY(-90deg); }
+  .rot-3 { transform: rotateX(0deg) rotateY(-180deg); }
+  .rot-4 { transform: rotateX(0deg) rotateY(90deg); }
+  .rot-5 { transform: rotateX(-90deg) rotateY(0deg); }
+  .rot-6 { transform: rotateX(90deg) rotateY(0deg); }
+
+  /* Betting Tabs */
+  .tabs {
+    display: flex; gap: 8px; margin-bottom: 20px;
+    background: rgba(0,0,0,0.2); border-radius: 12px; padding: 4px;
+  }
+  .tab-btn {
+    flex: 1; background: transparent; border: none; outline: none;
+    color: #a29ba8; font-size: 12px; font-weight: 700; padding: 10px;
+    border-radius: 8px; cursor: pointer; transition: all .2s;
+  }
+  .tab-btn.active { background: rgba(255,255,255,0.06); color: #fff; }
+
+  /* Tab Panel Content */
+  .tab-panel { display: none; margin-bottom: 24px; animation: fadeIn .25s ease; }
+  .tab-panel.active { display: block; }
+
+  .sub-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .sub-grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .option-btn {
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 12px; padding: 12px;
+    font-weight: 700; color: var(--charcoal);
+    cursor: pointer; transition: all .15s;
+  }
+  .option-btn.selected { border-color: #9b59b6; background: rgba(155, 89, 182, 0.1); }
+  .option-btn:hover:not(.selected) { background: rgba(255,255,255,0.05); }
+
+  /* Bet Area */
+  .bet-wrapper {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .bet-input-container { flex: 1; text-align: left; }
+  .bet-input-container label { font-size: 10px; color: #a29ba8; font-weight: 700; text-transform: uppercase; }
+  .bet-input-container input {
+    width: 100%; background: transparent; border: none; outline: none;
+    color: #fff; font-size: 18px; font-weight: 700; margin-top: 4px;
+  }
+  .bet-shortcuts { display: flex; gap: 6px; }
+  .shortcut-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--charcoal);
+    padding: 6px 10px;
+    font-size: 11px; font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .shortcut-btn:hover { background: rgba(255,255,255,0.1); }
+
+  .action-btn {
+    width: 100%;
+    background: linear-gradient(135deg, #9b59b6 0%, #8e44ad 100%);
+    border: none; outline: none;
+    color: #fff; font-size: 16px; font-weight: 800;
+    padding: 18px; border-radius: 16px;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 6px 20px rgba(155, 89, 182, 0.3);
+  }
+  .action-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(155, 89, 182, 0.4); }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Result Badge */
+  .result-banner {
+    display: none;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    margin-top: 24px;
+    animation: fadeIn .3s ease forwards;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .result-banner.win { border-color: rgba(46, 204, 113, 0.4); background: rgba(46, 204, 113, 0.05); }
+  .result-banner.lose { border-color: rgba(231, 76, 60, 0.4); background: rgba(231, 76, 60, 0.05); }
+  .result-title { font-size: 16px; font-weight: 800; margin: 0 0 4px; }
+  .result-desc { font-size: 12px; color: #a29ba8; }
+  
+  .hud-balance { font-size: 12px; color: #a29ba8; margin-bottom: 24px; font-weight: 600; }
+  .hud-balance span { color: var(--gold); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <a href="/jogos.html" class="btn-back">⬅</a>
+  
+  <h1>Jogo de Dados</h1>
+  <p class="subtitle">Lança o dado e aposta no teu resultado ideal</p>
+
+  <div class="hud-balance">Saldo da Carteira: <span id="balanceDisplay">A carregar...</span> 🪙</div>
+
+  <div class="dice-area">
+    <div class="cube rot-1" id="cube">
+      <div class="face face-1"><div class="pip"></div></div>
+      <div class="face face-2"><div class="pip"></div><div class="pip"></div></div>
+      <div class="face face-3"><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+      <div class="face face-4"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+      <div class="face face-5"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+      <div class="face face-6"><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div><div class="pip"></div></div>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab-btn active" id="tabExact" onclick="switchTab('exact')">Número Exato</button>
+    <button class="tab-btn" id="tabParity" onclick="switchTab('parity')">Par/Ímpar</button>
+    <button class="tab-btn" id="tabRange" onclick="switchTab('range')">Alto/Baixo</button>
+  </div>
+
+  <!-- Tab 1: Exact Number -->
+  <div class="tab-panel active" id="panelExact">
+    <div class="sub-grid">
+      <button class="option-btn selected" id="opt-1" onclick="selectOption('1')">1</button>
+      <button class="option-btn" id="opt-2" onclick="selectOption('2')">2</button>
+      <button class="option-btn" id="opt-3" onclick="selectOption('3')">3</button>
+      <button class="option-btn" id="opt-4" onclick="selectOption('4')">4</button>
+      <button class="option-btn" id="opt-5" onclick="selectOption('5')">5</button>
+      <button class="option-btn" id="opt-6" onclick="selectOption('6')">6</button>
+    </div>
+    <div style="font-size:10px; color:#a29ba8; margin-top:8px;">Multiplicador: <b>5.70x</b></div>
+  </div>
+
+  <!-- Tab 2: Parity -->
+  <div class="tab-panel" id="panelParity">
+    <div class="sub-grid-2">
+      <button class="option-btn" id="opt-par" onclick="selectOption('par')">PAR (2, 4, 6)</button>
+      <button class="option-btn" id="opt-impar" onclick="selectOption('impar')">ÍMPAR (1, 3, 5)</button>
+    </div>
+    <div style="font-size:10px; color:#a29ba8; margin-top:8px;">Multiplicador: <b>1.95x</b></div>
+  </div>
+
+  <!-- Tab 3: Range -->
+  <div class="tab-panel" id="panelRange">
+    <div class="sub-grid-2">
+      <button class="option-btn" id="opt-alto" onclick="selectOption('alto')">ALTO (4, 5, 6)</button>
+      <button class="option-btn" id="opt-baixo" onclick="selectOption('baixo')">BAIXO (1, 2, 3)</button>
+    </div>
+    <div style="font-size:10px; color:#a29ba8; margin-top:8px;">Multiplicador: <b>1.95x</b></div>
+  </div>
+
+  <div class="bet-wrapper">
+    <div class="bet-input-container">
+      <label>Valor da Aposta</label>
+      <input type="number" id="betInput" value="100" min="10">
+    </div>
+    <div class="bet-shortcuts">
+      <button class="shortcut-btn" onclick="adjustBet('half')">/2</button>
+      <button class="shortcut-btn" onclick="adjustBet('double')">2x</button>
+      <button class="shortcut-btn" onclick="adjustBet('max')">MAX</button>
+    </div>
+  </div>
+
+  <button class="action-btn" id="btnRoll" onclick="rollDice()">LANÇAR DADO</button>
+
+  <div class="result-banner" id="resultBanner">
+    <div class="result-title" id="resultTitle">VITÓRIA!</div>
+    <div class="result-desc" id="resultDesc">O dado caiu em 4. Ganhaste +195 moedas.</div>
+  </div>
+</div>
+
+<script>
+  let activeTab = 'exact';
+  let selectedValue = '1';
+  let balance = 0;
+  let isRolling = false;
+  let minBet = 10;
+  let maxBet = 50000;
+
+  async function loadBalance() {
+    try {
+      const res = await fetch('/api/dashboard/data');
+      if (!res.ok) {
+        window.location.href = '/login.html';
+        return;
+      }
+      const data = await res.json();
+      balance = data.balance;
+      minBet = data.minBet || 10;
+      maxBet = data.maxBet || 50000;
+      document.getElementById('balanceDisplay').textContent = balance.toLocaleString('pt-PT');
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function switchTab(tab) {
+    if (isRolling) return;
+    activeTab = tab;
+    
+    document.getElementById('tabExact').classList.toggle('active', tab === 'exact');
+    document.getElementById('tabParity').classList.toggle('active', tab === 'parity');
+    document.getElementById('tabRange').classList.toggle('active', tab === 'range');
+    
+    document.getElementById('panelExact').classList.toggle('active', tab === 'exact');
+    document.getElementById('panelParity').classList.toggle('active', tab === 'parity');
+    document.getElementById('panelRange').classList.toggle('active', tab === 'range');
+
+    // Reset selected values
+    document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
+    if (tab === 'exact') {
+      selectedValue = '1';
+      document.getElementById('opt-1').classList.add('selected');
+    } else if (tab === 'parity') {
+      selectedValue = 'par';
+      document.getElementById('opt-par').classList.add('selected');
+    } else if (tab === 'range') {
+      selectedValue = 'alto';
+      document.getElementById('opt-alto').classList.add('selected');
+    }
+  }
+
+  function selectOption(val) {
+    if (isRolling) return;
+    selectedValue = val;
+    
+    // Remove selected from current tab panel buttons
+    const containerId = activeTab === 'exact' ? 'panelExact' : (activeTab === 'parity' ? 'panelParity' : 'panelRange');
+    document.getElementById(containerId).querySelectorAll('.option-btn').forEach(btn => {
+      btn.classList.remove('selected');
+    });
+
+    document.getElementById('opt-' + val).classList.add('selected');
+  }
+
+  function adjustBet(action) {
+    if (isRolling) return;
+    const input = document.getElementById('betInput');
+    let val = parseInt(input.value, 10) || 0;
+    if (action === 'half') val = Math.max(10, Math.floor(val / 2));
+    else if (action === 'double') val = Math.min(balance, val * 2);
+    else if (action === 'max') val = Math.min(balance, maxBet);
+    input.value = val;
+  }
+
+  async function rollDice() {
+    if (isRolling) return;
+    
+    const betInput = document.getElementById('betInput');
+    const bet = parseInt(betInput.value, 10);
+    
+    if (isNaN(bet) || bet < minBet) {
+      alert(`Aposta mínima é de ${minBet} moedas.`);
+      return;
+    }
+    if (bet > balance) {
+      alert('Saldo insuficiente.');
+      return;
+    }
+
+    isRolling = true;
+    document.getElementById('btnRoll').disabled = true;
+    document.getElementById('resultBanner').style.display = 'none';
+
+    // Animação inicial de rotação rápida
+    const cube = document.getElementById('cube');
+    cube.style.transition = 'none';
+    cube.style.transform = 'rotateX(720deg) rotateY(720deg) rotateZ(360deg)';
+    
+    // Forçar reflow
+    void cube.offsetWidth;
+
+    try {
+      const res = await fetch('/api/games/dice', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bet, prediction: selectedValue, type: activeTab })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || 'Erro ao processar aposta.');
+        isRolling = false;
+        document.getElementById('btnRoll').disabled = false;
+        cube.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        return;
+      }
+
+      // Aplica rotação final suave baseada no número sorteado
+      setTimeout(() => {
+        cube.style.transition = 'transform 1.8s cubic-bezier(0.2, 0.8, 0.3, 1.05)';
+        
+        // Define as coordenadas finais correspondentes ao número sorteado
+        const rollMap = {
+          1: 'rotateX(0deg) rotateY(0deg)',
+          2: 'rotateX(0deg) rotateY(90deg)',
+          3: 'rotateX(0deg) rotateY(180deg)',
+          4: 'rotateX(0deg) rotateY(-90deg)',
+          5: 'rotateX(90deg) rotateY(0deg)',
+          6: 'rotateX(-90deg) rotateY(0deg)'
+        };
+        
+        // Adicionamos rotação extra de 360 graus para parecer um lançamento realista
+        const finalTransform = rollMap[data.roll] + ' rotateZ(360deg)';
+        cube.style.transform = finalTransform;
+
+        setTimeout(() => {
+          isRolling = false;
+          document.getElementById('btnRoll').disabled = false;
+          
+          balance = data.newBalance;
+          document.getElementById('balanceDisplay').textContent = balance.toLocaleString('pt-PT');
+
+          const banner = document.getElementById('resultBanner');
+          const title = document.getElementById('resultTitle');
+          const desc = document.getElementById('resultDesc');
+          
+          banner.className = `result-banner ${data.won ? 'win' : 'lose'}`;
+          title.textContent = data.won ? '🎉 Ganhaste!' : '🚨 Perdeste!';
+          title.style.color = data.won ? 'var(--win)' : 'var(--lose)';
+          
+          const optMap = {
+            'par': 'Par', 'impar': 'Ímpar', 'alto': 'Alto', 'baixo': 'Baixo'
+          };
+          const readablePrediction = optMap[selectedValue] || selectedValue;
+          
+          desc.textContent = data.won 
+            ? `Saiu o número ${data.roll}! A tua aposta [${readablePrediction}] venceu! Recebeste +${data.winnings.toLocaleString('pt-PT')} 🪙!` 
+            : `Saiu o número ${data.roll}! A tua aposta [${readablePrediction}] falhou. Perdeste ${bet.toLocaleString('pt-PT')} 🪙.`;
+
+          banner.style.display = 'block';
+        }, 1800);
+      }, 50);
+
+    } catch (e) {
+      alert('Erro de rede.');
+      isRolling = false;
+      document.getElementById('btnRoll').disabled = false;
+      cube.style.transform = 'rotateX(0deg) rotateY(0deg)';
+    }
+  }
+
+  window.onload = loadBalance;
+</script>
+</body>
+</html>

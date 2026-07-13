@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cracking Safe — Crime do Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --mint: #2ecc71;
+    --mint-glow: rgba(46, 204, 113, 0.3);
+    --pine: #070a0e;
+    --charcoal: #e5f3eb;
+    --panel-bg: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.06);
+    --gold: #f1c40f;
+    --trap: #e74c3c;
+    --trap-glow: rgba(231, 76, 60, 0.35);
+    --shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.6);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    background: radial-gradient(circle at center, #150f14 0%, #080608 100%);
+    color: var(--charcoal);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+  }
+  .container {
+    width: 100%;
+    max-width: 440px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 32px 24px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, var(--trap), #8e44ad);
+  }
+  
+  h1 { font-size: 26px; font-weight: 800; margin: 0 0 6px; }
+  p.subtitle { font-size: 13px; color: #a89ba4; margin: 0 0 24px; }
+
+  /* Safe Lock Dial Graphic */
+  .safe-dial-container {
+    width: 200px; height: 200px;
+    margin: 0 auto 30px;
+    position: relative;
+    border-radius: 50%;
+    background: #111;
+    border: 8px solid #222;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.6);
+    display: flex; align-items: center; justify-content: center;
+  }
+  
+  /* Canvas for target zone and indicator */
+  #safeCanvas {
+    position: absolute;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    border-radius: 50%;
+  }
+
+  .safe-center {
+    width: 70px; height: 70px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #333 0%, #1a1a1a 100%);
+    border: 4px solid #444;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.4);
+    display: flex; align-items: center; justify-content: center;
+    z-index: 10;
+    font-size: 20px; font-weight: 800;
+  }
+
+  /* Score Counters */
+  .progress-row {
+    display: flex; justify-content: center; gap: 8px;
+    margin-bottom: 24px;
+  }
+  .progress-dot {
+    width: 16px; height: 16px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    transition: all .25s ease;
+  }
+  .progress-dot.active {
+    background: var(--mint);
+    border-color: var(--mint);
+    box-shadow: 0 0 10px var(--mint-glow);
+  }
+  
+  .hint-text {
+    font-size: 13px; color: #a89ba4; margin-bottom: 24px;
+    line-height: 1.5; padding: 0 10px;
+  }
+
+  .action-btn {
+    width: 100%;
+    background: linear-gradient(135deg, var(--trap) 0%, #c0392b 100%);
+    border: none; outline: none;
+    color: #fff; font-size: 16px; font-weight: 800;
+    padding: 18px; border-radius: 16px;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 6px 20px var(--trap-glow);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .action-btn:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px var(--trap-glow); }
+  .action-btn:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  /* Result Badge */
+  .result-banner {
+    display: none;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 18px;
+    margin-top: 24px;
+    animation: fadeIn .3s ease forwards;
+  }
+  @keyframes fadeIn { from{opacity:0;transform:translateY(10px)} to{opacity:1;transform:translateY(0)} }
+  .result-banner.win { border-color: rgba(46, 204, 113, 0.4); background: rgba(46, 204, 113, 0.05); }
+  .result-banner.lose { border-color: rgba(231, 76, 60, 0.4); background: rgba(231, 76, 60, 0.05); }
+  .result-title { font-size: 18px; font-weight: 800; margin: 0 0 6px; }
+  .result-desc { font-size: 13px; color: #a89ba4; margin-bottom: 16px; }
+  
+  .btn-panel-action {
+    display: inline-block;
+    padding: 10px 24px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    color: #fff; text-decoration: none;
+    font-weight: 700; font-size: 13px;
+    transition: all .15s;
+  }
+  .btn-panel-action:hover { background: rgba(255,255,255,0.12); }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <h1>Cracking do Cofre</h1>
+  <p class="subtitle">Arromba a segurança e limpa as moedas</p>
+
+  <div class="safe-dial-container">
+    <canvas id="safeCanvas" width="200" height="200"></canvas>
+    <div class="safe-center" id="dialCenter">🥷</div>
+  </div>
+
+  <div class="progress-row">
+    <div class="progress-dot" id="dot-1"></div>
+    <div class="progress-dot" id="dot-2"></div>
+    <div class="progress-dot" id="dot-3"></div>
+  </div>
+
+  <div class="hint-text" id="hintBox">
+    Clica em <b>ARROMBAR</b> quando a agulha passar sobre o setor verde do cofre. Acerta 3 vezes seguidas!
+  </div>
+
+  <button class="action-btn" id="btnAction" onclick="tryCrack()">ARROMBAR</button>
+
+  <div class="result-banner" id="resultBanner">
+    <div class="result-title" id="resultTitle">VITÓRIA!</div>
+    <div class="result-desc" id="resultDesc">Arrombaste o cofre com sucesso.</div>
+    <a href="/dashboard.html" class="btn-panel-action">Voltar à Dashboard</a>
+  </div>
+</div>
+
+<script>
+  let canvas, ctx;
+  let angle = 0;
+  let targetStart = 0;
+  let targetEnd = 0;
+  let hits = 0;
+  let isGameActive = true;
+  let speed = 0.05; // Velocidade angular por frame
+  let token = null;
+
+  function getQueryToken() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('jobToken');
+  }
+
+  function generateTargetZone() {
+    // Define um arco verde de 40 graus
+    const arcSize = 45 * Math.PI / 180;
+    // Posição aleatória na circunferência
+    targetStart = Math.random() * Math.PI * 2;
+    targetEnd = targetStart + arcSize;
+  }
+
+  function initDial() {
+    canvas = document.getElementById('safeCanvas');
+    ctx = canvas.getContext('2d');
+    
+    token = getQueryToken();
+    if (!token) {
+      alert('Acesso inválido. Por favor, começa o crime a partir da Dashboard.');
+      window.location.href = '/dashboard.html';
+      return;
+    }
+
+    generateTargetZone();
+    requestAnimationFrame(updateDial);
+  }
+
+  function updateDial() {
+    if (!isGameActive) return;
+
+    // Atualiza ângulo do ponteiro
+    angle += speed;
+    if (angle >= Math.PI * 2) angle -= Math.PI * 2;
+
+    // Limpa tela
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Desenha zona alvo verde (green arc)
+    ctx.beginPath();
+    ctx.arc(100, 100, 80, targetStart, targetEnd);
+    ctx.strokeStyle = '#2ecc71';
+    ctx.lineWidth = 14;
+    ctx.stroke();
+
+    // Desenha ponteiro vermelho (red needle line)
+    ctx.beginPath();
+    ctx.moveTo(100, 100);
+    const needleX = 100 + Math.cos(angle) * 75;
+    const needleY = 100 + Math.sin(angle) * 75;
+    ctx.lineTo(needleX, needleY);
+    ctx.strokeStyle = '#e74c3c';
+    ctx.lineWidth = 4;
+    ctx.lineCap = 'round';
+    ctx.stroke();
+
+    requestAnimationFrame(updateDial);
+  }
+
+  async function tryCrack() {
+    if (!isGameActive) return;
+
+    // Verifica se ponteiro está dentro da zona alvo
+    let normalizedStart = targetStart;
+    let normalizedEnd = targetEnd;
+    let checkAngle = angle;
+
+    // Verifica intersecção cíclica
+    let hit = false;
+    
+    // Se o arco ultrapassar 360 graus
+    if (normalizedEnd > Math.PI * 2) {
+      hit = (checkAngle >= normalizedStart) || (checkAngle <= (normalizedEnd - Math.PI * 2));
+    } else {
+      hit = (checkAngle >= normalizedStart && checkAngle <= normalizedEnd);
+    }
+
+    if (hit) {
+      hits++;
+      document.getElementById('dot-' + hits).classList.add('active');
+      document.getElementById('dialCenter').textContent = '🎯';
+      
+      // Flash efeito verde
+      const dial = document.querySelector('.safe-dial-container');
+      dial.style.borderColor = '#2ecc71';
+      setTimeout(() => { dial.style.borderColor = '#222'; }, 200);
+
+      if (hits === 3) {
+        // Sucesso do Crime!
+        endGame(true);
+      } else {
+        // Próximo nível: aumenta velocidade ligeiramente e muda setor
+        speed += 0.015;
+        generateTargetZone();
+        setTimeout(() => { document.getElementById('dialCenter').textContent = '🥷'; }, 500);
+      }
+    } else {
+      // Capturado/Falhado!
+      endGame(false);
+    }
+  }
+
+  async function endGame(success) {
+    isGameActive = false;
+    document.getElementById('btnAction').disabled = true;
+
+    try {
+      const res = await fetch('/api/jobs/complete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          jobToken: token,
+          score: success ? 3 : 0
+        })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || 'Erro ao gravar resultado.');
+        return;
+      }
+
+      const banner = document.getElementById('resultBanner');
+      const title = document.getElementById('resultTitle');
+      const desc = document.getElementById('resultDesc');
+
+      banner.className = `result-banner ${success ? 'win' : 'lose'}`;
+      title.textContent = success ? '🥷 Sucesso no Crime!' : '🚨 Foste Capturado!';
+      title.style.color = success ? 'var(--mint)' : 'var(--trap)';
+      
+      desc.textContent = success
+        ? `Excelente trabalho! Abriste o cofre e escapaste com +${data.reward} 🪙!`
+        : `A polícia apanhou-te! Pagaste uma multa de ${Math.abs(data.reward)} 🪙.`;
+
+      banner.style.display = 'block';
+
+    } catch (e) {
+      alert('Erro ao ligar ao servidor para processar recompensa.');
+    }
+  }
+
+  window.onload = initDial;
+</script>
+</body>
+</html>

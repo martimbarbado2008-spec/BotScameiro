@@ -515,6 +515,17 @@ app.get('/api/login-dashboard', (req, res) => {
   const { guildId, userId } = entry;
   const sessionToken = createSession(guildId, userId);
   
+  if (discordClient) {
+    discordClient.users.fetch(userId).then(uObj => {
+      if (uObj) {
+        const u = db.getUser(guildId, userId);
+        u.username = uObj.username;
+        u.avatar = uObj.displayAvatarURL({ size: 128 }) || uObj.defaultAvatarURL;
+        db.saveUser(guildId, userId, u);
+      }
+    }).catch(() => {});
+  }
+  
   res.setHeader('Set-Cookie', `session_token=${sessionToken}; Path=/; Max-Age=${30 * 24 * 60 * 60}; HttpOnly; SameSite=Lax`);
   const separator = redirectUrl.includes('?') ? '&' : '?';
   res.redirect(`${redirectUrl}${separator}token=${sessionToken}`);
@@ -1418,6 +1429,8 @@ app.get('/api/dashboard/data', async (req, res) => {
     const workCooldown = db.getCooldown(guildId, userId, 'trabalhar');
     const pescaCooldown = db.getCooldown(guildId, userId, 'pescar');
     const hackCooldown = db.getCooldown(guildId, userId, 'hackear');
+    const crimeCooldown = db.getCooldown(guildId, userId, 'crime');
+    const robCooldown = db.getCooldown(guildId, userId, 'roubar');
 
     const now = Date.now();
     const sinceLastDaily = now - (user.lastDaily || 0);
@@ -1503,6 +1516,8 @@ app.get('/api/dashboard/data', async (req, res) => {
         work: workCooldown,
         pesca: pescaCooldown,
         hack: hackCooldown,
+        crime: crimeCooldown,
+        rob: robCooldown,
         daily: dailyCooldown
       }
     });
@@ -1835,17 +1850,587 @@ app.post('/api/crypto/contract/resolve', async (req, res) => {
 
 
 
+app.post('/api/games/coinflip', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet, side } = req.body;
+    
+    if (typeof bet !== 'number' || bet < 10 || !['cara', 'coroa'].includes(side)) {
+      return res.status(400).json({ error: 'Parâmetros inválidos.' });
+    }
+    
+    const user = db.getUser(guildId, userId);
+    const cfg = db.getGuildConfig(guildId);
+    
+    if (bet > user.balance) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    if (bet < cfg.minBet || bet > cfg.maxBet) return res.status(400).json({ error: `Aposta fora dos limites (${cfg.minBet} - ${cfg.maxBet}).` });
+    
+    const cooldown = db.getCooldown(guildId, userId, 'coinflip');
+    if (cooldown > 0) return res.status(400).json({ error: `Espera mais ${(cooldown/1000).toFixed(1)}s.` });
+    db.setCooldown(guildId, userId, 'coinflip', cfg.coinflipCooldownMs || 4000);
+    
+    const result = Math.random() < 0.50 ? 'cara' : 'coroa';
+    const won = result === side;
+    const winnings = won ? bet * 2 : 0;
+    const net = winnings - bet;
+    
+    user.balance += net;
+    db.saveUser(guildId, userId, user);
+    
+    db.recordResult(guildId, userId, won, bet);
+    db.addTournamentScore(guildId, userId, net);
+    
+    const progression = require('./progression');
+    const ctx = {
+      guildId, userId, member: null, client: discordClient, channelId: null,
+      user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+    };
+    const prog = await progression.applyProgressionFor(ctx, { game: 'Coinflip', bet, net, won, isWeb: true });
+    
+    if (won && winnings >= cfg.bigWinThreshold) {
+      const displayName = user.username || userId;
+      const title = '🪙 Vitória no Coinflip!';
+      const msg = `🎉 **${displayName}** apostou **${bet} 🪙** no Coinflip (escolheu ${side.toUpperCase()}) e ganhou! O resultado foi ${result.toUpperCase()}! 🚀`;
+      announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Coinflip', amount: winnings, bet, isJackpot: false });
+    }
+    
+    return res.json({ success: true, result, won, winnings, netReward: net, newBalance: user.balance, xpResult: prog.xpResult, newBadges: prog.newBadges });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/games/dice', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet, prediction, type } = req.body;
+    
+    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    
+    const user = db.getUser(guildId, userId);
+    const cfg = db.getGuildConfig(guildId);
+    
+    if (bet > user.balance) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    if (bet < cfg.minBet || bet > cfg.maxBet) return res.status(400).json({ error: `Aposta fora dos limites (${cfg.minBet} - ${cfg.maxBet}).` });
+    
+    const cooldown = db.getCooldown(guildId, userId, 'dice');
+    if (cooldown > 0) return res.status(400).json({ error: `Espera mais ${(cooldown/1000).toFixed(1)}s.` });
+    db.setCooldown(guildId, userId, 'dice', cfg.diceCooldownMs || 5000);
+    
+    const roll = Math.floor(Math.random() * 6) + 1;
+    let won = false;
+    let multiplier = 0;
+    
+    if (type === 'exact') {
+      const target = parseInt(prediction, 10);
+      if (target >= 1 && target <= 6) {
+        won = roll === target;
+        multiplier = 5.7;
+      }
+    } else if (type === 'parity') {
+      if (prediction === 'par') won = roll % 2 === 0;
+      else if (prediction === 'impar') won = roll % 2 !== 0;
+      multiplier = 1.95;
+    } else if (type === 'range') {
+      if (prediction === 'alto') won = roll >= 4;
+      else if (prediction === 'baixo') won = roll <= 3;
+      multiplier = 1.95;
+    }
+    
+    const winnings = won ? Math.round(bet * multiplier) : 0;
+    const net = winnings - bet;
+    
+    user.balance += net;
+    db.saveUser(guildId, userId, user);
+    
+    db.recordResult(guildId, userId, won, bet);
+    db.addTournamentScore(guildId, userId, net);
+    
+    const progression = require('./progression');
+    const ctx = {
+      guildId, userId, member: null, client: discordClient, channelId: null,
+      user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+    };
+    const prog = await progression.applyProgressionFor(ctx, { game: 'Dados', bet, net, won, isWeb: true });
+    
+    if (won && winnings >= cfg.bigWinThreshold) {
+      const displayName = user.username || userId;
+      const title = '🎲 Vitória nos Dados!';
+      const msg = `🎉 **${displayName}** apostou **${bet} 🪙** nos Dados e ganhou! Saiu o número ${roll}! 🚀`;
+      announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Dados', amount: winnings, bet, isJackpot: type === 'exact' });
+    }
+    
+    return res.json({ success: true, roll, won, winnings, netReward: net, newBalance: user.balance, xpResult: prog.xpResult, newBadges: prog.newBadges });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+const hlSessions = new Map();
+
+app.post('/api/games/higherlower/start', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { bet } = req.body;
+    
+    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    
+    const user = db.getUser(guildId, userId);
+    const cfg = db.getGuildConfig(guildId);
+    
+    if (bet > user.balance) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    if (bet < cfg.minBet || bet > cfg.maxBet) return res.status(400).json({ error: `Aposta fora dos limites (${cfg.minBet} - ${cfg.maxBet}).` });
+    
+    const cooldown = db.getCooldown(guildId, userId, 'higherlower');
+    if (cooldown > 0) return res.status(400).json({ error: `Espera mais ${(cooldown/1000).toFixed(1)}s.` });
+    db.setCooldown(guildId, userId, 'higherlower', cfg.higherlowerCooldownMs || 5000);
+    
+    user.balance -= bet;
+    db.saveUser(guildId, userId, user);
+    
+    const deck = require('./deck');
+    const ranks = deck.RANKS || ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A'];
+    const suits = ['♠', '♥', '♦', '♣'];
+    
+    const randomCard = () => ({
+      rank: ranks[Math.floor(Math.random() * ranks.length)],
+      suit: suits[Math.floor(Math.random() * suits.length)]
+    });
+    
+    const currentCard = randomCard();
+    const hlSession = {
+      guildId,
+      userId,
+      bet,
+      currentCard,
+      multiplier: 1.0,
+      rounds: 0,
+      ranks,
+      suits,
+      randomCard
+    };
+    
+    hlSessions.set(`${guildId}:${userId}`, hlSession);
+    
+    return res.json({
+      success: true,
+      card: currentCard,
+      multiplier: hlSession.multiplier,
+      rounds: hlSession.rounds,
+      newBalance: user.balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/games/higherlower/action', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { choice } = req.body;
+    
+    const key = `${guildId}:${userId}`;
+    const game = hlSessions.get(key);
+    if (!game) return res.status(400).json({ error: 'Nenhum jogo ativo.' });
+    
+    const user = db.getUser(guildId, userId);
+    
+    if (choice === 'cashout') {
+      const winnings = Math.round(game.bet * game.multiplier);
+      const net = winnings - game.bet;
+      
+      user.balance += winnings;
+      db.saveUser(guildId, userId, user);
+      
+      db.recordResult(guildId, userId, true, game.bet);
+      db.addTournamentScore(guildId, userId, net);
+      
+      const progression = require('./progression');
+      const ctx = {
+        guildId, userId, member: null, client: discordClient, channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+      };
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Higher/Lower', bet: game.bet, net, won: true, isWeb: true });
+      
+      const cfg = db.getGuildConfig(guildId);
+      if (winnings >= cfg.bigWinThreshold) {
+        const displayName = user.username || userId;
+        const title = '🔼🔽 Vitória no Higher/Lower!';
+        const msg = `🎉 **${displayName}** sacou **${winnings} 🪙** no Higher/Lower com multiplicador x${game.multiplier.toFixed(2)}! 🚀`;
+        announceWebEvent(guildId, 'win', { title, message: msg, username: displayName, game: 'Higher/Lower', amount: winnings, bet: game.bet, isJackpot: false });
+      }
+      
+      hlSessions.delete(key);
+      
+      return res.json({
+        success: true,
+        status: 'cashout',
+        winnings,
+        netReward: net,
+        newBalance: user.balance,
+        xpResult: prog.xpResult,
+        newBadges: prog.newBadges
+      });
+    }
+    
+    const nextCard = game.randomCard();
+    const curIdx = game.ranks.indexOf(game.currentCard.rank);
+    const nextIdx = game.ranks.indexOf(nextCard.rank);
+    
+    if (nextIdx === curIdx) {
+      game.currentCard = nextCard;
+      return res.json({
+        success: true,
+        status: 'push',
+        card: nextCard,
+        multiplier: game.multiplier,
+        rounds: game.rounds
+      });
+    }
+    
+    const correct = choice === 'higher' ? nextIdx > curIdx : nextIdx < curIdx;
+    game.currentCard = nextCard;
+    
+    if (!correct) {
+      const net = -game.bet;
+      db.recordResult(guildId, userId, false, game.bet);
+      db.addTournamentScore(guildId, userId, net);
+      
+      const progression = require('./progression');
+      const ctx = {
+        guildId, userId, member: null, client: discordClient, channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+      };
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Higher/Lower', bet: game.bet, net, won: false, isWeb: true });
+      
+      hlSessions.delete(key);
+      
+      return res.json({
+        success: true,
+        status: 'lost',
+        card: nextCard,
+        netReward: net,
+        newBalance: user.balance,
+        xpResult: prog.xpResult,
+        newBadges: prog.newBadges
+      });
+    }
+    
+    game.rounds += 1;
+    const probability = choice === 'higher'
+      ? (game.ranks.length - 1 - curIdx) / (game.ranks.length - 1)
+      : curIdx / (game.ranks.length - 1);
+    
+    const HOUSE_EDGE = 0.95;
+    const stepMult = probability > 0 ? HOUSE_EDGE / probability : 2;
+    game.multiplier *= Math.min(stepMult, 4);
+    
+    return res.json({
+      success: true,
+      status: 'playing',
+      card: nextCard,
+      multiplier: game.multiplier,
+      rounds: game.rounds
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.get('/api/bank/loan', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const loan = db.getLoan(guildId, userId);
+    const cfg = db.getGuildConfig(guildId);
+    
+    return res.json({
+      success: true,
+      loan,
+      maxAmount: cfg.loanMaxAmount,
+      interestPercent: cfg.loanInterestPercent
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/bank/loan/request', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { amount } = req.body;
+    
+    const cfg = db.getGuildConfig(guildId);
+    if (typeof amount !== 'number' || amount <= 0 || amount > cfg.loanMaxAmount) {
+      return res.status(400).json({ error: `Valor inválido (máx: ${cfg.loanMaxAmount} 🪙).` });
+    }
+    
+    const activeLoan = db.getLoan(guildId, userId);
+    if (activeLoan) return res.status(400).json({ error: 'Já tens um empréstimo ativo. Paga-o primeiro!' });
+    
+    const loan = db.createLoan(guildId, userId, amount, cfg.loanInterestPercent, cfg.loanDurationMs);
+    const user = db.getUser(guildId, userId);
+    
+    return res.json({ success: true, loan, newBalance: user.balance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/bank/loan/repay', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { amount } = req.body;
+    
+    const loan = db.getLoan(guildId, userId);
+    if (!loan) return res.status(400).json({ error: 'Não tens nenhum empréstimo ativo.' });
+    
+    if (typeof amount !== 'number' || amount <= 0) return res.status(400).json({ error: 'Valor de pagamento inválido.' });
+    
+    const user = db.getUser(guildId, userId);
+    if (user.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
+    
+    const updatedLoan = db.repayLoan(guildId, userId, amount);
+    const updatedUser = db.getUser(guildId, userId);
+    
+    return res.json({ success: true, loan: updatedLoan, newBalance: updatedUser.balance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.get('/api/lottery/state', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const lottery = db.getLottery(guildId);
+    const cfg = db.getGuildConfig(guildId);
+    const myTickets = lottery.tickets[userId] || 0;
+    
+    return res.json({
+      success: true,
+      jackpot: lottery.jackpot,
+      ticketPrice: cfg.lotteryTicketPrice,
+      myTickets,
+      lastDrawAt: lottery.lastDrawAt
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/lottery/buy', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { quantity } = req.body;
+    
+    if (typeof quantity !== 'number' || quantity <= 0) return res.status(400).json({ error: 'Quantidade de bilhetes inválida.' });
+    
+    const cfg = db.getGuildConfig(guildId);
+    const cost = quantity * cfg.lotteryTicketPrice;
+    
+    const user = db.getUser(guildId, userId);
+    if (user.balance < cost) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    
+    const result = db.buyLotteryTickets(guildId, userId, quantity, cfg.lotteryTicketPrice);
+    if (!result) return res.status(400).json({ error: 'Erro ao comprar bilhetes.' });
+    
+    const updatedUser = db.getUser(guildId, userId);
+    
+    return res.json({
+      success: true,
+      myTickets: result.totalTickets,
+      jackpot: result.jackpot,
+      newBalance: updatedUser.balance
+    });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/transfer', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { targetUserId, amount } = req.body;
+    
+    if (!targetUserId || typeof amount !== 'number' || amount <= 0) {
+      return res.status(400).json({ error: 'Parâmetros de transferência inválidos.' });
+    }
+    
+    if (userId === targetUserId) {
+      return res.status(400).json({ error: 'Não podes transferir moedas para ti próprio!' });
+    }
+    
+    const user = db.getUser(guildId, userId);
+    if (user.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente.' });
+    
+    const targetUser = db.getUser(guildId, targetUserId);
+    if (!targetUser) return res.status(404).json({ error: 'Destinatário não encontrado.' });
+    
+    db.addBalance(guildId, userId, -amount);
+    db.addBalance(guildId, targetUserId, amount);
+    
+    db.pushHistory(guildId, userId, { game: `Transferência Enviada`, bet: amount, net: -amount });
+    db.pushHistory(guildId, targetUserId, { game: `Transferência Recebida`, bet: 0, net: amount });
+    
+    // Announce event to Discord (Logs)
+    if (discordClient) {
+      try {
+        const cfg = db.getGuildConfig(guildId);
+        const logChan = cfg.logChannelId ? await discordClient.channels.fetch(cfg.logChannelId).catch(() => null) : null;
+        if (logChan) {
+          const uName = user.username || userId;
+          const tName = targetUser.username || targetUserId;
+          await logChan.send(`💸 **${uName}** transferiu **${amount} 🪙** para **${tName}** no Site.`);
+        }
+      } catch {}
+    }
+    
+    return res.json({ success: true, newBalance: user.balance });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
+app.post('/api/rob', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const { targetUserId } = req.body;
+    
+    if (!targetUserId) {
+      return res.status(400).json({ error: 'ID do destinatário em falta.' });
+    }
+    if (userId === targetUserId) {
+      return res.status(400).json({ error: 'Não podes roubar-te a ti próprio!' });
+    }
+    
+    const cfg = db.getGuildConfig(guildId);
+    
+    const cooldown = db.getCooldown(guildId, userId, 'roubar');
+    if (cooldown > 0) {
+      return res.status(400).json({ error: `Estás sob vigilância. Espera mais ${(cooldown/60000).toFixed(0)} min.` });
+    }
+    
+    const robber = db.getUser(guildId, userId);
+    const victim = db.getUser(guildId, targetUserId);
+    if (!victim) {
+      return res.status(404).json({ error: 'Vítima não encontrada no servidor.' });
+    }
+    
+    if (victim.balance < 50) {
+      return res.status(400).json({ error: 'A vítima não tem moedas suficientes na carteira.' });
+    }
+    
+    db.setCooldown(guildId, userId, 'roubar', cfg.robCooldownMs || 15 * 60 * 1000);
+    
+    const success = Math.random() * 100 < (cfg.robSuccessChance || 50);
+    
+    if (success) {
+      const minP = cfg.robMinPercent || 10;
+      const maxP = cfg.robMaxPercent || 30;
+      const percent = minP + Math.random() * (maxP - minP);
+      const amount = Math.round(victim.balance * (percent / 100));
+      
+      db.addBalance(guildId, targetUserId, -amount);
+      db.addBalance(guildId, userId, amount);
+      db.setRobbedNow(guildId, targetUserId);
+      
+      db.pushHistory(guildId, userId, { game: `Roubo bem-sucedido`, bet: 0, net: amount });
+      db.pushHistory(guildId, targetUserId, { game: `Foste Roubado`, bet: 0, net: -amount });
+      
+      if (discordClient) {
+        try {
+          const logChan = cfg.logChannelId ? await discordClient.channels.fetch(cfg.logChannelId).catch(() => null) : null;
+          if (logChan) {
+            const rName = robber.username || userId;
+            const vName = victim.username || targetUserId;
+            await logChan.send(`🕵️ **${rName}** roubou **${amount} 🪙** a **${vName}** no Site.`);
+          }
+        } catch {}
+      }
+      
+      return res.json({ success: true, won: true, amount, newBalance: robber.balance });
+    } else {
+      const finePercent = cfg.robFailFinePercent || 10;
+      const fine = Math.round(robber.balance * (finePercent / 100)) || 50;
+      
+      db.addBalance(guildId, userId, -fine);
+      db.addBalance(guildId, targetUserId, fine);
+      
+      db.pushHistory(guildId, userId, { game: `Falha ao Roubar`, bet: 0, net: -fine });
+      db.pushHistory(guildId, targetUserId, { game: `Multa Recebida de Roubo`, bet: 0, net: fine });
+      
+      if (discordClient) {
+        try {
+          const logChan = cfg.logChannelId ? await discordClient.channels.fetch(cfg.logChannelId).catch(() => null) : null;
+          if (logChan) {
+            const rName = robber.username || userId;
+            const vName = victim.username || targetUserId;
+            await logChan.send(`🚨 **${rName}** falhou ao roubar **${vName}** no Site e pagou uma multa de **${fine} 🪙**.`);
+          }
+        } catch {}
+      }
+      
+      return res.json({ success: true, won: false, fine, newBalance: robber.balance });
+    }
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor' });
+  }
+});
+
 app.post('/api/jobs/start', async (req, res) => {
   const session = getSession(req);
   if (!session) return res.status(401).json({ error: 'Não autorizado.' });
 
   const { guildId, userId } = session;
   const { job } = req.body;
-  if (!['trabalhar', 'pesca', 'hack'].includes(job)) {
+  if (!['trabalhar', 'pesca', 'hack', 'crime'].includes(job)) {
     return res.status(400).json({ error: 'Trabalho inválido.' });
   }
 
-  const cooldownKey = job === 'trabalhar' ? 'trabalhar' : (job === 'pesca' ? 'pescar' : 'hackear');
+  const cooldownKey = job === 'trabalhar' ? 'trabalhar' : (job === 'pesca' ? 'pescar' : (job === 'hack' ? 'hackear' : 'crime'));
   const cooldown = db.getCooldown(guildId, userId, cooldownKey);
   if (cooldown > 0) {
     return res.status(400).json({ error: 'Este trabalho ainda está em cooldown.' });
@@ -1906,6 +2491,17 @@ app.post('/api/jobs/complete', async (req, res) => {
     cooldownKey = 'trabalhar';
     cooldownMs = cfg.workCooldownMs;
     gameName = 'Faxina Rápida';
+  } else if (job === 'crime') {
+    cooldownKey = 'crime';
+    cooldownMs = 30 * 60 * 1000;
+    gameName = 'Crime';
+    if (score > 0) {
+      reward = Math.round(200 + Math.random() * 600);
+    } else {
+      const user = db.getUser(guildId, userId);
+      const finePercent = 10 + Math.floor(Math.random() * 6);
+      reward = -Math.round(user.balance * (finePercent / 100)) || -50;
+    }
   } else {
     return res.status(400).json({ error: 'Trabalho inválido.' });
   }
@@ -2610,7 +3206,6 @@ app.post('/api/games/slots', async (req, res) => {
     }
     
     const updatedUser = db.getUser(guildId, userId);
-    const cfg = db.getGuildConfig(guildId);
 
     // Announce wins via Discord + Web Chat + SSE lateral pop-up
     if (win && (winnings >= cfg.bigWinThreshold || isJackpot)) {
@@ -2940,7 +3535,7 @@ function resolvePayouts() {
   const dBust = dScore > 21;
   const dBJ = dScore === 21 && bjTable.dealerCards.length === 2;
 
-  bjTable.players.forEach(p => {
+  bjTable.players.forEach(async p => {
     const pScore = p.score;
     const pBJ = p.status === 'blackjack';
     
@@ -3469,6 +4064,20 @@ app.use((err, req, res, next) => {
 // 3) The web global chat as a system message
 async function announceWebEvent(guildId, eventType, details) {
   try {
+    let resolvedUsername = details.username;
+    if (resolvedUsername && /^\d+$/.test(resolvedUsername)) {
+      const dbUser = db.getUser(guildId, resolvedUsername);
+      if (dbUser && dbUser.username && !/^\d+$/.test(dbUser.username)) {
+        resolvedUsername = dbUser.username;
+      }
+    }
+    
+    if (details.message && details.username && /^\d+$/.test(details.username) && resolvedUsername !== details.username) {
+      details.message = details.message.replace(new RegExp(details.username, 'g'), resolvedUsername);
+    }
+    
+    details.username = resolvedUsername;
+
     if (eventType === 'win') {
       globalWins.unshift({
         username: details.username,

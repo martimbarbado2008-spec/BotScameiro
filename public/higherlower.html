@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Alto ou Baixo — Casino</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --gold: #f1c40f;
+    --gold-glow: rgba(241, 196, 15, 0.25);
+    --pine: #090e0c;
+    --charcoal: #e5f3eb;
+    --panel-bg: rgba(255, 255, 255, 0.03);
+    --border: rgba(255, 255, 255, 0.06);
+    --win: #2ecc71;
+    --lose: #e74c3c;
+    --shadow: 0 12px 40px 0 rgba(0, 0, 0, 0.5);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: 'Outfit', sans-serif;
+    background: radial-gradient(circle at center, #111a15 0%, #090e0c 100%);
+    color: var(--charcoal);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 20px 16px;
+  }
+  .container {
+    width: 100%;
+    max-width: 440px;
+    background: var(--panel-bg);
+    border: 1px solid var(--border);
+    border-radius: 28px;
+    padding: 32px 24px;
+    box-shadow: var(--shadow);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .container::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; height: 4px;
+    background: linear-gradient(90deg, #f1c40f, #2ecc71);
+  }
+  .btn-back {
+    position: absolute;
+    top: 20px; left: 20px;
+    background: rgba(255,255,255,0.05);
+    border: 1px solid var(--border);
+    color: var(--charcoal);
+    border-radius: 50%;
+    width: 36px; height: 36px;
+    display: flex; align-items: center; justify-content: center;
+    cursor: pointer; text-decoration: none;
+    font-size: 14px; font-weight: 700;
+    transition: all .2s;
+  }
+  .btn-back:hover { background: rgba(255,255,255,0.12); transform: scale(1.05); }
+
+  h1 { font-size: 26px; font-weight: 800; margin: 20px 0 6px; }
+  p.subtitle { font-size: 13px; color: #8ead9e; margin: 0 0 24px; }
+
+  .hud-balance { font-size: 12px; color: #8ead9e; margin-bottom: 24px; font-weight: 600; }
+  .hud-balance span { color: var(--gold); }
+
+  /* 3D Card Animation */
+  .card-container {
+    perspective: 1000px;
+    width: 130px; height: 190px;
+    margin: 0 auto 24px;
+  }
+  .card {
+    width: 100%; height: 100%;
+    position: relative;
+    transform-style: preserve-3d;
+    transition: transform 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    cursor: default;
+  }
+  .card.flip {
+    transform: rotateY(180deg);
+  }
+  .card-face {
+    width: 100%; height: 100%;
+    border-radius: 14px;
+    position: absolute;
+    backface-visibility: hidden;
+    display: flex; flex-direction: column;
+    justify-content: space-between;
+    padding: 16px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.3);
+  }
+  .card-back {
+    background: linear-gradient(135deg, #1b3628 0%, #0d1a13 100%);
+    border: 3px solid var(--border);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 36px;
+  }
+  .card-front {
+    background: #fff;
+    color: #000;
+    border: 1px solid #ddd;
+    transform: rotateY(180deg);
+  }
+  .card-top { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; }
+  .card-rank { font-size: 28px; font-weight: 800; }
+  .card-suit { font-size: 22px; margin-top: 2px; }
+  .card-center { font-size: 52px; align-self: center; line-height: 1; margin-top: -10px; }
+  .card-bottom { display: flex; flex-direction: column; align-items: flex-end; line-height: 1; transform: rotate(180deg); }
+
+  .red-card { color: #e74c3c !important; }
+  .black-card { color: #2c3e50 !important; }
+
+  /* Game Stats */
+  .stats-row {
+    display: flex; gap: 12px; margin-bottom: 24px;
+  }
+  .stat-card {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 12px; flex: 1;
+    text-align: center;
+  }
+  .stat-card .label { font-size: 9px; color: #8ead9e; text-transform: uppercase; font-weight: 700; letter-spacing: 0.05em; }
+  .stat-card .val { font-size: 18px; font-weight: 800; margin-top: 4px; color: #fff; }
+  .stat-card .val.gold-text { color: var(--gold); }
+
+  /* Input/Control Area */
+  .bet-wrapper {
+    background: rgba(0,0,0,0.2);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 24px;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+  .bet-input-container { flex: 1; text-align: left; }
+  .bet-input-container label { font-size: 10px; color: #8ead9e; font-weight: 700; text-transform: uppercase; }
+  .bet-input-container input {
+    width: 100%; background: transparent; border: none; outline: none;
+    color: #fff; font-size: 18px; font-weight: 700; margin-top: 4px;
+  }
+  .bet-shortcuts { display: flex; gap: 6px; }
+  .shortcut-btn {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--charcoal);
+    padding: 6px 10px;
+    font-size: 11px; font-weight: 700;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .shortcut-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* Game Controls */
+  .game-controls { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  .btn-guess {
+    background: rgba(255,255,255,0.02);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    font-weight: 800; font-size: 15px;
+    color: var(--charcoal);
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .btn-guess.up { border-color: rgba(46, 204, 113, 0.3); }
+  .btn-guess.up:hover { background: rgba(46, 204, 113, 0.08); border-color: #2ecc71; }
+  .btn-guess.down { border-color: rgba(231, 76, 60, 0.3); }
+  .btn-guess.down:hover { background: rgba(231, 76, 60, 0.08); border-color: #e74c3c; }
+  
+  .btn-cashout {
+    width: 100%;
+    background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+    border: none; outline: none;
+    color: #fff; font-size: 16px; font-weight: 800;
+    padding: 18px; border-radius: 16px;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 6px 20px rgba(46, 204, 113, 0.25);
+  }
+  .btn-cashout:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px rgba(46, 204, 113, 0.35); }
+  .btn-cashout:disabled { opacity: 0.5; cursor: not-allowed; box-shadow: none; }
+
+  .btn-start {
+    width: 100%;
+    background: linear-gradient(135deg, #f1c40f 0%, #f39c12 100%);
+    border: none; outline: none;
+    color: #000; font-size: 16px; font-weight: 800;
+    padding: 18px; border-radius: 16px;
+    cursor: pointer;
+    transition: all .2s;
+    box-shadow: 0 6px 20px var(--gold-glow);
+  }
+  .btn-start:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 8px 25px var(--gold-glow); }
+  .btn-start:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* Banner result */
+  .result-banner {
+    display: none;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    padding: 16px;
+    margin-top: 24px;
+    animation: fadeIn .3s ease forwards;
+  }
+  .result-banner.win { border-color: rgba(46, 204, 113, 0.4); background: rgba(46, 204, 113, 0.05); }
+  .result-banner.lose { border-color: rgba(231, 76, 60, 0.4); background: rgba(231, 76, 60, 0.05); }
+  .result-title { font-size: 16px; font-weight: 800; margin: 0 0 4px; }
+  .result-desc { font-size: 12px; color: #8ead9e; }
+</style>
+</head>
+<body>
+
+<div class="container">
+  <a href="/jogos.html" class="btn-back">⬅</a>
+  
+  <h1>Alto ou Baixo</h1>
+  <p class="subtitle">Guesses consecutivas de cartas aumentam as tuas odds</p>
+
+  <div class="hud-balance">Saldo da Carteira: <span id="balanceDisplay">A carregar...</span> 🪙</div>
+
+  <div class="card-container">
+    <div class="card" id="cardElement">
+      <div class="card-face card-back">🃏</div>
+      <div class="card-face card-front" id="cardFront">
+        <div class="card-top">
+          <div class="card-rank" id="cardRankTop">A</div>
+          <div class="card-suit" id="cardSuitTop">♣</div>
+        </div>
+        <div class="card-center" id="cardCenter">♣</div>
+        <div class="card-bottom">
+          <div class="card-rank" id="cardRankBot">A</div>
+          <div class="card-suit" id="cardSuitBot">♣</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div class="stats-row">
+    <div class="stat-card">
+      <div class="label">Rondas Ganhas</div>
+      <div class="val" id="roundsDisplay">0</div>
+    </div>
+    <div class="stat-card">
+      <div class="label">Multiplicador</div>
+      <div class="val gold-text" id="multDisplay">x1.00</div>
+    </div>
+  </div>
+
+  <!-- Bet Panel (Visible before starting) -->
+  <div id="betPanel">
+    <div class="bet-wrapper">
+      <div class="bet-input-container">
+        <label>Valor da Aposta</label>
+        <input type="number" id="betInput" value="100" min="10">
+      </div>
+      <div class="bet-shortcuts">
+        <button class="shortcut-btn" onclick="adjustBet('half')">/2</button>
+        <button class="shortcut-btn" onclick="adjustBet('double')">2x</button>
+        <button class="shortcut-btn" onclick="adjustBet('max')">MAX</button>
+      </div>
+    </div>
+    <button class="btn-start" onclick="startGame()">COMEÇAR JOGO</button>
+  </div>
+
+  <!-- Guess Panel (Visible during play) -->
+  <div id="guessPanel" style="display: none;">
+    <div class="game-controls">
+      <button class="btn-guess up" onclick="makeGuess('higher')">⬆️ MAIOR</button>
+      <button class="btn-guess down" onclick="makeGuess('lower')">⬇️ MENOR</button>
+    </div>
+    <button class="btn-cashout" id="btnCashout" onclick="cashout()">SACAR MÚLTIPLO</button>
+  </div>
+
+  <div class="result-banner" id="resultBanner">
+    <div class="result-title" id="resultTitle">FIM DE JOGO!</div>
+    <div class="result-desc" id="resultDesc">Erraste na previsão.</div>
+  </div>
+</div>
+
+<script>
+  let balance = 0;
+  let minBet = 10;
+  let maxBet = 50000;
+  let isPlaying = false;
+  let currentCard = null;
+
+  async function loadBalance() {
+    try {
+      const res = await fetch('/api/dashboard/data');
+      if (!res.ok) {
+        window.location.href = '/login.html';
+        return;
+      }
+      const data = await res.json();
+      balance = data.balance;
+      minBet = data.minBet || 10;
+      maxBet = data.maxBet || 50000;
+      document.getElementById('balanceDisplay').textContent = balance.toLocaleString('pt-PT');
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  function adjustBet(action) {
+    if (isPlaying) return;
+    const input = document.getElementById('betInput');
+    let val = parseInt(input.value, 10) || 0;
+    if (action === 'half') val = Math.max(10, Math.floor(val / 2));
+    else if (action === 'double') val = Math.min(balance, val * 2);
+    else if (action === 'max') val = Math.min(balance, maxBet);
+    input.value = val;
+  }
+
+  function renderCard(card) {
+    const cardFront = document.getElementById('cardFront');
+    const isRed = ['♥', '♦'].includes(card.suit);
+    
+    cardFront.className = `card-face card-front ${isRed ? 'red-card' : 'black-card'}`;
+    
+    document.getElementById('cardRankTop').textContent = card.rank;
+    document.getElementById('cardSuitTop').textContent = card.suit;
+    document.getElementById('cardCenter').textContent = card.suit;
+    document.getElementById('cardRankBot').textContent = card.rank;
+    document.getElementById('cardSuitBot').textContent = card.suit;
+  }
+
+  async function startGame() {
+    if (isPlaying) return;
+    
+    const betInput = document.getElementById('betInput');
+    const bet = parseInt(betInput.value, 10);
+    
+    if (isNaN(bet) || bet < minBet) {
+      alert(`Aposta mínima é de ${minBet} moedas.`);
+      return;
+    }
+    if (bet > balance) {
+      alert('Saldo insuficiente.');
+      return;
+    }
+
+    try {
+      const res = await fetch('/api/games/higherlower/start', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bet })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || 'Erro ao iniciar jogo.');
+        return;
+      }
+
+      isPlaying = true;
+      currentCard = data.card;
+      balance = data.newBalance;
+      document.getElementById('balanceDisplay').textContent = balance.toLocaleString('pt-PT');
+
+      renderCard(currentCard);
+      document.getElementById('roundsDisplay').textContent = '0';
+      document.getElementById('multDisplay').textContent = 'x1.00';
+      document.getElementById('btnCashout').disabled = true;
+
+      // Animacao de virar carta
+      const card = document.getElementById('cardElement');
+      card.classList.remove('flip');
+      void card.offsetWidth;
+      card.classList.add('flip');
+
+      document.getElementById('betPanel').style.display = 'none';
+      document.getElementById('guessPanel').style.display = 'block';
+      document.getElementById('resultBanner').style.display = 'none';
+
+    } catch (e) {
+      alert('Erro de rede.');
+    }
+  }
+
+  async function makeGuess(choice) {
+    if (!isPlaying) return;
+
+    try {
+      const res = await fetch('/api/games/higherlower/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || 'Erro ao enviar jogada.');
+        return;
+      }
+
+      // Virar de volta para o verso, depois revelar nova carta
+      const card = document.getElementById('cardElement');
+      card.classList.remove('flip');
+      
+      setTimeout(() => {
+        renderCard(data.card);
+        card.classList.add('flip');
+        
+        if (data.status === 'lost') {
+          endGame(false, `A carta era o **${data.card.rank}${data.card.suit}**. Perdeste a aposta.`);
+        } else if (data.status === 'push') {
+          alert('Empate! Nova carta do mesmo rank sorteada. A ronda repete-se.');
+        } else if (data.status === 'playing') {
+          document.getElementById('roundsDisplay').textContent = data.rounds;
+          document.getElementById('multDisplay').textContent = `x${data.multiplier.toFixed(2)}`;
+          document.getElementById('btnCashout').disabled = data.rounds === 0;
+        }
+      }, 300);
+
+    } catch (e) {
+      alert('Erro de rede.');
+    }
+  }
+
+  async function cashout() {
+    if (!isPlaying) return;
+
+    try {
+      const res = await fetch('/api/games/higherlower/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ choice: 'cashout' })
+      });
+      const data = await res.json();
+
+      if (!res.ok) {
+        alert(data.error || 'Erro ao fazer saque.');
+        return;
+      }
+
+      balance = data.newBalance;
+      document.getElementById('balanceDisplay').textContent = balance.toLocaleString('pt-PT');
+      
+      endGame(true, `Sacasmo efetuado com sucesso! Ganhaste **+${data.winnings.toLocaleString('pt-PT')} 🪙**!`);
+
+    } catch (e) {
+      alert('Erro de rede.');
+    }
+  }
+
+  function endGame(won, message) {
+    isPlaying = false;
+    currentCard = null;
+    
+    document.getElementById('betPanel').style.display = 'block';
+    document.getElementById('guessPanel').style.display = 'none';
+    
+    const banner = document.getElementById('resultBanner');
+    const title = document.getElementById('resultTitle');
+    const desc = document.getElementById('resultDesc');
+    
+    banner.className = `result-banner ${won ? 'win' : 'lose'}`;
+    title.textContent = won ? '🎉 Sucesso!' : '🚨 Fim de Jogo!';
+    title.style.color = won ? 'var(--win)' : 'var(--lose)';
+    desc.innerHTML = message;
+    
+    banner.style.display = 'block';
+    loadBalance();
+  }
+
+  window.onload = loadBalance;
+</script>
+</body>
+</html>

@@ -1230,6 +1230,18 @@
               </div>
             </div>
 
+            <!-- Job 4 (Crime) -->
+            <div class="job-card">
+              <div class="job-header">
+                <h3>Cracking do Cofre</h3>
+                <p>Arromba um cofre de alta segurança parando o ponteiro na zona verde. Falhar custa caro!</p>
+              </div>
+              <div class="job-footer">
+                <span class="cooldown-text" id="cooldown-crime"></span>
+                <button class="btn-play" id="btn-crime" onclick="startJob('crime')" style="background: #e74c3c; border-color: rgba(231, 76, 60, 0.4); color: #fff;">Arrombar</button>
+              </div>
+            </div>
+
             <!-- Bónus Diário -->
             <div class="job-card" style="border: 1px solid rgba(250, 202, 43, 0.2); background: rgba(250, 202, 43, 0.02); box-shadow: 0 4px 15px rgba(250, 202, 43, 0.05);">
               <div class="job-header">
@@ -1264,7 +1276,41 @@
           </table>
         </div>
 
+        <!-- Painel de Empréstimos -->
+        <div class="panel">
+          <h2 class="panel-title"><span class="emoji">🏦</span> Empréstimos do Banco</h2>
+          <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.05); border-radius: 12px; padding: 14px; margin-bottom: 14px; text-align: left; font-size: 13px;">
+            <div id="loanActiveStatus">A carregar informações...</div>
+          </div>
+          <div id="loanActionWrapper" style="display: flex; gap: 8px;">
+            <input type="number" id="loanAmountInput" placeholder="Valor a pedir..." style="flex: 1; padding: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px;">
+            <button class="btn-play" onclick="requestLoan()" style="background: var(--gold); color: #000; border-color: rgba(241, 196, 15, 0.4); font-weight: 700;">Pedir</button>
+          </div>
+          <div id="loanRepayWrapper" style="display: none; gap: 8px;">
+            <input type="number" id="loanRepayInput" placeholder="Valor a pagar..." style="flex: 1; padding: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px;">
+            <button class="btn-play" onclick="repayLoan()" style="background: var(--mint); color: #000; border-color: var(--mint-glow); font-weight: 700;">Pagar</button>
+          </div>
+        </div>
 
+        <!-- Painel de Lotaria -->
+        <div class="panel">
+          <h2 class="panel-title"><span class="emoji">🎟️</span> Lotaria do Servidor</h2>
+          <div style="background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.04); border-radius: 12px; padding: 14px; margin-bottom: 14px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; font-size: 13px; text-align: left;">
+            <div>
+              <span style="opacity: 0.6;">🎟️ Meus Bilhetes:</span> <br><span id="lotteryMyTickets" style="font-weight: 800; color: var(--gold); font-size: 16px;">0</span>
+            </div>
+            <div style="text-align: right;">
+              <span style="opacity: 0.6;">💰 Jackpot Atual:</span> <br><span id="lotteryJackpot" style="font-weight: 800; color: var(--mint); font-size: 16px;">0 🪙</span>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="lotteryQuantityInput" value="1" min="1" style="width: 80px; padding: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px; text-align: center;">
+            <button class="btn-play" onclick="buyLotteryTickets()" style="flex: 1; background: var(--mint); color: #000; border-color: var(--mint-glow); font-weight: 700;">Comprar Bilhetes 🎟️</button>
+          </div>
+          <div style="font-size: 10px; color: var(--text-muted); margin-top: 8px; text-align: left;" id="lotteryPriceLabel">
+            Preço por bilhete: 100 🪙
+          </div>
+        </div>
 
         <!-- Painel de Blackjack Multiplayer -->
         <div class="panel">
@@ -1361,6 +1407,39 @@
           <h2 class="panel-title"><span class="emoji">📋</span> Últimas Atividades</h2>
           <div class="history-list" id="historyList">
             <!-- Renderizado dinamicamente -->
+          </div>
+        </div>
+
+        <!-- Painel de Roubo -->
+        <div class="panel">
+          <h2 class="panel-title"><span class="emoji">🕵️</span> Roubar Jogador</h2>
+          <div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Discord ID da Vítima</label>
+              <input type="text" id="robTargetInput" placeholder="Ex: 284218390192837..." style="width: 100%; padding: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px;">
+            </div>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 4px;">
+              <span class="cooldown-text" id="cooldown-rob" style="font-size: 11px;">Pronto</span>
+              <button class="btn-play" id="btn-rob" onclick="executeRob()" style="background: #e74c3c; border-color: rgba(231, 76, 60, 0.4); color: #fff; font-weight: 700; padding: 10px 20px;">Tentar Roubo 🕵️</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Painel de Transferência -->
+        <div class="panel">
+          <h2 class="panel-title"><span class="emoji">💸</span> Transferir Moedas</h2>
+          <div style="display: flex; flex-direction: column; gap: 10px; text-align: left;">
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Discord ID do Destinatário</label>
+              <input type="text" id="transferTargetInput" placeholder="Ex: 284218390192837..." style="width: 100%; padding: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px;">
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 4px;">
+              <label style="font-size: 10px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.05em;">Quantidade de Moedas</label>
+              <input type="number" id="transferAmountInput" placeholder="Ex: 500" style="width: 100%; padding: 10px; background: rgba(0,0,0,0.25); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; color: var(--text); font-size: 13px;">
+            </div>
+            
+            <button class="btn-play" onclick="executeTransfer()" style="background: var(--gold); color: #000; border-color: rgba(241, 196, 15, 0.4); font-weight: 700; width: 100%; padding: 12px; margin-top: 6px;">Enviar Moedas 💸</button>
           </div>
         </div>
       </div>
@@ -1613,7 +1692,13 @@
       setupCooldown('work', appData.cooldowns.work, 'Limpar');
       setupCooldown('pesca', appData.cooldowns.pesca, 'Pescar');
       setupCooldown('hack', appData.cooldowns.hack, 'Infiltrar');
+      setupCooldown('crime', appData.cooldowns.crime, 'Arrombar');
+      setupCooldown('rob', appData.cooldowns.rob, 'Tentar Roubo 🕵️');
       setupCooldown('daily', appData.cooldowns.daily, 'Reivindicar');
+
+      // Atualizar Empréstimos e Lotaria
+      updateLoanSection();
+      updateLotterySection();
 
       // Tabela Crypto
       const cryptoTableBody = document.getElementById('cryptoTableBody');
@@ -1883,7 +1968,8 @@
         const fileMap = {
           'trabalhar': 'trabalho.html',
           'pesca': 'pesca.html',
-          'hack': 'hack.html'
+          'hack': 'hack.html',
+          'crime': 'crime.html'
         };
         window.location.href = `/${fileMap[job]}?jobToken=${data.jobToken}`;
       } catch (err) {
@@ -2352,6 +2438,204 @@
       sseSource.onerror = (err) => {
         console.warn("Ligação em tempo real SSE perdida. A tentar reconectar...");
       };
+    }
+
+    async function updateLoanSection() {
+      try {
+        const res = await fetch('/api/bank/loan');
+        const data = await res.json();
+        if (!data.success) return;
+        
+        const statusEl = document.getElementById('loanActiveStatus');
+        const actionWrapper = document.getElementById('loanActionWrapper');
+        const repayWrapper = document.getElementById('loanRepayWrapper');
+        
+        if (data.loan) {
+          const l = data.loan;
+          const remaining = Math.round(l.amountOwed);
+          const dueDate = new Date(l.dueDate).toLocaleDateString('pt-PT');
+          statusEl.innerHTML = `
+            <span style="color: #e74c3c; font-weight: 800;">Dívida Ativa:</span> <b style="color: #fff;">${remaining.toLocaleString('pt-PT')} 🪙</b><br>
+            <span style="opacity: 0.6; font-size: 11px;">Juros: ${l.interestPercent}% | Vence a: ${dueDate}</span>
+          `;
+          actionWrapper.style.display = 'none';
+          repayWrapper.style.display = 'flex';
+        } else {
+          statusEl.innerHTML = `
+            <span style="color: var(--mint); font-weight: 800;">Sem dívidas!</span><br>
+            <span style="opacity: 0.6; font-size: 11px;">Limite de crédito: ${data.maxAmount.toLocaleString('pt-PT')} 🪙 | Juros: ${data.interestPercent}%</span>
+          `;
+          actionWrapper.style.display = 'flex';
+          repayWrapper.style.display = 'none';
+        }
+      } catch (e) {
+        console.error("Erro ao carregar dados do empréstimo:", e);
+      }
+    }
+
+    async function requestLoan() {
+      const amountInput = document.getElementById('loanAmountInput');
+      const amount = parseInt(amountInput.value, 10);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Insere um valor de empréstimo válido.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/bank/loan/request', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao pedir empréstimo.");
+          return;
+        }
+        amountInput.value = '';
+        loadDashboard();
+      } catch (e) {
+        alert("Erro de ligação.");
+      }
+    }
+
+    async function repayLoan() {
+      const repayInput = document.getElementById('loanRepayInput');
+      const amount = parseInt(repayInput.value, 10);
+      if (isNaN(amount) || amount <= 0) {
+        alert("Insere um valor de pagamento válido.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/bank/loan/repay', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao pagar empréstimo.");
+          return;
+        }
+        repayInput.value = '';
+        loadDashboard();
+      } catch (e) {
+        alert("Erro de ligação.");
+      }
+    }
+
+    async function updateLotterySection() {
+      try {
+        const res = await fetch('/api/lottery/state');
+        const data = await res.json();
+        if (!data.success) return;
+        
+        document.getElementById('lotteryMyTickets').textContent = data.myTickets.toLocaleString('pt-PT');
+        document.getElementById('lotteryJackpot').textContent = data.jackpot.toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('lotteryPriceLabel').innerHTML = `Preço por bilhete: <b>${data.ticketPrice} 🪙</b>`;
+      } catch (e) {
+        console.error("Erro ao carregar dados da lotaria:", e);
+      }
+    }
+
+    async function buyLotteryTickets() {
+      const qtyInput = document.getElementById('lotteryQuantityInput');
+      const quantity = parseInt(qtyInput.value, 10);
+      if (isNaN(quantity) || quantity <= 0) {
+        alert("Insere uma quantidade de bilhetes válida.");
+        return;
+      }
+      try {
+        const res = await fetch('/api/lottery/buy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ quantity })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao comprar bilhetes.");
+          return;
+        }
+        qtyInput.value = '1';
+        loadDashboard();
+      } catch (e) {
+        alert("Erro de ligação.");
+      }
+    }
+
+    async function executeTransfer() {
+      const targetInput = document.getElementById('transferTargetInput');
+      const amountInput = document.getElementById('transferAmountInput');
+      
+      const targetUserId = targetInput.value.trim();
+      const amount = parseInt(amountInput.value, 10);
+      
+      if (!targetUserId) {
+        alert("Insere o Discord ID do destinatário.");
+        return;
+      }
+      if (isNaN(amount) || amount <= 0) {
+        alert("Insere uma quantidade de moedas válida para transferir.");
+        return;
+      }
+      
+      if (!confirm(`Tens a certeza que queres transferir ${amount} moedas para o ID ${targetUserId}?`)) {
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/transfer', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetUserId, amount })
+        });
+        const data = await res.json();
+        if (!res.ok) {
+          alert(data.error || "Erro ao executar transferência.");
+          return;
+        }
+        
+        alert("Transferência efetuada com sucesso!");
+        targetInput.value = '';
+        amountInput.value = '';
+        loadDashboard();
+      } catch (e) {
+        alert("Erro de ligação.");
+      }
+    }
+
+    async function executeRob() {
+      const targetInput = document.getElementById('robTargetInput');
+      const targetUserId = targetInput.value.trim();
+      
+      if (!targetUserId) {
+        alert("Insere o Discord ID da vítima.");
+        return;
+      }
+      
+      try {
+        const res = await fetch('/api/rob', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ targetUserId })
+        });
+        const data = await res.json();
+        
+        if (!res.ok) {
+          alert(data.error || "Erro ao tentar roubar.");
+          return;
+        }
+        
+        if (data.won) {
+          alert(`Sucesso! Roubaste ${data.amount.toLocaleString('pt-PT')} moedas à vítima! 🕵️`);
+        } else {
+          alert(`Falha! Foste apanhado a roubar e pagaste uma multa de ${data.fine.toLocaleString('pt-PT')} moedas. 🚨`);
+        }
+        
+        targetInput.value = '';
+        loadDashboard();
+      } catch (e) {
+        alert("Erro de ligação.");
+      }
     }
 
     loadDashboard();
