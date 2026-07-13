@@ -42,23 +42,34 @@ async function initDatabase() {
 }
 initDatabase();
 
+const dirtyKeys = new Set();
 let saveTimeout = null;
-function persist() {
+
+function persist(changedKey) {
   if (!redis) return;
-  // Agrupa as escritas para não sobrecarregar a rede a cada jogada
+  if (changedKey) {
+    dirtyKeys.add(changedKey);
+  }
   if (saveTimeout) return;
   saveTimeout = setTimeout(async () => {
     try {
-      await redis.set("casino:users", users);
-      await redis.set("casino:guilds", guilds);
-      await redis.set("casino:tournaments", tournaments);
-      await redis.set("casino:lotteries", lotteries);
-      await redis.set("casino:crypto", cryptoPrices);
-      await redis.set("casino:football:matches", footballMatches);
-      await redis.set("casino:football:bets", footballBets);
-      await redis.set("casino:chat:history", chatHistory);
-      await redis.set("casino:websessions", webSessions);
-      console.log("Dados salvos na Nuvem com sucesso!");
+      const keysToSave = [...dirtyKeys];
+      if (keysToSave.length === 0) return;
+      
+      const promises = [];
+      if (dirtyKeys.has("casino:users")) promises.push(redis.set("casino:users", users));
+      if (dirtyKeys.has("casino:guilds")) promises.push(redis.set("casino:guilds", guilds));
+      if (dirtyKeys.has("casino:tournaments")) promises.push(redis.set("casino:tournaments", tournaments));
+      if (dirtyKeys.has("casino:lotteries")) promises.push(redis.set("casino:lotteries", lotteries));
+      if (dirtyKeys.has("casino:crypto")) promises.push(redis.set("casino:crypto", cryptoPrices));
+      if (dirtyKeys.has("casino:football:matches")) promises.push(redis.set("casino:football:matches", footballMatches));
+      if (dirtyKeys.has("casino:football:bets")) promises.push(redis.set("casino:football:bets", footballBets));
+      if (dirtyKeys.has("casino:chat:history")) promises.push(redis.set("casino:chat:history", chatHistory));
+      if (dirtyKeys.has("casino:websessions")) promises.push(redis.set("casino:websessions", webSessions));
+      
+      dirtyKeys.clear();
+      await Promise.all(promises);
+      console.log(`Dados salvos na Nuvem com sucesso (Chaves: ${keysToSave.join(', ')})!`);
     } catch (err) {
       console.error("Erro ao persistir dados no Redis Remoto:", err);
     }
@@ -101,7 +112,7 @@ function getUser(guildId, userId) {
   const k = key(guildId, userId);
   if (!users[k]) {
     users[k] = defaultUser();
-    persist();
+    persist("casino:users");
     return users[k];
   }
   const u = users[k];
@@ -114,7 +125,7 @@ function getUser(guildId, userId) {
     if (u.stats.wonCoins === undefined) { u.stats.wonCoins = 0; migrated = true; }
     if (u.stats.lostCoins === undefined) { u.stats.lostCoins = 0; migrated = true; }
   }
-  if (migrated) persist();
+  if (migrated) persist("casino:users");
   return u;
 }
 
@@ -137,7 +148,7 @@ function broadcastBalanceUpdate(guildId, userId) {
 
 function saveUser(guildId, userId, data) {
   users[key(guildId, userId)] = data;
-  persist();
+  persist("casino:users");
   broadcastBalanceUpdate(guildId, userId);
 }
 
@@ -145,7 +156,7 @@ function addBalance(guildId, userId, amount) {
   const u = getUser(guildId, userId);
   u.balance += amount;
   if (u.balance < 0) u.balance = 0;
-  persist();
+  persist("casino:users");
   broadcastBalanceUpdate(guildId, userId);
   return u.balance;
 }
@@ -154,7 +165,7 @@ function addBank(guildId, userId, amount) {
   const u = getUser(guildId, userId);
   u.bank += amount;
   if (u.bank < 0) u.bank = 0;
-  persist();
+  persist("casino:users");
   broadcastBalanceUpdate(guildId, userId);
   return u.bank;
 }
@@ -176,7 +187,7 @@ function tickBankInterest() {
       u.lastInterestAt = now;
     }
   }
-  if (applied.length > 0) persist();
+  if (applied.length > 0) persist("casino:users");
   return applied;
 }
 
@@ -189,7 +200,7 @@ function setCooldown(guildId, userId, command, ms) {
     finalMs = Math.round(ms * 0.25); // -75% cooldown (mínimo)
   }
   u.cooldowns[command] = Date.now() + finalMs;
-  persist();
+  persist("casino:users");
 }
 
 function getCooldown(guildId, userId, command) {
@@ -202,14 +213,14 @@ function recordResult(guildId, userId, won, wagered) {
   const u = getUser(guildId, userId);
   u.stats.wagered += wagered;
   if (won) u.stats.wins += 1; else u.stats.losses += 1;
-  persist();
+  persist("casino:users");
 }
 
 function pushHistory(guildId, userId, entry) {
   const u = getUser(guildId, userId);
   u.history.unshift({ ...entry, timestamp: Date.now() });
   if (u.history.length > HISTORY_LIMIT) u.history.length = HISTORY_LIMIT;
-  persist();
+  persist("casino:users");
 }
 
 function getHistory(guildId, userId, limit = 10) {
@@ -296,7 +307,7 @@ function getAllUserIdsForGuild(guildId) {
 
 function resetUser(guildId, userId) {
   users[key(guildId, userId)] = defaultUser();
-  persist();
+  persist("casino:users");
   return users[key(guildId, userId)];
 }
 
@@ -308,7 +319,7 @@ function resetAllUsers(guildId) {
       count += 1;
     }
   }
-  persist();
+  persist("casino:users");
   return count;
 }
 
@@ -327,7 +338,7 @@ function addXp(guildId, userId, amount) {
     leveledUp = true;
     need = xpForLevel(u.level);
   }
-  persist();
+  persist("casino:users");
   return { level: u.level, xp: u.xp, xpNeeded: need, leveledUp };
 }
 
@@ -335,7 +346,7 @@ function addBadge(guildId, userId, badgeId) {
   const u = getUser(guildId, userId);
   if (u.badges.includes(badgeId)) return false;
   u.badges.push(badgeId);
-  persist();
+  persist("casino:users");
   return true;
 }
 
@@ -353,7 +364,7 @@ const DEFAULT_GUILD_CONFIG = {
 function getGuildConfig(guildId) {
   if (!guilds[guildId]) {
     guilds[guildId] = { ...DEFAULT_GUILD_CONFIG };
-    persist();
+    persist("casino:guilds");
     return guilds[guildId];
   }
   const cfg = guilds[guildId];
@@ -365,14 +376,14 @@ function getGuildConfig(guildId) {
     cfg.bigWinThreshold = 1000;
     migrated = true;
   }
-  if (migrated) persist();
+  if (migrated) persist("casino:guilds");
   return cfg;
 }
 
 function setGuildConfig(guildId, patch) {
   const cfg = getGuildConfig(guildId);
   Object.assign(cfg, patch);
-  persist();
+  persist("casino:guilds");
   return cfg;
 }
 
@@ -385,7 +396,7 @@ function createLoan(guildId, userId, principal, interestPercent, durationMs) {
   const owed = Math.round(principal * (1 + interestPercent / 100));
   u.loan = { principal, owed, createdAt: Date.now(), dueAt: Date.now() + durationMs };
   u.balance += principal;
-  persist();
+  persist("casino:users");
   return u.loan;
 }
 
@@ -397,7 +408,7 @@ function repayLoan(guildId, userId, amount) {
   u.loan.owed -= pay;
   u.balance -= pay;
   if (u.loan.owed <= 0) u.loan = null;
-  persist();
+  persist("casino:users");
   return u.loan;
 }
 
@@ -405,7 +416,7 @@ function repayLoan(guildId, userId, amount) {
 function setRobbedNow(guildId, userId) {
   const u = getUser(guildId, userId);
   u.lastRobbedAt = Date.now();
-  persist();
+  persist("casino:users");
 }
 
 // ---- TORNEIOS (portado do database.js antigo, faltavam no ficheiro Redis) ----
@@ -428,7 +439,8 @@ function startTournament(guildId, { durationMs, name, prize, channelId, startedB
     }
   }
 
-  persist();
+  persist("casino:tournaments");
+  persist("casino:users");
   return tournaments[guildId];
 }
 
@@ -449,7 +461,8 @@ function addTournamentScore(guildId, userId, net) {
   const u = getUser(guildId, userId);
   u.tournamentScore = (u.tournamentScore || 0) + net;
 
-  persist();
+  persist("casino:tournaments");
+  persist("casino:users");
 }
 
 function getTournamentLeaderboard(guildId, limit = 10) {
@@ -465,7 +478,7 @@ function endTournament(guildId) {
   const t = tournaments[guildId];
   if (!t) return null;
   t.active = false;
-  persist();
+  persist("casino:tournaments");
   return t;
 }
 
@@ -475,7 +488,7 @@ function getAllGuildIdsWithTournamentSupport() {
 
 function saveTournament(guildId, data) {
   tournaments[guildId] = data;
-  persist();
+  persist("casino:tournaments");
 }
 
 // ---- LOTARIA (getLottery agora cria registo por defeito, como no ficheiro antigo;
@@ -483,18 +496,19 @@ function saveTournament(guildId, data) {
 function getLottery(guildId) {
   if (!lotteries[guildId]) {
     lotteries[guildId] = { jackpot: 0, tickets: {}, drawsCompleted: 0, lastDrawAt: Date.now() };
-    persist();
+    persist("casino:lotteries");
   }
   if (lotteries[guildId].lastDrawAt === undefined) {
     lotteries[guildId].lastDrawAt = Date.now();
-    persist();
+    persist("casino:lotteries");
   }
   return lotteries[guildId];
 }
 
+// PORTADO do database.js antigo: guardar a lotaria
 function saveLottery(guildId, data) {
   lotteries[guildId] = data;
-  persist();
+  persist("casino:lotteries");
 }
 
 function buyLotteryTickets(guildId, userId, quantity, pricePerTicket) {
@@ -506,7 +520,8 @@ function buyLotteryTickets(guildId, userId, quantity, pricePerTicket) {
   const l = getLottery(guildId);
   l.tickets[userId] = (l.tickets[userId] || 0) + quantity;
   l.jackpot += Math.round(cost * 0.8);
-  persist();
+  persist("casino:lotteries");
+  persist("casino:users");
   return { cost, totalTickets: l.tickets[userId], jackpot: l.jackpot };
 }
 
@@ -526,7 +541,7 @@ function drawLottery(guildId) {
   }
   const totalTickets = pool.length;
   lotteries[guildId] = { jackpot: 0, tickets: {}, drawsCompleted: (l.drawsCompleted || 0) + 1, lastDrawAt: Date.now() };
-  persist();
+  persist("casino:lotteries");
   return { winnerId, prize, totalTickets };
 }
 
@@ -539,7 +554,7 @@ function getCryptoPrices() {
 
 function setCryptoPrices(prices) {
   cryptoPrices = prices;
-  persist();
+  persist("casino:crypto");
 }
 
 function buyCrypto(guildId, userId, coin, amount, price) {
@@ -549,7 +564,7 @@ function buyCrypto(guildId, userId, coin, amount, price) {
   u.balance -= cost;
   if (!u.crypto) u.crypto = { BTC: 0, ETH: 0, SOL: 0, DOGE: 0 };
   u.crypto[coin] = (u.crypto[coin] || 0) + amount;
-  persist();
+  persist("casino:users");
   return { balance: u.balance, holdings: u.crypto[coin] };
 }
 
@@ -559,7 +574,7 @@ function sellCrypto(guildId, userId, coin, amount, price) {
   const gain = Math.round(amount * price);
   u.balance += gain;
   u.crypto[coin] = (u.crypto[coin] || 0) - amount;
-  persist();
+  persist("casino:users");
   return { balance: u.balance, holdings: u.crypto[coin] };
 }
 
@@ -570,9 +585,10 @@ function getFootballMatches(guildId) {
 
 function saveFootballMatches(guildId, matches) {
   footballMatches[guildId] = matches;
-  persist();
+  persist("casino:football:matches");
 }
 
+// PORTADO do database.js antigo: ler apostas da DB
 function getFootballBets(guildId) {
   if (!footballBets[guildId]) footballBets[guildId] = [];
   return footballBets[guildId];
@@ -580,7 +596,7 @@ function getFootballBets(guildId) {
 
 function saveFootballBets(guildId, bets) {
   footballBets[guildId] = bets;
-  persist();
+  persist("casino:football:bets");
 }
 
 function getChatHistory() {
@@ -593,7 +609,7 @@ function addChatMessage(msg) {
   chatHistory.push(msg);
   const now = Date.now();
   chatHistory = chatHistory.filter(msg => now - msg.timestamp < 24 * 60 * 60 * 1000);
-  persist();
+  persist("casino:chat:history");
 }
 
 function getWebSession(token) {
@@ -602,12 +618,12 @@ function getWebSession(token) {
 
 function setWebSession(token, data) {
   webSessions[token] = data;
-  persist();
+  persist("casino:websessions");
 }
 
 function deleteWebSession(token) {
   delete webSessions[token];
-  persist();
+  persist("casino:websessions");
 }
 
 module.exports = {

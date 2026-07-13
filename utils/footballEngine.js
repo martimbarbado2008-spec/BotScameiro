@@ -567,7 +567,7 @@ function startFootballWatcher(client) {
         console.error(`Erro no watcher de futebol para a guilda ${guild.id}:`, err.message);
       }
     });
-  }, 60000);
+  }, 5 * 60 * 1000);
 }
 
 async function generateMatchesForGuild(guildId) {
