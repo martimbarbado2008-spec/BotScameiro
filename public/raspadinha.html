@@ -1,0 +1,903 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Raspadinha da Sorte — Casino Arena 🍀</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090e0c;
+      --panel-bg: rgba(13, 22, 18, 0.9);
+      --border-glow: rgba(87, 242, 135, 0.2);
+      --mint: #57f287;
+      --mint-glow: rgba(87, 242, 135, 0.4);
+      --gold: #faca2b;
+      --ruby: #ed4245;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #0f2319 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 800px;
+      width: 100%;
+    }
+
+    header {
+      width: 100%;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .header-left h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-left p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .hud-balances {
+      display: flex;
+      gap: 12px;
+    }
+
+    .hud-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 8px 16px;
+      text-align: right;
+      min-width: 120px;
+    }
+
+    .hud-card .lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .hud-card .val {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    .btn-back {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--text);
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-back:hover {
+      background: var(--panel-bg);
+      border-color: var(--border-glow);
+    }
+
+    .game-layout {
+      display: grid;
+      grid-template-columns: 1fr 1.5fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 768px) {
+      .game-layout {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      border: 1px solid rgba(87, 242, 135, 0.08);
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+      text-align: center;
+    }
+
+    /* Cost selection cards */
+    .cost-options {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-bottom: 20px;
+    }
+
+    .cost-card {
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 14px;
+      cursor: pointer;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: var(--transition);
+    }
+
+    .cost-card:hover {
+      border-color: var(--mint-glow);
+      background: rgba(87, 242, 135, 0.04);
+    }
+
+    .cost-card.active {
+      border-color: var(--mint);
+      background: rgba(87, 242, 135, 0.08);
+      box-shadow: 0 0 12px rgba(87, 242, 135, 0.1);
+    }
+
+    .cost-card .cost-val {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 18px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
+    .cost-card .cost-title {
+      font-size: 13px;
+      font-weight: 700;
+      color: #fff;
+    }
+
+    .btn-buy {
+      background: var(--mint);
+      color: #050e08;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+      box-shadow: 0 4px 15px rgba(87, 242, 135, 0.2);
+    }
+
+    .btn-buy:hover:not(:disabled) {
+      background: #6ef598;
+      transform: translateY(-1px);
+    }
+
+    .btn-buy:disabled {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Scratchcard grid layout */
+    .scratch-grid-wrapper {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      width: 100%;
+    }
+
+    .scratch-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 96px);
+      grid-template-rows: repeat(3, 96px);
+      gap: 12px;
+      background: #111;
+      padding: 16px;
+      border-radius: 20px;
+      border: 1px solid rgba(255,255,255,0.05);
+      box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+      position: relative;
+    }
+
+    .scratch-cell {
+      position: relative;
+      width: 96px;
+      height: 96px;
+      border-radius: 12px;
+      overflow: hidden;
+      background: #1a1e26;
+      border: 1px solid rgba(255,255,255,0.04);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      user-select: none;
+    }
+
+    .cell-underlay {
+      font-size: 34px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      width: 100%;
+      height: 100%;
+      background: #12151c;
+      transform: scale(0.9);
+      transition: transform 0.2s;
+    }
+
+    .scratch-cell.revealed .cell-underlay {
+      transform: scale(1);
+    }
+
+    .cell-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 96px;
+      height: 96px;
+      cursor: grab;
+      z-index: 2;
+    }
+
+    .cell-canvas:active {
+      cursor: grabbing;
+    }
+
+    .grid-overlay-lock {
+      position: absolute;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0,0,0,0.6);
+      backdrop-filter: blur(4px);
+      z-index: 10;
+      border-radius: 20px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--text-muted);
+      font-weight: 700;
+      font-size: 13px;
+    }
+
+    .btn-action-scratch {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: #fff;
+      border-radius: 10px;
+      padding: 10px;
+      font-weight: 700;
+      cursor: pointer;
+      width: 100%;
+      margin-top: 14px;
+      font-size: 13px;
+      transition: var(--transition);
+    }
+
+    .btn-action-scratch:hover:not(:disabled) {
+      background: rgba(87, 242, 135, 0.1);
+      border-color: var(--mint-glow);
+      color: var(--mint);
+    }
+
+    /* Win/Lose overlay */
+    .win-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: var(--transition);
+    }
+
+    .win-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .win-modal {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-glow);
+      padding: 34px;
+      border-radius: 24px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    .win-overlay.open .win-modal {
+      transform: scale(1);
+    }
+
+    .win-emoji {
+      font-size: 60px;
+      margin-bottom: 12px;
+      display: inline-block;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .win-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .win-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--gold);
+      font-family: 'Share Tech Mono', monospace;
+      margin: 15px 0;
+    }
+
+    .win-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .btn-close-win {
+      background: var(--mint);
+      color: #050e08;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Restricted error screen */
+    #unauthScreen {
+      display: none;
+      text-align: center;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-glow);
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      margin: 100px auto;
+    }
+
+    #unauthScreen h2 { font-size: 22px; color: var(--ruby); margin-bottom: 15px; }
+    #unauthScreen p { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0.6; transform: scale(0.95); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loader de Transição de Página -->
+  <div id="pageLoader" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#09130e; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100000; transition: opacity 0.4s ease, visibility 0.4s;">
+    <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
+      <div style="position:absolute; width:80px; height:80px; border-radius:50%; border:6px dashed var(--gold); border-top-color:var(--mint); border-bottom-color:var(--mint); animation: spin 1.2s linear infinite; box-shadow: 0 0 20px rgba(87, 242, 135, 0.15);"></div>
+      <div style="font-size:32px; animation: pulse 1.5s infinite;">🍀</div>
+    </div>
+    <div style="margin-top:20px; font-weight:800; font-size:13px; letter-spacing:3px; color:var(--mint); text-transform:uppercase; animation: pulse 1.5s infinite; font-family: 'Outfit', sans-serif;">A carregar Raspadinhas...</div>
+  </div>
+
+  <!-- Restricted Screen -->
+  <div id="unauthScreen">
+    <h2>🔒 Acesso Restrito</h2>
+    <p>Não foi possível autenticar a tua sessão.</p>
+    <p>Por favor, volta ao Discord e usa o botão no canal ou o comando <code>/raspadinha</code> para obteres um link ativo.</p>
+  </div>
+
+  <div id="raspadinhaApp" class="container" style="display: none;">
+    <header>
+      <div class="header-left">
+        <h1>🍀 Raspadinhas da Sorte</h1>
+        <p>Raspa a película e encontra 3 símbolos iguais para ganhares até 50x!</p>
+      </div>
+      <div class="hud-balances">
+        <div class="hud-card">
+          <div class="lbl">Carteira</div>
+          <div class="val" id="userBalance">...</div>
+        </div>
+        <div class="hud-card">
+          <div class="lbl">Banco</div>
+          <div class="val" id="userBank">...</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="game-layout">
+      <!-- Left Configs panel -->
+      <div class="panel">
+        <h3 style="font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; margin-bottom: 16px;">Comprar Raspadinha</h3>
+        
+        <div class="cost-options">
+          <div class="cost-card active" onclick="selectCost(100)" id="cost-card-100">
+            <span class="cost-title">Raspadinha Bronze 🥉</span>
+            <span class="cost-val">100 🪙</span>
+          </div>
+          <div class="cost-card" onclick="selectCost(500)" id="cost-card-500">
+            <span class="cost-title">Raspadinha Prata 🥈</span>
+            <span class="cost-val">500 🪙</span>
+          </div>
+          <div class="cost-card" onclick="selectCost(1000)" id="cost-card-1000">
+            <span class="cost-title">Raspadinha Ouro 🥇</span>
+            <span class="cost-val">1.000 🪙</span>
+          </div>
+        </div>
+
+        <button class="btn-buy" id="btnBuyCard" onclick="buyScratchcard()">Comprar Bilhete 🎟️</button>
+        <button class="btn-action-scratch" id="btnScratchAll" onclick="scratchAllCells()" disabled>⚡ Raspar Tudo</button>
+        
+        <div style="margin-top: 14px;">
+          <a href="/jogos.html" class="btn-back" style="width: 100%; justify-content: center;">⬅ Voltar ao Lobby</a>
+        </div>
+      </div>
+
+      <!-- Right Card Grid panel -->
+      <div class="panel">
+        <div class="scratch-grid-wrapper">
+          <div class="scratch-grid">
+            <!-- Grid lock overlay by default -->
+            <div class="grid-overlay-lock" id="gridLock">
+              🛒 Compra um bilhete para raspar!
+            </div>
+
+            <!-- 9 Cells -->
+            <div class="scratch-cell" id="cell-0">
+              <div class="cell-underlay" id="underlay-0">❓</div>
+              <canvas class="cell-canvas" id="canvas-0" width="96" height="96"></canvas>
+            </div>
+            <div class="scratch-cell" id="cell-1">
+              <div class="cell-underlay" id="underlay-1">❓</div>
+              <canvas class="cell-canvas" id="canvas-1" width="96" height="96"></canvas>
+            </div>
+            <div class="scratch-cell" id="cell-2">
+              <div class="cell-underlay" id="underlay-2">❓</div>
+              <canvas class="cell-canvas" id="canvas-2" width="96" height="96"></canvas>
+            </div>
+
+            <div class="scratch-cell" id="cell-3">
+              <div class="cell-underlay" id="underlay-3">❓</div>
+              <canvas class="cell-canvas" id="canvas-3" width="96" height="96"></canvas>
+            </div>
+            <div class="scratch-cell" id="cell-4">
+              <div class="cell-underlay" id="underlay-4">❓</div>
+              <canvas class="cell-canvas" id="canvas-4" width="96" height="96"></canvas>
+            </div>
+            <div class="scratch-cell" id="cell-5">
+              <div class="cell-underlay" id="underlay-5">❓</div>
+              <canvas class="cell-canvas" id="canvas-5" width="96" height="96"></canvas>
+            </div>
+
+            <div class="scratch-cell" id="cell-6">
+              <div class="cell-underlay" id="underlay-6">❓</div>
+              <canvas class="cell-canvas" id="canvas-6" width="96" height="96"></canvas>
+            </div>
+            <div class="scratch-cell" id="cell-7">
+              <div class="cell-underlay" id="underlay-7">❓</div>
+              <canvas class="cell-canvas" id="canvas-7" width="96" height="96"></canvas>
+            </div>
+            <div class="scratch-cell" id="cell-8">
+              <div class="cell-underlay" id="underlay-8">❓</div>
+              <canvas class="cell-canvas" id="canvas-8" width="96" height="96"></canvas>
+            </div>
+
+          </div>
+        </div>
+
+        <table style="width: 100%; border-collapse: collapse; margin-top: 20px; font-size: 11px; text-align: left; color: var(--text-muted);">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.05); font-weight: 800; color: #fff;">
+              <th style="padding: 6px;">Símbolo</th>
+              <th style="padding: 6px;">Nome</th>
+              <th style="padding: 6px;">Multiplicador</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding: 4px;">7️⃣</td><td style="padding: 4px;">Sete Raro</td><td style="padding: 4px; color: var(--gold); font-weight: 800;">50x</td></tr>
+            <tr><td style="padding: 4px;">💎</td><td style="padding: 4px;">Diamante</td><td style="padding: 4px; color: var(--gold); font-weight: 700;">15x</td></tr>
+            <tr><td style="padding: 4px;">🍇</td><td style="padding: 4px;">Uva</td><td style="padding: 4px;">6x</td></tr>
+            <tr><td style="padding: 4px;">🍋</td><td style="padding: 4px;">Limão</td><td style="padding: 4px;">3.5x</td></tr>
+            <tr><td style="padding: 4px;">🍒</td><td style="padding: 4px;">Cereja</td><td style="padding: 4px;">2x</td></tr>
+          </tbody>
+        </table>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- Outcome overlay modal -->
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-modal">
+      <span class="win-emoji" id="winEmoji">🎉</span>
+      <h2 class="win-title" id="winTitle">Excelente!</h2>
+      <div class="win-value" id="winValue">+0 🪙</div>
+      <p class="win-desc" id="winDesc">Foste premiado nesta raspadinha.</p>
+      <button class="btn-close-win" onclick="closeWinModal()">Confirmar 🎉</button>
+    </div>
+  </div>
+
+  <script>
+    let balance = 0;
+    let bank = 0;
+    let selectedCost = 100;
+
+    let isPlaying = false;
+    let activeCardData = null;
+    let cellsRevealedCount = 0;
+    let cellRevealState = Array(9).fill(false);
+
+    function selectCost(cost) {
+      if (isPlaying) return;
+      selectedCost = cost;
+      
+      document.querySelectorAll('.cost-card').forEach(c => c.classList.remove('active'));
+      document.getElementById(`cost-card-${cost}`).classList.add('active');
+
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+    }
+
+    async function loadData() {
+      try {
+        const res = await fetch('/api/dashboard/data');
+        if (!res.ok) throw new Error('Não autorizado');
+        const data = await res.json();
+        
+        balance = data.balance;
+        bank = data.bank;
+
+        document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('userBank').textContent = Math.round(bank).toLocaleString('pt-PT') + ' 🪙';
+
+        document.getElementById('raspadinhaApp').style.display = 'block';
+        
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => loader.style.display = 'none', 400);
+        }
+      } catch (err) {
+        document.getElementById('unauthScreen').style.display = 'block';
+        const loader = document.getElementById('pageLoader');
+        if (loader) loader.style.display = 'none';
+      }
+    }
+
+    // Inicializar as texturas dos canvases de cobertura
+    function initCanvases() {
+      for (let i = 0; i < 9; i++) {
+        const canv = document.getElementById(`canvas-${i}`);
+        if (!canv) continue;
+        const ctx = canv.getContext('2d');
+        
+        // Limpar
+        ctx.clearRect(0, 0, canv.width, canv.height);
+        
+        // Desenhar película de cobertura (cinza escuro metalizado com borda dourada)
+        ctx.fillStyle = '#2d3340';
+        ctx.fillRect(0, 0, canv.width, canv.height);
+        
+        // Padrão visual elegante
+        ctx.fillStyle = '#3a4152';
+        ctx.font = 'bold 36px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('🍀', canv.width / 2, canv.height / 2);
+        
+        // Adicionar brilho nas bordas
+        ctx.strokeStyle = '#faca2b';
+        ctx.lineWidth = 4;
+        ctx.strokeRect(0, 0, canv.width, canv.height);
+        
+        // Bind de eventos de arrasto/scratch
+        bindScratchEvents(canv, i);
+      }
+    }
+
+    function bindScratchEvents(canvas, idx) {
+      const ctx = canvas.getContext('2d');
+      let isDrawing = false;
+      let strokePoints = 0;
+
+      function scratch(x, y) {
+        ctx.globalCompositeOperation = 'destination-out';
+        ctx.beginPath();
+        ctx.arc(x, y, 16, 0, Math.PI * 2);
+        ctx.fill();
+        strokePoints++;
+
+        // Tocar som de scratch físico periodicamente
+        if (strokePoints % 8 === 0 && typeof window.playSFX === 'function') {
+          window.playSFX('click');
+        }
+
+        // Se raspar o suficiente (por exemplo, mais de 15 pontos), revelamos a célula inteira
+        if (strokePoints > 15 && !cellRevealState[idx]) {
+          revealSingleCell(idx);
+        }
+      }
+
+      // Mouse
+      canvas.addEventListener('mousedown', (e) => {
+        if (!isPlaying) return;
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        scratch(e.clientX - rect.left, e.clientY - rect.top);
+      });
+
+      canvas.addEventListener('mousemove', (e) => {
+        if (!isDrawing) return;
+        const rect = canvas.getBoundingClientRect();
+        scratch(e.clientX - rect.left, e.clientY - rect.top);
+      });
+
+      window.addEventListener('mouseup', () => {
+        isDrawing = false;
+      });
+
+      // Touch para telemóveis
+      canvas.addEventListener('touchstart', (e) => {
+        if (!isPlaying) return;
+        isDrawing = true;
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        scratch(touch.clientX - rect.left, touch.clientY - rect.top);
+      });
+
+      canvas.addEventListener('touchmove', (e) => {
+        if (!isDrawing) return;
+        e.preventDefault();
+        const rect = canvas.getBoundingClientRect();
+        const touch = e.touches[0];
+        scratch(touch.clientX - rect.left, touch.clientY - rect.top);
+      });
+
+      canvas.addEventListener('touchend', () => {
+        isDrawing = false;
+      });
+    }
+
+    function revealSingleCell(idx) {
+      if (cellRevealState[idx]) return;
+      cellRevealState[idx] = true;
+      cellsRevealedCount++;
+
+      const canv = document.getElementById(`canvas-${idx}`);
+      if (canv) {
+        canv.style.transition = 'opacity 0.3s ease';
+        canv.style.opacity = '0';
+        setTimeout(() => {
+          canv.style.display = 'none';
+        }, 300);
+      }
+
+      const cell = document.getElementById(`cell-${idx}`);
+      if (cell) cell.classList.add('revealed');
+
+      // Se todas foram reveladas, mostramos modal de resultados
+      if (cellsRevealedCount === 9) {
+        endGameSession();
+      }
+    }
+
+    function scratchAllCells() {
+      if (!isPlaying) return;
+      for (let i = 0; i < 9; i++) {
+        revealSingleCell(i);
+      }
+    }
+
+    async function buyScratchcard() {
+      if (isPlaying) return;
+      if (balance < selectedCost) {
+        alert('Não tens moedas suficientes.');
+        return;
+      }
+
+      isPlaying = true;
+      cellsRevealedCount = 0;
+      cellRevealState.fill(false);
+      activeCardData = null;
+
+      // Desativar botão de compra
+      document.getElementById('btnBuyCard').disabled = true;
+      document.getElementById('btnBuyCard').textContent = 'Bilhete Ativo';
+      document.getElementById('btnScratchAll').disabled = false;
+
+      // Desativar opções de custo
+      document.querySelectorAll('.cost-card').forEach(c => c.style.pointerEvents = 'none');
+
+      // Atualizar saldo subtraindo custo
+      balance -= selectedCost;
+      document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
+
+      try {
+        const res = await fetch('/api/games/raspadinha/buy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cost: selectedCost })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || 'Erro ao comprar raspadinha.');
+          resetGameUI();
+          return;
+        }
+
+        const data = await res.json();
+        activeCardData = data;
+
+        // Ocultar ecrã de bloqueio
+        document.getElementById('gridLock').style.display = 'none';
+
+        // Preencher emojis nas células
+        for (let i = 0; i < 9; i++) {
+          document.getElementById(`underlay-${i}`).textContent = data.card[i];
+          
+          // Reprístinar canvases
+          const canv = document.getElementById(`canvas-${i}`);
+          canv.style.display = 'block';
+          canv.style.opacity = '1';
+          
+          const cell = document.getElementById(`cell-${i}`);
+          cell.classList.remove('revealed');
+        }
+
+        initCanvases();
+
+      } catch (err) {
+        console.error(err);
+        alert('Erro ao conectar ao servidor.');
+        resetGameUI();
+      }
+    }
+
+    function resetGameUI() {
+      isPlaying = false;
+      document.getElementById('btnBuyCard').disabled = false;
+      document.getElementById('btnBuyCard').textContent = 'Comprar Bilhete 🎟️';
+      document.getElementById('btnScratchAll').disabled = true;
+      document.getElementById('gridLock').style.display = 'flex';
+      
+      document.querySelectorAll('.cost-card').forEach(c => c.style.pointerEvents = 'auto');
+    }
+
+    function endGameSession() {
+      if (!activeCardData) return;
+      isPlaying = false;
+
+      // Atualizar saldo final do servidor
+      balance = activeCardData.balance;
+      document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
+
+      // Mostrar modal
+      const modal = document.getElementById('winOverlay');
+      const emoji = document.getElementById('winEmoji');
+      const title = document.getElementById('winTitle');
+      const value = document.getElementById('winValue');
+      const desc = document.getElementById('winDesc');
+
+      if (activeCardData.won) {
+        emoji.textContent = '🎉';
+        title.textContent = 'Raspadinha Premiada!';
+        value.textContent = `+${Math.round(activeCardData.winnings).toLocaleString('pt-PT')} 🪙`;
+        value.style.color = 'var(--mint)';
+        desc.textContent = `Encontraste 3 símbolos iguais! O prémio foi depositado no teu saldo.`;
+        if (typeof window.playSFX === 'function') window.playSFX('win');
+      } else {
+        emoji.textContent = '😢';
+        title.textContent = 'Não foi desta...';
+        value.textContent = `-${Math.round(selectedCost).toLocaleString('pt-PT')} 🪙`;
+        value.style.color = 'var(--ruby)';
+        desc.textContent = `Mais sorte na próxima raspadinha. Tenta a tua sorte outra vez!`;
+        if (typeof window.playSFX === 'function') window.playSFX('lose');
+      }
+
+      modal.classList.add('open');
+    }
+
+    function closeWinModal() {
+      document.getElementById('winOverlay').classList.remove('open');
+      resetGameUI();
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+    }
+
+    // Sobrecarga do fetch global para incluir o token de autorização automaticamente
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) {
+        localStorage.setItem('token', tokenParam);
+      }
+      
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        const token = new URLSearchParams(window.location.search).get('token') || localStorage.getItem('token');
+        if (token) {
+          if (!options.headers) options.headers = {};
+          if (options.headers instanceof Headers) {
+            options.headers.set('Authorization', `Bearer ${token}`);
+          } else if (Array.isArray(options.headers)) {
+            if (!options.headers.some(h => h[0].toLowerCase() === 'authorization')) {
+              options.headers.push(['Authorization', `Bearer ${token}`]);
+            }
+          } else {
+            if (!options.headers['Authorization'] && !options.headers['authorization']) {
+              options.headers['Authorization'] = `Bearer ${token}`;
+            }
+          }
+        }
+        return originalFetch(url, options);
+      };
+    })();
+
+    loadData();
+
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>

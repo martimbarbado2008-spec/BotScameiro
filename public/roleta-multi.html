@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Roleta Europeia — Casino Arena 🎡</title>
+  <title>Roleta Multiplayer — Casino Arena 👥</title>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
   <style>
     :root {
@@ -123,6 +123,47 @@
       border-color: var(--border-glow);
     }
 
+    /* Status Bar Banner */
+    .status-banner {
+      width: 100%;
+      background: rgba(87, 242, 135, 0.06);
+      border: 1px dashed var(--mint-glow);
+      border-radius: 16px;
+      padding: 14px 20px;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    }
+
+    .status-banner.spinning {
+      background: rgba(250, 202, 43, 0.06);
+      border-color: rgba(250, 202, 43, 0.3);
+    }
+
+    .status-banner.resolving {
+      background: rgba(237, 66, 69, 0.06);
+      border-color: rgba(237, 66, 69, 0.3);
+    }
+
+    .status-title {
+      font-size: 14px;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .status-timer {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 20px;
+      font-weight: 700;
+      color: var(--gold);
+    }
+
     /* Main Grid Layout */
     .game-grid {
       display: grid;
@@ -202,7 +243,7 @@
       border-radius: 50%;
       overflow: hidden;
       position: relative;
-      transition: transform 6s cubic-bezier(0.06, 0.8, 0.1, 1);
+      transition: transform 5.5s cubic-bezier(0.06, 0.8, 0.1, 1);
       transform: rotate(0deg);
     }
 
@@ -388,7 +429,6 @@
       to { box-shadow: 0 0 0 4px var(--gold), 0 0 8px var(--gold); }
     }
 
-    /* Outer/Helper bets row */
     .outer-bet-cell {
       grid-row: 4;
       background: #252830;
@@ -439,98 +479,38 @@
       animation: popIn 0.3s ease-out;
     }
 
-    @keyframes popIn {
-      from { transform: scale(0); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
-    }
-
     .win-pill.red { background: var(--ruby); }
     .win-pill.black { background: #1c1d21; border: 1px solid rgba(255,255,255,0.1); }
     .win-pill.green { background: var(--mint); color: #000; }
 
-    /* Win/Lose modal popup */
-    .win-overlay {
-      position: fixed;
-      top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0, 0, 0, 0.85);
-      backdrop-filter: blur(10px);
-      z-index: 10000;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      opacity: 0;
-      visibility: hidden;
-      transition: var(--transition);
-    }
-
-    .win-overlay.open {
-      opacity: 1;
-      visibility: visible;
-    }
-
-    .win-modal {
-      background: var(--panel-bg);
-      border: 1px solid var(--border-glow);
-      padding: 34px;
-      border-radius: 24px;
-      max-width: 400px;
-      width: 90%;
-      text-align: center;
-      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
-      transform: scale(0.9);
-      transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
-    }
-
-    .win-overlay.open .win-modal {
-      transform: scale(1);
-    }
-
-    .win-emoji {
-      font-size: 60px;
-      margin-bottom: 12px;
-      display: inline-block;
-      animation: bounce 1.5s infinite;
-    }
-
-    @keyframes bounce {
-      0%, 100% { transform: translateY(0); }
-      50% { transform: translateY(-10px); }
-    }
-
-    .win-title {
-      font-size: 20px;
-      font-weight: 800;
-      color: #fff;
-      margin-bottom: 8px;
-    }
-
-    .win-value {
-      font-size: 32px;
-      font-weight: 800;
-      color: var(--gold);
-      font-family: 'Share Tech Mono', monospace;
-      margin: 15px 0;
-    }
-
-    .win-desc {
-      font-size: 14px;
-      color: var(--text-muted);
-      margin-bottom: 24px;
-      line-height: 1.5;
-    }
-
-    .btn-close-win {
-      background: var(--mint);
-      color: #050e08;
-      border: none;
-      border-radius: 12px;
-      padding: 12px 24px;
-      font-weight: 800;
-      cursor: pointer;
+    /* Active bets list panel */
+    .active-bets-list {
+      margin-top: 20px;
       width: 100%;
-      font-size: 14px;
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.04);
+      border-radius: 12px;
+      padding: 14px;
+    }
+
+    .active-bets-header {
+      font-size: 11px;
       text-transform: uppercase;
-      letter-spacing: 0.05em;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+      padding-bottom: 4px;
+      text-align: left;
+    }
+
+    .active-bet-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+      padding: 6px 0;
+      border-bottom: 1px solid rgba(255,255,255,0.02);
     }
 
     /* Restricted error screen */
@@ -566,9 +546,9 @@
   <div id="pageLoader" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#09130e; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100000; transition: opacity 0.4s ease, visibility 0.4s;">
     <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
       <div style="position:absolute; width:80px; height:80px; border-radius:50%; border:6px dashed var(--gold); border-top-color:var(--mint); border-bottom-color:var(--mint); animation: spin 1.2s linear infinite; box-shadow: 0 0 20px rgba(87, 242, 135, 0.15);"></div>
-      <div style="font-size:32px; animation: pulse 1.5s infinite;">🎡</div>
+      <div style="font-size:32px; animation: pulse 1.5s infinite;">👥</div>
     </div>
-    <div style="margin-top:20px; font-weight:800; font-size:13px; letter-spacing:3px; color:var(--mint); text-transform:uppercase; animation: pulse 1.5s infinite; font-family: 'Outfit', sans-serif;">A abrir Roleta Europeia...</div>
+    <div style="margin-top:20px; font-weight:800; font-size:13px; letter-spacing:3px; color:var(--mint); text-transform:uppercase; animation: pulse 1.5s infinite; font-family: 'Outfit', sans-serif;">A ligar ao lobby da Roleta...</div>
   </div>
 
   <!-- Restricted Screen -->
@@ -581,8 +561,8 @@
   <div id="roletaApp" class="container" style="display: none;">
     <header>
       <div class="header-left">
-        <h1>🎡 Roleta Europeia</h1>
-        <p>Aposta na mesa e roda para tentares a tua sorte contra a casa!</p>
+        <h1>👥 Roleta Multiplayer</h1>
+        <p>Aposta com a comunidade e assiste live à rotação a cada 40 segundos!</p>
       </div>
       <div class="hud-balances">
         <div class="hud-card">
@@ -596,12 +576,18 @@
       </div>
     </header>
 
+    <!-- Status Banner showing state -->
+    <div class="status-banner" id="statusBar">
+      <div class="status-title" id="statusTitle">🟢 A aceitar apostas...</div>
+      <div class="status-timer" id="statusTimer">00s</div>
+    </div>
+
     <div class="game-grid">
       <!-- Left: Wheel Spinner & Configs -->
       <div class="panel wheel-section">
         <div class="wheel-outer">
           <div class="wheel-pointer"></div>
-          <div class="wheel-center-pin">✨</div>
+          <div class="wheel-center-pin">👥</div>
           <div class="wheel-inner" id="wheel">
             <canvas id="wheelCanvas" width="270" height="270"></canvas>
           </div>
@@ -634,15 +620,14 @@
           </select>
         </div>
 
-        <!-- Selected Number Dropdown (only enabled if type=numero) -->
         <div class="bet-control-group" id="exactNumberGroup" style="display: none;">
           <label>Escolhe o Número (0 a 36)</label>
           <select class="select-dropdown" id="exactNumber">
-            <!-- Populated via Javascript -->
+            <!-- Populated dynamically -->
           </select>
         </div>
 
-        <button class="btn-spin" id="spinBtn" onclick="playRoulette()">Girar Roleta 🚀</button>
+        <button class="btn-spin" id="spinBtn" onclick="placeMultiBet()">Submeter Aposta 🚀</button>
         <div style="margin-top: 14px; width: 100%;">
           <a href="/jogos.html" class="btn-back" style="width: 100%; justify-content: center;">⬅ Voltar ao Lobby</a>
         </div>
@@ -658,30 +643,22 @@
           </div>
         </div>
 
-        <!-- Outer bets row layout explanation -->
-        <p style="font-size: 12px; color: var(--text-muted); margin-top: 14px; line-height: 1.5; text-align: left;">
-          💡 <strong>Dica:</strong> Podes clicar diretamente nos números, cores ou paridades na mesa de apostas acima para os selecionar e configurar a tua aposta rapidamente!
-        </p>
-
         <!-- Last outcomes list -->
-        <div class="last-wins-container">
+        <div class="last-wins-container" style="margin-top: 20px;">
           <span class="last-wins-lbl">Últimos Resultados:</span>
           <div id="lastWinsPills" style="display: flex; gap: 6px;">
             <!-- Generated dynamically -->
           </div>
         </div>
-      </div>
-    </div>
-  </div>
 
-  <!-- Win/Lose Overlay modal -->
-  <div class="win-overlay" id="winOverlay">
-    <div class="win-modal">
-      <span class="win-emoji" id="winEmoji">🎉</span>
-      <h2 class="win-title" id="winTitle">Excelente!</h2>
-      <div class="win-value" id="winValue">+0 🪙</div>
-      <p class="win-desc" id="winDesc">Ganhaste a aposta na roleta.</p>
-      <button class="btn-close-win" onclick="closeWinModal()">Confirmar 🎉</button>
+        <!-- Active bets panel -->
+        <div class="active-bets-list">
+          <div class="active-bets-header">Apostas Colocadas nesta Rodada</div>
+          <div id="activeBetsContainer">
+            <div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 10px;">Nenhuma aposta colocada ainda.</div>
+          </div>
+        </div>
+      </div>
     </div>
   </div>
 
@@ -689,7 +666,6 @@
     const canvas = document.getElementById('wheelCanvas');
     const ctx = canvas.getContext('2d');
     
-    // Configurações clássicas da Roleta Europeia
     const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
     const wheelOrder = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
     
@@ -698,22 +674,23 @@
 
     let balance = 0;
     let bank = 0;
-    let isSpinning = false;
-    let recentSpins = [];
+    
+    let currentServerState = null;
+    let localHasBet = false;
+    let localSpinTriggered = false;
+    let localResolveTriggered = false;
 
-    // Desenhar a roleta
     function drawWheel() {
       const radius = canvas.width / 2;
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       
-      // Desenhar cada setor
       for (let i = 0; i < numSectors; i++) {
         const angle = i * arc;
         const num = wheelOrder[i];
         
-        let color = '#1c1d21'; // preto
-        if (num === 0) color = '#57f287'; // verde
-        else if (RED_NUMBERS.has(num)) color = '#ed4245'; // vermelho
+        let color = '#1c1d21'; 
+        if (num === 0) color = '#57f287'; 
+        else if (RED_NUMBERS.has(num)) color = '#ed4245'; 
 
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -722,12 +699,10 @@
         ctx.lineTo(radius, radius);
         ctx.fill();
 
-        // Linha divisória
         ctx.strokeStyle = 'rgba(255,255,255,0.06)';
         ctx.lineWidth = 1;
         ctx.stroke();
 
-        // Texto (Número)
         ctx.save();
         ctx.fillStyle = num === 0 ? '#000' : '#fff';
         ctx.translate(radius, radius);
@@ -740,21 +715,16 @@
       }
     }
 
-    // Inicialização da mesa de apostas
     function buildBoard() {
       const board = document.getElementById('rouletteBoard');
       board.innerHTML = '';
 
-      // 1. Célula 0 (Verde)
       const cellZero = document.createElement('div');
       cellZero.className = 'board-cell green';
       cellZero.textContent = '0';
       cellZero.onclick = () => selectCell('numero', 0);
       board.appendChild(cellZero);
 
-      // 2. Colunas de números de 1 a 36
-      // Organizados de forma a que colunas correspondam às dezenas / layout da mesa
-      // Linhas da mesa são: linha 1 (3,6,9,...), linha 2 (2,5,8,...), linha 3 (1,4,7,...)
       const rows = [
         [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36],
         [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35],
@@ -773,18 +743,15 @@
           board.appendChild(cell);
         }
         
-        // Célula 2to1 fictícia no final de cada linha (opcional)
         const cell2to1 = document.createElement('div');
         cell2to1.className = 'board-cell outer-bet-cell';
         cell2to1.textContent = '2:1';
         cell2to1.style.fontSize = '9px';
         cell2to1.style.background = '#2d3039';
-        cell2to1.onclick = () => alert('Aposta 2:1 indisponível no site temporariamente. Escolhe outra opção!');
+        cell2to1.onclick = () => alert('Aposta 2:1 indisponível no site temporariamente.');
         board.appendChild(cell2to1);
       }
 
-      // 3. Linha inferior de apostas externas (Paridades e Cores)
-      // Adicionamos células vazias para alinhamento e depois as células de aposta
       const flexCells = [
         { label: 'Ímpar', type: 'impar', class: 'outer-bet-cell', colSpan: 3 },
         { label: 'Vermelho', type: 'vermelho', class: 'outer-bet-cell red-outer', colSpan: 3 },
@@ -792,7 +759,6 @@
         { label: 'Par', type: 'par', class: 'outer-bet-cell', colSpan: 3 }
       ];
 
-      // Célula de alinhamento por baixo do 0
       const emptyAlign = document.createElement('div');
       emptyAlign.className = 'board-cell outer-bet-cell';
       emptyAlign.style.background = 'transparent';
@@ -809,7 +775,6 @@
         board.appendChild(cell);
       });
 
-      // Célula de alinhamento final
       const emptyEnd = document.createElement('div');
       emptyEnd.className = 'board-cell outer-bet-cell';
       emptyEnd.style.background = 'transparent';
@@ -817,9 +782,9 @@
       board.appendChild(emptyEnd);
     }
 
-    // Selecionar célula diretamente na mesa
     function selectCell(type, num = null) {
-      if (isSpinning) return;
+      if (currentServerState && currentServerState.status !== 'betting') return;
+      if (localHasBet) return;
 
       document.getElementById('betType').value = type;
       handleBetTypeChange();
@@ -828,10 +793,8 @@
         document.getElementById('exactNumber').value = num;
       }
 
-      // Remover bordas ativas anteriores
       document.querySelectorAll('.board-cell').forEach(c => c.classList.remove('active-bet'));
 
-      // Adicionar borda ativa na nova seleção
       if (type === 'numero') {
         const cell = document.getElementById(`cell-num-${num}`);
         if (cell) cell.classList.add('active-bet');
@@ -854,7 +817,9 @@
     }
 
     function setBet(amount) {
-      if (isSpinning) return;
+      if (currentServerState && currentServerState.status !== 'betting') return;
+      if (localHasBet) return;
+
       const input = document.getElementById('betAmount');
       if (amount === 'half') {
         input.value = Math.max(10, Math.floor(parseInt(input.value, 10) / 2));
@@ -868,8 +833,8 @@
       if (typeof window.playSFX === 'function') window.playSFX('click');
     }
 
-    // Carregar saldo e histórico do jogador
-    async function loadData() {
+    // Carregar saldo inicial
+    async function loadInitialData() {
       try {
         const res = await fetch('/api/dashboard/data');
         if (!res.ok) throw new Error('Não autorizado');
@@ -883,7 +848,6 @@
 
         document.getElementById('roletaApp').style.display = 'block';
         
-        // Desvanecer e ocultar Loader
         const loader = document.getElementById('pageLoader');
         if (loader) {
           loader.style.opacity = '0';
@@ -896,9 +860,115 @@
       }
     }
 
-    // Efetuar a jogada na roleta
-    async function playRoulette() {
-      if (isSpinning) return;
+    // Obter estado atualizado do servidor
+    async function fetchTableState() {
+      try {
+        const res = await fetch('/api/games/roulette-multi/state');
+        if (!res.ok) return;
+        const state = await res.json();
+
+        currentServerState = state;
+        
+        // Atualizar histórico
+        renderHistory(state.history);
+
+        // Atualizar lista de apostas ativas
+        renderActiveBets(state.bets);
+
+        // Renderizar temporizador e barra de status
+        const bar = document.getElementById('statusBar');
+        const titleEl = document.getElementById('statusTitle');
+        const timerEl = document.getElementById('statusTimer');
+        
+        timerEl.textContent = state.timeLeft + 's';
+
+        if (state.status === 'betting') {
+          // Fase de apostas
+          bar.className = 'status-banner';
+          titleEl.textContent = '🟢 A aceitar apostas...';
+          
+          localSpinTriggered = false;
+          localResolveTriggered = false;
+
+          // Se já apostou, desabilita controlos
+          if (localHasBet) {
+            document.getElementById('spinBtn').disabled = true;
+            document.getElementById('spinBtn').textContent = 'Aposta Submetida';
+          } else {
+            document.getElementById('spinBtn').disabled = false;
+            document.getElementById('spinBtn').textContent = 'Submeter Aposta 🚀';
+          }
+
+        } else if (state.status === 'spinning') {
+          // Fase de rotação
+          bar.className = 'status-banner spinning';
+          titleEl.textContent = '⚡ A girar a roleta!';
+          document.getElementById('spinBtn').disabled = true;
+          document.getElementById('spinBtn').textContent = 'A roleta está a girar...';
+
+          if (!localSpinTriggered && state.lastSpin !== null) {
+            localSpinTriggered = true;
+            triggerWheelSpin(state.lastSpin);
+          }
+
+        } else if (state.status === 'resolving') {
+          // Fase de exibição de resultados
+          bar.className = 'status-banner resolving';
+          titleEl.textContent = '🔴 A fechar rodada!';
+          document.getElementById('spinBtn').disabled = true;
+          document.getElementById('spinBtn').textContent = 'Rodada Fechada';
+
+          if (!localResolveTriggered && state.lastSpin !== null) {
+            localResolveTriggered = true;
+            showSpinOutcome(state.lastSpin, state.lastColor);
+          }
+        }
+      } catch (err) {
+        console.error("Erro ao sincronizar roleta:", err);
+      }
+    }
+
+    function renderHistory(hist) {
+      const container = document.getElementById('lastWinsPills');
+      container.innerHTML = '';
+      if (!hist || hist.length === 0) return;
+      hist.forEach(s => {
+        const pill = document.createElement('div');
+        let colClass = 'green';
+        if (s.color === 'vermelho') colClass = 'red';
+        else if (s.color === 'preto') colClass = 'black';
+
+        pill.className = `win-pill ${colClass}`;
+        pill.textContent = s.spin;
+        container.appendChild(pill);
+      });
+    }
+
+    function renderActiveBets(bets) {
+      const container = document.getElementById('activeBetsContainer');
+      container.innerHTML = '';
+      if (!bets || bets.length === 0) {
+        container.innerHTML = '<div style="font-size: 12px; color: var(--text-muted); text-align: center; padding: 10px;">Nenhuma aposta colocada ainda.</div>';
+        return;
+      }
+      bets.forEach(b => {
+        const div = document.createElement('div');
+        div.className = 'active-bet-item';
+        
+        let typeText = b.type;
+        if (b.type === 'numero') typeText = `Nº ${b.number}`;
+        
+        div.innerHTML = `
+          <span style="font-weight: 700;">${b.username}</span>
+          <span style="color: var(--text-muted); font-size: 11px;">Aposta: ${typeText}</span>
+          <span style="font-family: 'Share Tech Mono', monospace; color: var(--gold); font-weight: 700;">${b.bet} 🪙</span>
+        `;
+        container.appendChild(div);
+      });
+    }
+
+    async function placeMultiBet() {
+      if (localHasBet) return;
 
       const betAmount = parseInt(document.getElementById('betAmount').value, 10);
       const betType = document.getElementById('betType').value;
@@ -913,11 +983,8 @@
         return;
       }
 
-      isSpinning = true;
-      document.getElementById('spinBtn').disabled = true;
-
       try {
-        const res = await fetch('/api/games/roulette/spin', {
+        const res = await fetch('/api/games/roulette-multi/bet', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -929,123 +996,77 @@
 
         if (!res.ok) {
           const err = await res.json();
-          alert(err.error || 'Erro ao girar a roleta.');
-          isSpinning = false;
-          document.getElementById('spinBtn').disabled = false;
+          alert(err.error || 'Erro ao submeter aposta.');
           return;
         }
 
-        const result = await res.json();
-        
-        // Atualizar saldo local imediatamente subtraindo a aposta
-        balance -= betAmount;
+        const data = await res.json();
+        localHasBet = true;
+        balance = data.balance;
         document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
-
-        // Animação de rotação da roleta
-        const targetNumber = result.spin;
-        const targetIndex = wheelOrder.indexOf(targetNumber);
         
-        // O ponteiro aponta para o topo.
-        // O setor i começa no ângulo i * arc e termina no (i + 1) * arc. O meio é (i + 0.5) * arc.
-        // O canvas roda para a direita (sentido horário). Para o setor estar no topo, a rotação total
-        // deve colocar a posição correspondente a -90 graus.
-        const sectorCenterAngle = (targetIndex + 0.5) * arc;
-        const finalRotation = 2 * Math.PI * 5 - sectorCenterAngle - (Math.PI / 2); // 5 voltas completas + offset
+        document.getElementById('spinBtn').disabled = true;
+        document.getElementById('spinBtn').textContent = 'Aposta Submetida';
 
-        const wheel = document.getElementById('wheel');
-        wheel.style.transition = 'transform 6s cubic-bezier(0.1, 0.8, 0.1, 1)';
-        wheel.style.transform = `rotate(${finalRotation}rad)`;
-
-        // Feedback de som de giro
-        if (typeof window.playSFX === 'function') {
-          let tickCount = 0;
-          const tickInterval = setInterval(() => {
-            if (tickCount < 20) {
-              window.playSFX('spin');
-              tickCount++;
-            } else {
-              clearInterval(tickInterval);
-            }
-          }, 200);
-        }
-
-        setTimeout(() => {
-          isSpinning = false;
-          document.getElementById('spinBtn').disabled = false;
-
-          // Atualizar o saldo final retornado pelo servidor
-          balance = result.balance;
-          document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
-
-          // Mostrar resultado
-          showResultModal(result);
-
-          // Guardar e renderizar pills dos últimos spins
-          recentSpins.unshift({ num: result.spin, color: result.color });
-          if (recentSpins.length > 5) recentSpins.pop();
-          renderLastWins();
-
-        }, 6000);
+        if (typeof window.playSFX === 'function') window.playSFX('click');
 
       } catch (err) {
         console.error(err);
-        alert('Erro de conexão ao servidor.');
-        isSpinning = false;
-        document.getElementById('spinBtn').disabled = false;
+        alert('Erro ao comunicar com o servidor.');
       }
     }
 
-    function renderLastWins() {
-      const container = document.getElementById('lastWinsPills');
-      container.innerHTML = '';
-      recentSpins.forEach(s => {
-        const pill = document.createElement('div');
-        let colClass = 'green';
-        if (s.color === 'vermelho') colClass = 'red';
-        else if (s.color === 'preto') colClass = 'black';
+    function triggerWheelSpin(targetNumber) {
+      const targetIndex = wheelOrder.indexOf(targetNumber);
+      const sectorCenterAngle = (targetIndex + 0.5) * arc;
+      const finalRotation = 2 * Math.PI * 4 - sectorCenterAngle - (Math.PI / 2); // 4 voltas completas + offset
 
-        pill.className = `win-pill ${colClass}`;
-        pill.textContent = s.num;
-        container.appendChild(pill);
-      });
-    }
-
-    function showResultModal(result) {
-      const modal = document.getElementById('winOverlay');
-      const winEmoji = document.getElementById('winEmoji');
-      const winTitle = document.getElementById('winTitle');
-      const winValue = document.getElementById('winValue');
-      const winDesc = document.getElementById('winDesc');
-
-      const colorEmoji = { vermelho: '🔴', preto: '⚫', verde: '🟢' }[result.color];
-
-      if (result.won) {
-        winEmoji.textContent = '🎉';
-        winTitle.textContent = 'Parabéns!';
-        winValue.textContent = `+${Math.round(result.winnings).toLocaleString('pt-PT')} 🪙`;
-        winValue.style.color = 'var(--mint)';
-        winDesc.textContent = `A bola caiu no número ${result.spin} ${colorEmoji}. Acertaste na tua aposta!`;
-        if (typeof window.playSFX === 'function') window.playSFX('win');
-      } else {
-        winEmoji.textContent = '😢';
-        winTitle.textContent = 'Não foi desta...';
-        winValue.textContent = `-${Math.round(result.winnings === 0 ? parseInt(document.getElementById('betAmount').value, 10) : 0).toLocaleString('pt-PT')} 🪙`;
-        winValue.style.color = 'var(--ruby)';
-        winDesc.textContent = `A bola caiu no número ${result.spin} ${colorEmoji}. Tenta novamente!`;
-        if (typeof window.playSFX === 'function') window.playSFX('lose');
-      }
-
-      modal.classList.add('open');
-    }
-
-    function closeWinModal() {
-      document.getElementById('winOverlay').classList.remove('open');
-      if (typeof window.playSFX === 'function') window.playSFX('click');
-      
-      // Limpar transição de rotação no elemento para que possa rodar de novo suavemente
       const wheel = document.getElementById('wheel');
-      wheel.style.transition = 'none';
-      wheel.style.transform = 'rotate(0deg)';
+      wheel.style.transition = 'transform 5.2s cubic-bezier(0.1, 0.8, 0.1, 1)';
+      wheel.style.transform = `rotate(${finalRotation}rad)`;
+
+      if (typeof window.playSFX === 'function') {
+        let tickCount = 0;
+        const tickInterval = setInterval(() => {
+          if (tickCount < 18) {
+            window.playSFX('spin');
+            tickCount++;
+          } else {
+            clearInterval(tickInterval);
+          }
+        }, 220);
+      }
+    }
+
+    async function showSpinOutcome(spinNum, col) {
+      // Re-atualizar o saldo da carteira com eventuais ganhos
+      try {
+        const res = await fetch('/api/dashboard/data');
+        if (res.ok) {
+          const data = await res.json();
+          balance = data.balance;
+          document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
+        }
+      } catch(e){}
+
+      // Tocar som de resultado se o utilizador apostou nesta rodada
+      if (localHasBet) {
+        localHasBet = false;
+        // Se o saldo aumentou, o utilizador ganhou!
+        // (Nota: esta verificação é simples e eficaz)
+        if (balance > currentServerState.bets.find(b => b.userId === currentServerState.userId)?.bet) {
+          if (typeof window.playSFX === 'function') window.playSFX('win');
+        } else {
+          if (typeof window.playSFX === 'function') window.playSFX('lose');
+        }
+      }
+
+      // Reiniciar visual da roleta de forma transparente após a rodada fechar
+      setTimeout(() => {
+        const wheel = document.getElementById('wheel');
+        wheel.style.transition = 'none';
+        wheel.style.transform = 'rotate(0deg)';
+      }, 5000);
     }
 
     // Popular número exato
@@ -1088,7 +1109,12 @@
 
     buildBoard();
     drawWheel();
-    loadData();
+    
+    // Iniciar fluxos
+    loadInitialData().then(() => {
+      fetchTableState();
+      setInterval(fetchTableState, 1000);
+    });
 
   </script>
   <script src="/music.js"></script>

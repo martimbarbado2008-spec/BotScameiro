@@ -270,8 +270,28 @@ function renderGamePage(token) {
  
 let discordClient = null;
 
-const sessions = new Map();
+const fs = require('fs');
+const sessionsFile = path.join(__dirname, '../sessions.json');
+let sessions = new Map();
 const activeJobs = new Map();
+
+try {
+  if (fs.existsSync(sessionsFile)) {
+    const fileData = JSON.parse(fs.readFileSync(sessionsFile, 'utf8'));
+    sessions = new Map(Object.entries(fileData));
+  }
+} catch (e) {
+  console.error("Erro ao carregar sessões persistidas:", e);
+}
+
+function saveSessions() {
+  try {
+    const fileData = Object.fromEntries(sessions.entries());
+    fs.writeFileSync(sessionsFile, JSON.stringify(fileData), 'utf8');
+  } catch (e) {
+    console.error("Erro ao persistir sessões:", e);
+  }
+}
 
 function getSession(req) {
   let token = null;
@@ -302,6 +322,7 @@ function createSession(guildId, userId) {
   const crypto = require('crypto');
   const sessionToken = crypto.randomBytes(32).toString('hex');
   sessions.set(sessionToken, { guildId, userId });
+  saveSessions();
   return sessionToken;
 }
 
@@ -546,6 +567,154 @@ app.get('/api/login-fake', (req, res) => {
 
 app.get('/api/global-wins', (req, res) => {
   return res.json(globalWins);
+});
+
+// ─── RASPADINHA GAME ENDPOINT ──────────────────────────────────────────────────
+app.post('/api/games/raspadinha/buy', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { cost } = req.body;
+    
+    const validCosts = [100, 500, 1000];
+    if (!validCosts.includes(cost)) {
+      return res.status(400).json({ error: 'Custo de raspadinha inválido.' });
+    }
+
+    const cfg = db.getGuildConfig(guildId);
+    const user = db.getUser(guildId, userId);
+
+    if (user.balance < cost) {
+      return res.status(400).json({ error: 'Saldo insuficiente.' });
+    }
+
+    // Cooldown
+    const cooldown = db.getCooldown(guildId, userId, 'raspadinha');
+    if (cooldown > 0) {
+      return res.status(400).json({ error: `Espera mais ${(cooldown / 1000).toFixed(1)}s.` });
+    }
+    db.setCooldown(guildId, userId, 'raspadinha', 2000); // 2 segundos cooldown
+
+    // Gerar a raspadinha
+    const winChance = 0.35; // 35% chance to win
+    const isWinner = Math.random() < winChance;
+    const grid = Array(9).fill(null);
+    
+    if (isWinner) {
+      const rand = Math.random();
+      let winSym = '🍒';
+      if (rand < 0.02) winSym = '7️⃣';
+      else if (rand < 0.08) winSym = '💎';
+      else if (rand < 0.20) winSym = '🍇';
+      else if (rand < 0.50) winSym = '🍋';
+      else winSym = '🍒';
+
+      let placed = 0;
+      while (placed < 3) {
+        const idx = Math.floor(Math.random() * 9);
+        if (grid[idx] === null) {
+          grid[idx] = winSym;
+          placed++;
+        }
+      }
+    }
+
+    const pool = ['🍒', '🍋', '🍇', '💎', '7️⃣', '❌', '🍀'];
+    for (let i = 0; i < 9; i++) {
+      if (grid[i] !== null) continue;
+      const counts = {};
+      grid.forEach(s => { if (s) counts[s] = (counts[s] || 0) + 1; });
+      const safePool = pool.filter(s => (counts[s] || 0) < 2);
+      const sym = safePool.length > 0 ? safePool[Math.floor(Math.random() * safePool.length)] : '❌';
+      grid[i] = sym;
+    }
+
+    // Contar repetições para definir prémio
+    const finalCounts = {};
+    grid.forEach(s => { finalCounts[s] = (finalCounts[s] || 0) + 1; });
+    
+    let won = false;
+    let winningSym = null;
+    let mult = 0;
+
+    const symMults = {
+      '🍒': 2,
+      '🍋': 3.5,
+      '🍇': 6,
+      '💎': 15,
+      '7️⃣': 50
+    };
+
+    for (const [sym, count] of Object.entries(finalCounts)) {
+      if (count >= 3 && symMults[sym] !== undefined) {
+        won = true;
+        winningSym = sym;
+        mult = symMults[sym];
+        break;
+      }
+    }
+
+    const winnings = won ? cost * mult : 0;
+    const net = winnings - cost;
+
+    db.addBalance(guildId, userId, net);
+    db.recordResult(guildId, userId, won, cost);
+    db.addTournamentScore(guildId, userId, net);
+
+    let xpResult = null;
+    let newBadges = [];
+    try {
+      const progression = require('./progression');
+      const ctx = {
+        guildId,
+        userId,
+        member: null,
+        client: discordClient,
+        channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+      };
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Raspadinha', bet: cost, net, won });
+      xpResult = prog.xpResult;
+      newBadges = prog.newBadges;
+    } catch (e) {
+      console.error("Erro na progressão da Raspadinha:", e);
+    }
+
+    if (won) {
+      const u = db.getUser(guildId, userId);
+      const displayName = u.username || userId;
+      
+      const isJackpot = mult >= 15;
+      const msg = `🎉 **${displayName}** ganhou **${winnings} 🪙** na Raspadinha de ${cost} (Acertou em 3x ${winningSym})!`;
+      
+      await announceWebEvent(guildId, 'win', {
+        title: isJackpot ? '🎰 VITÓRIA RARA na Raspadinha!' : '🎉 Raspadinha Premiada!',
+        message: msg,
+        username: displayName,
+        game: 'Raspadinha',
+        amount: winnings,
+        bet: cost,
+        isJackpot
+      });
+    }
+
+    return res.json({
+      success: true,
+      card: grid,
+      won,
+      winnings,
+      net,
+      balance: db.getUser(guildId, userId).balance,
+      xpResult,
+      newBadges
+    });
+
+  } catch (err) {
+    console.error("Erro ao comprar raspadinha:", err);
+    return res.status(500).json({ error: "Erro no servidor" });
+  }
 });
 
 // ─── RULETA GAME ENDPOINT ─────────────────────────────────────────────────────
@@ -3228,6 +3397,175 @@ function broadcastChatToWeb(guildId, msg) {
     }
   });
 }
+
+// --- Jogo de Roleta Multiplayer Web ---
+const rMultiTable = {
+  status: 'betting', // 'betting' | 'spinning' | 'resolving'
+  timeLeft: 30, // segundos para apostar / rodar / mostrar resultados
+  lastSpin: null,
+  lastColor: null,
+  bets: [], // { userId, guildId, username, bet, type, number }
+  history: [] // { spin, color }
+};
+
+function tickRouletteTable() {
+  try {
+    if (rMultiTable.status === 'betting') {
+      rMultiTable.timeLeft--;
+      if (rMultiTable.timeLeft <= 0) {
+        rMultiTable.status = 'spinning';
+        rMultiTable.timeLeft = 6; // 6 segundos de rotação
+        
+        // Gerar número vencedor da roleta
+        const spin = Math.floor(Math.random() * 37);
+        const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+        const color = spin === 0 ? 'verde' : (RED_NUMBERS.has(spin) ? 'vermelho' : 'preto');
+        rMultiTable.lastSpin = spin;
+        rMultiTable.lastColor = color;
+      }
+    } else if (rMultiTable.status === 'spinning') {
+      rMultiTable.timeLeft--;
+      if (rMultiTable.timeLeft <= 0) {
+        rMultiTable.status = 'resolving';
+        rMultiTable.timeLeft = 6; // 6 segundos para ver resultados
+        
+        const spin = rMultiTable.lastSpin;
+        const color = rMultiTable.lastColor;
+        
+        // Resolver apostas
+        rMultiTable.bets.forEach(async (b) => {
+          let won = false;
+          let mult = 0;
+          if (b.type === 'vermelho' && color === 'vermelho') { won = true; mult = 2; }
+          else if (b.type === 'preto' && color === 'preto') { won = true; mult = 2; }
+          else if (b.type === 'par' && spin !== 0 && spin % 2 === 0) { won = true; mult = 2; }
+          else if (b.type === 'impar' && spin % 2 !== 0) { won = true; mult = 2; }
+          else if (b.type === 'numero' && spin === parseInt(b.number, 10)) { won = true; mult = 35; }
+          
+          const winnings = won ? b.bet * mult : 0;
+          const net = winnings - b.bet;
+          
+          // O saldo da aposta já foi deduzido na criação, por isso adicionamos o winnings
+          if (winnings > 0) {
+            db.addBalance(b.guildId, b.userId, winnings);
+          }
+          db.recordResult(b.guildId, b.userId, won, b.bet);
+          db.addTournamentScore(b.guildId, b.userId, net);
+          
+          // Progressão
+          try {
+            const progression = require('./progression');
+            const ctx = {
+              guildId: b.guildId,
+              userId: b.userId,
+              member: null,
+              client: discordClient,
+              channelId: null,
+              user: discordClient ? (discordClient.users.cache.get(b.userId) || await discordClient.users.fetch(b.userId).catch(() => null)) : null
+            };
+            await progression.applyProgressionFor(ctx, { game: 'Roleta Multijogador', bet: b.bet, net, won });
+          } catch(e) {}
+
+          if (won) {
+            const colorEmoji = { vermelho: '🔴', preto: '⚫', verde: '🟢' }[color];
+            const title = b.type === 'numero' ? '🎰 VITÓRIA RARA na Roleta Multi!' : '🎉 Ganho na Roleta Multi!';
+            const msg = `🎉 **${b.username}** ganhou **${winnings} 🪙** na Roleta Multijogador (Bola caiu no ${spin} ${colorEmoji}, aposta: ${b.type})!`;
+            announceWebEvent(b.guildId, 'win', { title, message: msg, username: b.username, game: 'Roleta Multi', amount: winnings, bet: b.bet, isJackpot: (b.type === 'numero') });
+          }
+        });
+        
+        // Histórico
+        rMultiTable.history.unshift({ spin, color });
+        if (rMultiTable.history.length > 8) rMultiTable.history.pop();
+      }
+    } else if (rMultiTable.status === 'resolving') {
+      rMultiTable.timeLeft--;
+      if (rMultiTable.timeLeft <= 0) {
+        rMultiTable.status = 'betting';
+        rMultiTable.timeLeft = 30;
+        rMultiTable.bets = [];
+      }
+    }
+  } catch (err) {
+    console.error('Erro no loop do Roulette Multi:', err);
+  }
+}
+
+setInterval(tickRouletteTable, 1000);
+
+// Endpoint de Estado
+app.get('/api/games/roulette-multi/state', (req, res) => {
+  const session = getSession(req);
+  if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+  // Ocultar o número vencedor durante a aposta ou rotação para evitar cheats
+  const hideResult = rMultiTable.status === 'betting' || rMultiTable.status === 'spinning';
+  
+  return res.json({
+    status: rMultiTable.status,
+    timeLeft: rMultiTable.timeLeft,
+    lastSpin: hideResult ? null : rMultiTable.lastSpin,
+    lastColor: hideResult ? null : rMultiTable.lastColor,
+    bets: rMultiTable.bets,
+    history: rMultiTable.history
+  });
+});
+
+// Endpoint de Aposta
+app.post('/api/games/roulette-multi/bet', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { bet, type, number } = req.body;
+    
+    const cfg = db.getGuildConfig(guildId);
+    const user = db.getUser(guildId, userId);
+
+    if (rMultiTable.status !== 'betting') {
+      return res.status(400).json({ error: 'As apostas já fecharam para esta rodada.' });
+    }
+    if (bet < cfg.minBet || bet > cfg.maxBet) {
+      return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet} 🪙` });
+    }
+    if (user.balance < bet) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+    
+    // Evitar apostas duplicadas por utilizador na mesma rodada para simplificar
+    if (rMultiTable.bets.some(b => b.userId === userId)) {
+      return res.status(400).json({ error: 'Já tens uma aposta ativa nesta rodada.' });
+    }
+
+    let uName = user.username || userId;
+    if (discordClient) {
+      const uObj = discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null);
+      if (uObj) uName = uObj.username;
+    }
+
+    // Deduzir o saldo imediatamente da aposta
+    db.addBalance(guildId, userId, -bet);
+
+    rMultiTable.bets.push({
+      userId,
+      guildId,
+      username: uName,
+      bet,
+      type,
+      number: type === 'numero' ? parseInt(number, 10) : null
+    });
+
+    return res.json({
+      success: true,
+      balance: db.getUser(guildId, userId).balance
+    });
+
+  } catch (err) {
+    console.error("Erro ao apostar na Roleta Multi:", err);
+    return res.status(500).json({ error: "Erro no servidor" });
+  }
+});
 
 app.use((err, req, res, next) => {
   console.error('Erro não tratado no servidor web:', err);
