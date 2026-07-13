@@ -413,6 +413,14 @@ function startTournament(guildId, { durationMs, name, prize, channelId, startedB
     endTime: Date.now() + durationMs,
     scores: {}
   };
+
+  // Reset local user tournamentScore parameter in this guild
+  for (const [k, v] of Object.entries(users)) {
+    if (k.startsWith(`${guildId}:`)) {
+      v.tournamentScore = 0;
+    }
+  }
+
   persist();
   return tournaments[guildId];
 }
@@ -430,6 +438,10 @@ function addTournamentScore(guildId, userId, net) {
   if (!isTournamentActive(guildId)) return;
   const t = tournaments[guildId];
   t.scores[userId] = (t.scores[userId] || 0) + net;
+  
+  const u = getUser(guildId, userId);
+  u.tournamentScore = (u.tournamentScore || 0) + net;
+
   persist();
 }
 
