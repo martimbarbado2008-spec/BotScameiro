@@ -106,10 +106,19 @@
     font-size: 36px;
   }
   .card-front {
-    background: #fff;
+    background: #ffffff;
     color: #000;
-    border: 1px solid #ddd;
+    border: 1px solid rgba(0, 0, 0, 0.05);
     transform: rotateY(180deg);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.4), inset 0 0 15px rgba(0,0,0,0.03);
+  }
+  .card-front::before {
+    content: '';
+    position: absolute;
+    top: 5%; left: 5%; right: 5%; bottom: 5%;
+    border: 1px solid rgba(0, 0, 0, 0.04);
+    border-radius: 10px;
+    pointer-events: none;
   }
   .card-top { display: flex; flex-direction: column; align-items: flex-start; line-height: 1; }
   .card-rank { font-size: 28px; font-weight: 800; }
