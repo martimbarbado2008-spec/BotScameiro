@@ -195,6 +195,18 @@ async function applyProgressionFor(ctx, { game, bet, net, won }) {
   const cfg = db.getGuildConfig(guildId);
   if (net > 0 && net >= cfg.bigWinThreshold) {
     await announceBigWin(ctx, net, game).catch(() => {});
+    try {
+      const { announceWebEvent } = require('./webServer');
+      const username = ctx.member?.displayName || ctx.user?.username || 'Jogador';
+      await announceWebEvent(guildId, 'win', {
+        title: `🎉 GRANDE VITÓRIA no Discord!`,
+        message: `🎉 **${username}** ganhou **${fmt(net)}** em **${game}** no Discord! 🎉`,
+        username,
+        game,
+        amount: net,
+        bet
+      });
+    } catch (err) { /* Ignora erros de circular require */ }
   }
   if (cfg.logChannelId) {
     await logPlay(ctx, { game, bet, net }).catch(() => {});

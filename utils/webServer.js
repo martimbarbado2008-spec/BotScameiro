@@ -548,6 +548,112 @@ app.get('/api/global-wins', (req, res) => {
   return res.json(globalWins);
 });
 
+// ─── RULETA GAME ENDPOINT ─────────────────────────────────────────────────────
+app.post('/api/games/roulette/spin', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+
+    const { guildId, userId } = session;
+    const { bet, type, number } = req.body;
+    
+    const cfg = db.getGuildConfig(guildId);
+    const user = db.getUser(guildId, userId);
+
+    if (bet < cfg.minBet || bet > cfg.maxBet) {
+      return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet} 🪙` });
+    }
+    if (user.balance < bet) {
+      return res.status(400).json({ error: 'Saldo insuficiente' });
+    }
+
+    const cooldown = db.getCooldown(guildId, userId, 'roleta');
+    if (cooldown > 0) {
+      return res.status(400).json({ error: `Espera mais ${(cooldown / 1000).toFixed(1)}s.` });
+    }
+
+    db.setCooldown(guildId, userId, 'roleta', cfg.rouletteCooldownMs);
+
+    const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+    function colorOf(n) {
+      if (n === 0) return 'verde';
+      return RED_NUMBERS.has(n) ? 'vermelho' : 'preto';
+    }
+
+    const spin = Math.floor(Math.random() * 37); // 0-36
+    const color = colorOf(spin);
+
+    let won = false;
+    let mult = 0;
+    if (type === 'vermelho' && color === 'vermelho') { won = true; mult = 2; }
+    else if (type === 'preto' && color === 'preto') { won = true; mult = 2; }
+    else if (type === 'par' && spin !== 0 && spin % 2 === 0) { won = true; mult = 2; }
+    else if (type === 'impar' && spin % 2 !== 0) { won = true; mult = 2; }
+    else if (type === 'numero' && spin === parseInt(number, 10)) { won = true; mult = 35; }
+
+    const winnings = won ? bet * mult : 0;
+    const net = winnings - bet;
+
+    db.addBalance(guildId, userId, net);
+    db.recordResult(guildId, userId, won, bet);
+    db.addTournamentScore(guildId, userId, net);
+
+    let xpResult = null;
+    let newBadges = [];
+    try {
+      const progression = require('./progression');
+      const ctx = {
+        guildId,
+        userId,
+        member: null,
+        client: discordClient,
+        channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
+      };
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Roleta', bet, net, won });
+      xpResult = prog.xpResult;
+      newBadges = prog.newBadges;
+    } catch (e) {
+      console.error("Erro na progressão da Roleta:", e);
+    }
+
+    if (won) {
+      const u = db.getUser(guildId, userId);
+      const displayName = u.username || userId;
+      const colorEmoji = { vermelho: '🔴', preto: '⚫', verde: '🟢' }[color];
+      
+      const isJackpot = type === 'numero' && won;
+      const msg = `🎉 **${displayName}** ganhou **${winnings} 🪙** na Roleta (Bola caiu no ${spin} ${colorEmoji}, aposta: ${type})!`;
+      
+      await announceWebEvent(guildId, 'win', {
+        title: isJackpot ? '🎰 VITÓRIA RARA na Roleta!' : '🎉 Ganho na Roleta!',
+        message: msg,
+        username: displayName,
+        game: 'Roleta',
+        amount: winnings,
+        bet,
+        isJackpot
+      });
+    }
+
+    return res.json({
+      success: true,
+      spin,
+      color,
+      won,
+      winnings,
+      net,
+      balance: db.getUser(guildId, userId).balance,
+      xpResult,
+      newBadges
+    });
+
+  } catch (err) {
+    console.error("Erro ao girar a roleta:", err);
+    return res.status(500).json({ error: "Erro no servidor" });
+  }
+});
+
 // ─── MINES GAME ENDPOINTS ────────────────────────────────────────────────────
 app.post('/api/games/mines/start', async (req, res) => {
   try {

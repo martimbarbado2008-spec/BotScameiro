@@ -1,0 +1,1082 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Roleta Europeia — Casino Arena 🎡</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #090e0c;
+      --panel-bg: rgba(13, 22, 18, 0.9);
+      --border-glow: rgba(87, 242, 135, 0.2);
+      --mint: #57f287;
+      --mint-glow: rgba(87, 242, 135, 0.4);
+      --gold: #faca2b;
+      --ruby: #ed4245;
+      --text: #f3f4f6;
+      --text-muted: #9ca3af;
+      --transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #0f2319 0%, var(--bg) 70%);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 30px 20px;
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1000px;
+      width: 100%;
+    }
+
+    header {
+      width: 100%;
+      margin-bottom: 24px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 16px;
+      padding: 20px;
+      background: var(--panel-bg);
+      backdrop-filter: blur(16px);
+      border-radius: 20px;
+      border: 1px solid var(--border-glow);
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+
+    .header-left h1 {
+      font-size: 24px;
+      font-weight: 800;
+      color: #fff;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .header-left p {
+      font-size: 13px;
+      color: var(--text-muted);
+      margin-top: 2px;
+    }
+
+    .hud-balances {
+      display: flex;
+      gap: 12px;
+    }
+
+    .hud-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 8px 16px;
+      text-align: right;
+      min-width: 120px;
+    }
+
+    .hud-card .lbl {
+      font-size: 10px;
+      text-transform: uppercase;
+      color: var(--text-muted);
+      font-weight: 600;
+      letter-spacing: 0.05em;
+    }
+
+    .hud-card .val {
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      color: var(--gold);
+      margin-top: 2px;
+    }
+
+    .btn-back {
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.05);
+      color: var(--text);
+      text-decoration: none;
+      padding: 10px 20px;
+      border-radius: 10px;
+      font-weight: 600;
+      font-size: 13px;
+      transition: var(--transition);
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-back:hover {
+      background: var(--panel-bg);
+      border-color: var(--border-glow);
+    }
+
+    /* Main Grid Layout */
+    .game-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.2fr;
+      gap: 24px;
+      align-items: start;
+    }
+
+    @media (max-width: 850px) {
+      .game-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border-radius: 24px;
+      border: 1px solid rgba(87, 242, 135, 0.08);
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+    }
+
+    /* Left Column: Wheel & Controls */
+    .wheel-section {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .wheel-outer {
+      position: relative;
+      width: 290px;
+      height: 290px;
+      margin: 10px auto 24px auto;
+      border-radius: 50%;
+      box-shadow: 0 0 30px rgba(87, 242, 135, 0.1), inset 0 0 20px rgba(0,0,0,0.6);
+      padding: 8px;
+      background: #111;
+      border: 6px solid #222;
+    }
+
+    .wheel-pointer {
+      position: absolute;
+      top: -10px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 20px;
+      height: 26px;
+      background: var(--gold);
+      clip-path: polygon(50% 100%, 0 0, 100% 0);
+      z-index: 10;
+      filter: drop-shadow(0 2px 4px rgba(0,0,0,0.4));
+    }
+
+    .wheel-center-pin {
+      position: absolute;
+      width: 44px;
+      height: 44px;
+      background: radial-gradient(circle, #2d3748 0%, #1a202c 100%);
+      border: 3px solid var(--gold);
+      border-radius: 50%;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+    }
+
+    .wheel-inner {
+      width: 100%;
+      height: 100%;
+      border-radius: 50%;
+      overflow: hidden;
+      position: relative;
+      transition: transform 6s cubic-bezier(0.06, 0.8, 0.1, 1);
+      transform: rotate(0deg);
+    }
+
+    /* Bet Form controls */
+    .bet-control-group {
+      width: 100%;
+      margin-bottom: 16px;
+    }
+
+    .bet-control-group label {
+      display: block;
+      font-size: 11px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      margin-bottom: 6px;
+      text-align: left;
+    }
+
+    .input-row {
+      position: relative;
+      display: flex;
+    }
+
+    .input-row input {
+      flex: 1;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 15px;
+      font-weight: 700;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .input-row input:focus {
+      outline: none;
+      border-color: var(--mint);
+    }
+
+    .bet-shortcuts {
+      display: flex;
+      gap: 6px;
+      margin-top: 8px;
+      width: 100%;
+    }
+
+    .bet-shortcuts button {
+      flex: 1;
+      background: rgba(255,255,255,0.03);
+      border: 1px solid rgba(255,255,255,0.06);
+      color: var(--text);
+      border-radius: 8px;
+      padding: 6px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: var(--transition);
+    }
+
+    .bet-shortcuts button:hover {
+      background: rgba(87, 242, 135, 0.08);
+      border-color: var(--mint-glow);
+      color: var(--mint);
+    }
+
+    .select-dropdown {
+      width: 100%;
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: #fff;
+      font-size: 14px;
+      font-weight: 700;
+      font-family: inherit;
+      cursor: pointer;
+      appearance: none;
+      -webkit-appearance: none;
+      background-image: url("data:image/svg+xml;utf8,<svg fill='white' height='24' viewBox='0 0 24 24' width='24' xmlns='http://www.w3.org/2000/svg'><path d='M7 10l5 5 5-5z'/><path d='M0 0h24v24H0z' fill='none'/></svg>");
+      background-repeat: no-repeat;
+      background-position: right 12px center;
+    }
+
+    .select-dropdown:focus {
+      outline: none;
+      border-color: var(--mint);
+    }
+
+    .btn-spin {
+      background: var(--mint);
+      color: #050e08;
+      border: none;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 15px;
+      font-weight: 800;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      cursor: pointer;
+      transition: var(--transition);
+      width: 100%;
+      margin-top: 10px;
+      box-shadow: 0 4px 15px rgba(87, 242, 135, 0.2);
+    }
+
+    .btn-spin:hover:not(:disabled) {
+      background: #6ef598;
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(87, 242, 135, 0.3);
+    }
+
+    .btn-spin:disabled {
+      background: rgba(255,255,255,0.05);
+      color: var(--text-muted);
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* Right Column: Board Layout */
+    .board-wrapper {
+      overflow-x: auto;
+      width: 100%;
+    }
+
+    .roulette-board {
+      display: grid;
+      grid-template-columns: 50px repeat(12, 1fr) 50px;
+      grid-template-rows: repeat(3, 40px) 40px;
+      gap: 3px;
+      min-width: 600px;
+      background: #111;
+      padding: 10px;
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .board-cell {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      user-select: none;
+      transition: var(--transition);
+      border: 1px solid rgba(255,255,255,0.02);
+    }
+
+    .board-cell.green {
+      background: var(--mint);
+      color: #000;
+      grid-row: 1 / span 3;
+      grid-column: 1;
+    }
+
+    .board-cell.red {
+      background: var(--ruby);
+      color: #fff;
+    }
+
+    .board-cell.black {
+      background: #1c1d21;
+      color: #fff;
+      border-color: rgba(255,255,255,0.05);
+    }
+
+    .board-cell:hover {
+      filter: brightness(1.25);
+      transform: scale(1.03);
+    }
+
+    .board-cell.active-bet {
+      box-shadow: 0 0 0 3px var(--gold);
+      animation: cellPulse 1s infinite alternate;
+    }
+
+    @keyframes cellPulse {
+      from { box-shadow: 0 0 0 2px var(--gold); }
+      to { box-shadow: 0 0 0 4px var(--gold), 0 0 8px var(--gold); }
+    }
+
+    /* Outer/Helper bets row */
+    .outer-bet-cell {
+      grid-row: 4;
+      background: #252830;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+      border: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .outer-bet-cell.red-outer {
+      background: var(--ruby);
+      color: #fff;
+    }
+
+    .outer-bet-cell.black-outer {
+      background: #1c1d21;
+      color: #fff;
+    }
+
+    /* Last wins list */
+    .last-wins-container {
+      margin-top: 16px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .last-wins-lbl {
+      font-size: 11px;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: var(--text-muted);
+    }
+
+    .win-pill {
+      width: 26px;
+      height: 26px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #fff;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.3);
+      animation: popIn 0.3s ease-out;
+    }
+
+    @keyframes popIn {
+      from { transform: scale(0); opacity: 0; }
+      to { transform: scale(1); opacity: 1; }
+    }
+
+    .win-pill.red { background: var(--ruby); }
+    .win-pill.black { background: #1c1d21; border: 1px solid rgba(255,255,255,0.1); }
+    .win-pill.green { background: var(--mint); color: #000; }
+
+    /* Win/Lose modal popup */
+    .win-overlay {
+      position: fixed;
+      top: 0; left: 0; width: 100%; height: 100%;
+      background: rgba(0, 0, 0, 0.85);
+      backdrop-filter: blur(10px);
+      z-index: 10000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      visibility: hidden;
+      transition: var(--transition);
+    }
+
+    .win-overlay.open {
+      opacity: 1;
+      visibility: visible;
+    }
+
+    .win-modal {
+      background: var(--panel-bg);
+      border: 1px solid var(--border-glow);
+      padding: 34px;
+      border-radius: 24px;
+      max-width: 400px;
+      width: 90%;
+      text-align: center;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+      transform: scale(0.9);
+      transition: transform 0.3s cubic-bezier(0.18, 0.89, 0.32, 1.28);
+    }
+
+    .win-overlay.open .win-modal {
+      transform: scale(1);
+    }
+
+    .win-emoji {
+      font-size: 60px;
+      margin-bottom: 12px;
+      display: inline-block;
+      animation: bounce 1.5s infinite;
+    }
+
+    @keyframes bounce {
+      0%, 100% { transform: translateY(0); }
+      50% { transform: translateY(-10px); }
+    }
+
+    .win-title {
+      font-size: 20px;
+      font-weight: 800;
+      color: #fff;
+      margin-bottom: 8px;
+    }
+
+    .win-value {
+      font-size: 32px;
+      font-weight: 800;
+      color: var(--gold);
+      font-family: 'Share Tech Mono', monospace;
+      margin: 15px 0;
+    }
+
+    .win-desc {
+      font-size: 14px;
+      color: var(--text-muted);
+      margin-bottom: 24px;
+      line-height: 1.5;
+    }
+
+    .btn-close-win {
+      background: var(--mint);
+      color: #050e08;
+      border: none;
+      border-radius: 12px;
+      padding: 12px 24px;
+      font-weight: 800;
+      cursor: pointer;
+      width: 100%;
+      font-size: 14px;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    /* Restricted error screen */
+    #unauthScreen {
+      display: none;
+      text-align: center;
+      background: var(--panel-bg);
+      border: 1px solid var(--border-glow);
+      padding: 40px;
+      border-radius: 20px;
+      max-width: 400px;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+      margin: 100px auto;
+    }
+
+    #unauthScreen h2 { font-size: 22px; color: var(--ruby); margin-bottom: 15px; }
+    #unauthScreen p { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; }
+
+    @keyframes spin {
+      from { transform: rotate(0deg); }
+      to { transform: rotate(360deg); }
+    }
+    @keyframes pulse {
+      0% { opacity: 0.6; transform: scale(0.95); }
+      50% { opacity: 1; transform: scale(1.05); }
+      100% { opacity: 0.6; transform: scale(0.95); }
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Loader de Transição de Página -->
+  <div id="pageLoader" style="position:fixed; top:0; left:0; width:100%; height:100%; background:#09130e; display:flex; flex-direction:column; align-items:center; justify-content:center; z-index:100000; transition: opacity 0.4s ease, visibility 0.4s;">
+    <div style="position:relative; width:100px; height:100px; display:flex; align-items:center; justify-content:center;">
+      <div style="position:absolute; width:80px; height:80px; border-radius:50%; border:6px dashed var(--gold); border-top-color:var(--mint); border-bottom-color:var(--mint); animation: spin 1.2s linear infinite; box-shadow: 0 0 20px rgba(87, 242, 135, 0.15);"></div>
+      <div style="font-size:32px; animation: pulse 1.5s infinite;">🎡</div>
+    </div>
+    <div style="margin-top:20px; font-weight:800; font-size:13px; letter-spacing:3px; color:var(--mint); text-transform:uppercase; animation: pulse 1.5s infinite; font-family: 'Outfit', sans-serif;">A abrir Roleta Europeia...</div>
+  </div>
+
+  <!-- Restricted Screen -->
+  <div id="unauthScreen">
+    <h2>🔒 Acesso Restrito</h2>
+    <p>Não foi possível autenticar a tua sessão.</p>
+    <p>Por favor, volta ao Discord e usa o botão no canal ou o comando <code>/roleta</code> para obteres um link ativo.</p>
+  </div>
+
+  <div id="roletaApp" class="container" style="display: none;">
+    <header>
+      <div class="header-left">
+        <h1>🎡 Roleta Europeia</h1>
+        <p>Aposta na mesa e roda para tentares a tua sorte contra a casa!</p>
+      </div>
+      <div class="hud-balances">
+        <div class="hud-card">
+          <div class="lbl">Carteira</div>
+          <div class="val" id="userBalance">...</div>
+        </div>
+        <div class="hud-card">
+          <div class="lbl">Banco</div>
+          <div class="val" id="userBank">...</div>
+        </div>
+      </div>
+    </header>
+
+    <div class="game-grid">
+      <!-- Left: Wheel Spinner & Configs -->
+      <div class="panel wheel-section">
+        <div class="wheel-outer">
+          <div class="wheel-pointer"></div>
+          <div class="wheel-center-pin">✨</div>
+          <div class="wheel-inner" id="wheel">
+            <canvas id="wheelCanvas" width="270" height="270"></canvas>
+          </div>
+        </div>
+
+        <!-- Controls Form -->
+        <div class="bet-control-group">
+          <label>Quantia a Apostar</label>
+          <div class="input-row">
+            <input type="number" id="betAmount" value="100" min="10">
+          </div>
+          <div class="bet-shortcuts">
+            <button onclick="setBet(100)">100</button>
+            <button onclick="setBet(500)">500</button>
+            <button onclick="setBet(1000)">1k</button>
+            <button onclick="setBet('half')">1/2</button>
+            <button onclick="setBet('max')">Max</button>
+          </div>
+        </div>
+
+        <div class="bet-control-group">
+          <label>Tipo de Aposta</label>
+          <select class="select-dropdown" id="betType" onchange="handleBetTypeChange()">
+            <option value="vermelho">Vermelho (Paga 2x)</option>
+            <option value="preto">Preto (Paga 2x)</option>
+            <option value="par">Par (Paga 2x)</option>
+            <option value="impar">Ímpar (Paga 2x)</option>
+            <option value="numero">Número Exato (Paga 35x)</option>
+          </select>
+        </div>
+
+        <!-- Selected Number Dropdown (only enabled if type=numero) -->
+        <div class="bet-control-group" id="exactNumberGroup" style="display: none;">
+          <label>Escolhe o Número (0 a 36)</label>
+          <select class="select-dropdown" id="exactNumber">
+            <!-- Populated via Javascript -->
+          </select>
+        </div>
+
+        <button class="btn-spin" id="spinBtn" onclick="playRoulette()">Girar Roleta 🚀</button>
+        <div style="margin-top: 14px; width: 100%;">
+          <a href="/jogos.html" class="btn-back" style="width: 100%; justify-content: center;">⬅ Voltar ao Lobby</a>
+        </div>
+      </div>
+
+      <!-- Right: Interactive Betting Board -->
+      <div class="panel">
+        <h3 style="font-size: 15px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: #fff; margin-bottom: 12px; border-bottom: 1px solid rgba(255,255,255,0.05); padding-bottom: 6px; text-align: left;">Mesa de Apostas</h3>
+        
+        <div class="board-wrapper">
+          <div class="roulette-board" id="rouletteBoard">
+            <!-- Generated dynamically -->
+          </div>
+        </div>
+
+        <!-- Outer bets row layout explanation -->
+        <p style="font-size: 12px; color: var(--text-muted); margin-top: 14px; line-height: 1.5; text-align: left;">
+          💡 <strong>Dica:</strong> Podes clicar diretamente nos números, cores ou paridades na mesa de apostas acima para os selecionar e configurar a tua aposta rapidamente!
+        </p>
+
+        <!-- Last outcomes list -->
+        <div class="last-wins-container">
+          <span class="last-wins-lbl">Últimos Resultados:</span>
+          <div id="lastWinsPills" style="display: flex; gap: 6px;">
+            <!-- Generated dynamically -->
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Win/Lose Overlay modal -->
+  <div class="win-overlay" id="winOverlay">
+    <div class="win-modal">
+      <span class="win-emoji" id="winEmoji">🎉</span>
+      <h2 class="win-title" id="winTitle">Excelente!</h2>
+      <div class="win-value" id="winValue">+0 🪙</div>
+      <p class="win-desc" id="winDesc">Ganhaste a aposta na roleta.</p>
+      <button class="btn-close-win" onclick="closeWinModal()">Confirmar 🎉</button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('wheelCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // Configurações clássicas da Roleta Europeia
+    const RED_NUMBERS = new Set([1,3,5,7,9,12,14,16,18,19,21,23,25,27,30,32,34,36]);
+    const wheelOrder = [0, 32, 15, 19, 4, 21, 2, 25, 17, 34, 6, 27, 13, 36, 11, 30, 8, 23, 10, 5, 24, 16, 33, 1, 20, 14, 31, 9, 22, 18, 29, 7, 28, 12, 35, 3, 26];
+    
+    const numSectors = wheelOrder.length;
+    const arc = 2 * Math.PI / numSectors;
+
+    let balance = 0;
+    let bank = 0;
+    let isSpinning = false;
+    let recentSpins = [];
+
+    // Desenhar a roleta
+    function drawWheel() {
+      const radius = canvas.width / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      
+      // Desenhar cada setor
+      for (let i = 0; i < numSectors; i++) {
+        const angle = i * arc;
+        const num = wheelOrder[i];
+        
+        let color = '#1c1d21'; // preto
+        if (num === 0) color = '#57f287'; // verde
+        else if (RED_NUMBERS.has(num)) color = '#ed4245'; // vermelho
+
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius - 6, angle, angle + arc, false);
+        ctx.lineTo(radius, radius);
+        ctx.fill();
+
+        // Linha divisória
+        ctx.strokeStyle = 'rgba(255,255,255,0.06)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // Texto (Número)
+        ctx.save();
+        ctx.fillStyle = num === 0 ? '#000' : '#fff';
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = "right";
+        ctx.textBaseline = "middle";
+        ctx.font = "bold 11px 'Share Tech Mono', sans-serif";
+        ctx.fillText(num.toString(), radius - 15, 0);
+        ctx.restore();
+      }
+    }
+
+    // Inicialização da mesa de apostas
+    function buildBoard() {
+      const board = document.getElementById('rouletteBoard');
+      board.innerHTML = '';
+
+      // 1. Célula 0 (Verde)
+      const cellZero = document.createElement('div');
+      cellZero.className = 'board-cell green';
+      cellZero.textContent = '0';
+      cellZero.onclick = () => selectCell('numero', 0);
+      board.appendChild(cellZero);
+
+      // 2. Colunas de números de 1 a 36
+      // Organizados de forma a que colunas correspondam às dezenas / layout da mesa
+      // Linhas da mesa são: linha 1 (3,6,9,...), linha 2 (2,5,8,...), linha 3 (1,4,7,...)
+      const rows = [
+        [3, 6, 9, 12, 15, 18, 21, 24, 27, 30, 33, 36],
+        [2, 5, 8, 11, 14, 17, 20, 23, 26, 29, 32, 35],
+        [1, 4, 7, 10, 13, 16, 19, 22, 25, 28, 31, 34]
+      ];
+
+      for (let r = 0; r < 3; r++) {
+        for (let c = 0; c < 12; c++) {
+          const num = rows[r][c];
+          const cell = document.createElement('div');
+          const isRed = RED_NUMBERS.has(num);
+          cell.className = `board-cell ${isRed ? 'red' : 'black'}`;
+          cell.textContent = num;
+          cell.id = `cell-num-${num}`;
+          cell.onclick = () => selectCell('numero', num);
+          board.appendChild(cell);
+        }
+        
+        // Célula 2to1 fictícia no final de cada linha (opcional)
+        const cell2to1 = document.createElement('div');
+        cell2to1.className = 'board-cell outer-bet-cell';
+        cell2to1.textContent = '2:1';
+        cell2to1.style.fontSize = '9px';
+        cell2to1.style.background = '#2d3039';
+        cell2to1.onclick = () => alert('Aposta 2:1 indisponível no site temporariamente. Escolhe outra opção!');
+        board.appendChild(cell2to1);
+      }
+
+      // 3. Linha inferior de apostas externas (Paridades e Cores)
+      // Adicionamos células vazias para alinhamento e depois as células de aposta
+      const flexCells = [
+        { label: 'Ímpar', type: 'impar', class: 'outer-bet-cell', colSpan: 3 },
+        { label: 'Vermelho', type: 'vermelho', class: 'outer-bet-cell red-outer', colSpan: 3 },
+        { label: 'Preto', type: 'preto', class: 'outer-bet-cell black-outer', colSpan: 3 },
+        { label: 'Par', type: 'par', class: 'outer-bet-cell', colSpan: 3 }
+      ];
+
+      // Célula de alinhamento por baixo do 0
+      const emptyAlign = document.createElement('div');
+      emptyAlign.className = 'board-cell outer-bet-cell';
+      emptyAlign.style.background = 'transparent';
+      emptyAlign.style.border = 'none';
+      board.appendChild(emptyAlign);
+
+      flexCells.forEach(f => {
+        const cell = document.createElement('div');
+        cell.className = `board-cell ${f.class}`;
+        cell.textContent = f.label;
+        cell.style.gridColumn = `span ${f.colSpan}`;
+        cell.id = `cell-type-${f.type}`;
+        cell.onclick = () => selectCell(f.type);
+        board.appendChild(cell);
+      });
+
+      // Célula de alinhamento final
+      const emptyEnd = document.createElement('div');
+      emptyEnd.className = 'board-cell outer-bet-cell';
+      emptyEnd.style.background = 'transparent';
+      emptyEnd.style.border = 'none';
+      board.appendChild(emptyEnd);
+    }
+
+    // Selecionar célula diretamente na mesa
+    function selectCell(type, num = null) {
+      if (isSpinning) return;
+
+      document.getElementById('betType').value = type;
+      handleBetTypeChange();
+
+      if (type === 'numero') {
+        document.getElementById('exactNumber').value = num;
+      }
+
+      // Remover bordas ativas anteriores
+      document.querySelectorAll('.board-cell').forEach(c => c.classList.remove('active-bet'));
+
+      // Adicionar borda ativa na nova seleção
+      if (type === 'numero') {
+        const cell = document.getElementById(`cell-num-${num}`);
+        if (cell) cell.classList.add('active-bet');
+      } else {
+        const cell = document.getElementById(`cell-type-${type}`);
+        if (cell) cell.classList.add('active-bet');
+      }
+
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+    }
+
+    function handleBetTypeChange() {
+      const type = document.getElementById('betType').value;
+      const group = document.getElementById('exactNumberGroup');
+      if (type === 'numero') {
+        group.style.display = 'block';
+      } else {
+        group.style.display = 'none';
+      }
+    }
+
+    function setBet(amount) {
+      if (isSpinning) return;
+      const input = document.getElementById('betAmount');
+      if (amount === 'half') {
+        input.value = Math.max(10, Math.floor(parseInt(input.value, 10) / 2));
+      } else if (amount === 'max') {
+        input.value = balance;
+      } else {
+        input.value = amount;
+      }
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+    }
+
+    // Carregar saldo e histórico do jogador
+    async function loadData() {
+      try {
+        const res = await fetch('/api/dashboard/data');
+        if (!res.ok) throw new Error('Não autorizado');
+        const data = await res.json();
+        
+        balance = data.balance;
+        bank = data.bank;
+
+        document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
+        document.getElementById('userBank').textContent = Math.round(bank).toLocaleString('pt-PT') + ' 🪙';
+
+        document.getElementById('roletaApp').style.display = 'block';
+        
+        // Desvanecer e ocultar Loader
+        const loader = document.getElementById('pageLoader');
+        if (loader) {
+          loader.style.opacity = '0';
+          setTimeout(() => loader.style.display = 'none', 400);
+        }
+      } catch (err) {
+        document.getElementById('unauthScreen').style.display = 'block';
+        const loader = document.getElementById('pageLoader');
+        if (loader) loader.style.display = 'none';
+      }
+    }
+
+    // Efetuar a jogada na roleta
+    async function playRoulette() {
+      if (isSpinning) return;
+
+      const betAmount = parseInt(document.getElementById('betAmount').value, 10);
+      const betType = document.getElementById('betType').value;
+      const exactNumber = parseInt(document.getElementById('exactNumber').value, 10);
+
+      if (isNaN(betAmount) || betAmount <= 0) {
+        alert('Insere uma quantia válida de aposta.');
+        return;
+      }
+      if (betAmount > balance) {
+        alert('Não tens saldo suficiente.');
+        return;
+      }
+
+      isSpinning = true;
+      document.getElementById('spinBtn').disabled = true;
+
+      try {
+        const res = await fetch('/api/games/roulette/spin', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bet: betAmount,
+            type: betType,
+            number: betType === 'numero' ? exactNumber : null
+          })
+        });
+
+        if (!res.ok) {
+          const err = await res.json();
+          alert(err.error || 'Erro ao girar a roleta.');
+          isSpinning = false;
+          document.getElementById('spinBtn').disabled = false;
+          return;
+        }
+
+        const result = await res.json();
+        
+        // Atualizar saldo local imediatamente subtraindo a aposta
+        balance -= betAmount;
+        document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
+
+        // Animação de rotação da roleta
+        const targetNumber = result.spin;
+        const targetIndex = wheelOrder.indexOf(targetNumber);
+        
+        // O ponteiro aponta para o topo.
+        // O setor i começa no ângulo i * arc e termina no (i + 1) * arc. O meio é (i + 0.5) * arc.
+        // O canvas roda para a direita (sentido horário). Para o setor estar no topo, a rotação total
+        // deve colocar a posição correspondente a -90 graus.
+        const sectorCenterAngle = (targetIndex + 0.5) * arc;
+        const finalRotation = 2 * Math.PI * 5 - sectorCenterAngle - (Math.PI / 2); // 5 voltas completas + offset
+
+        const wheel = document.getElementById('wheel');
+        wheel.style.transition = 'transform 6s cubic-bezier(0.1, 0.8, 0.1, 1)';
+        wheel.style.transform = `rotate(${finalRotation}rad)`;
+
+        // Feedback de som de giro
+        if (typeof window.playSFX === 'function') {
+          let tickCount = 0;
+          const tickInterval = setInterval(() => {
+            if (tickCount < 20) {
+              window.playSFX('spin');
+              tickCount++;
+            } else {
+              clearInterval(tickInterval);
+            }
+          }, 200);
+        }
+
+        setTimeout(() => {
+          isSpinning = false;
+          document.getElementById('spinBtn').disabled = false;
+
+          // Atualizar o saldo final retornado pelo servidor
+          balance = result.balance;
+          document.getElementById('userBalance').textContent = Math.round(balance).toLocaleString('pt-PT') + ' 🪙';
+
+          // Mostrar resultado
+          showResultModal(result);
+
+          // Guardar e renderizar pills dos últimos spins
+          recentSpins.unshift({ num: result.spin, color: result.color });
+          if (recentSpins.length > 5) recentSpins.pop();
+          renderLastWins();
+
+        }, 6000);
+
+      } catch (err) {
+        console.error(err);
+        alert('Erro de conexão ao servidor.');
+        isSpinning = false;
+        document.getElementById('spinBtn').disabled = false;
+      }
+    }
+
+    function renderLastWins() {
+      const container = document.getElementById('lastWinsPills');
+      container.innerHTML = '';
+      recentSpins.forEach(s => {
+        const pill = document.createElement('div');
+        let colClass = 'green';
+        if (s.color === 'vermelho') colClass = 'red';
+        else if (s.color === 'preto') colClass = 'black';
+
+        pill.className = `win-pill ${colClass}`;
+        pill.textContent = s.num;
+        container.appendChild(pill);
+      });
+    }
+
+    function showResultModal(result) {
+      const modal = document.getElementById('winOverlay');
+      const winEmoji = document.getElementById('winEmoji');
+      const winTitle = document.getElementById('winTitle');
+      const winValue = document.getElementById('winValue');
+      const winDesc = document.getElementById('winDesc');
+
+      const colorEmoji = { vermelho: '🔴', preto: '⚫', verde: '🟢' }[result.color];
+
+      if (result.won) {
+        winEmoji.textContent = '🎉';
+        winTitle.textContent = 'Parabéns!';
+        winValue.textContent = `+${Math.round(result.winnings).toLocaleString('pt-PT')} 🪙`;
+        winValue.style.color = 'var(--mint)';
+        winDesc.textContent = `A bola caiu no número ${result.spin} ${colorEmoji}. Acertaste na tua aposta!`;
+        if (typeof window.playSFX === 'function') window.playSFX('win');
+      } else {
+        winEmoji.textContent = '😢';
+        winTitle.textContent = 'Não foi desta...';
+        winValue.textContent = `-${Math.round(result.winnings === 0 ? parseInt(document.getElementById('betAmount').value, 10) : 0).toLocaleString('pt-PT')} 🪙`;
+        winValue.style.color = 'var(--ruby)';
+        winDesc.textContent = `A bola caiu no número ${result.spin} ${colorEmoji}. Tenta novamente!`;
+        if (typeof window.playSFX === 'function') window.playSFX('lose');
+      }
+
+      modal.classList.add('open');
+    }
+
+    function closeWinModal() {
+      document.getElementById('winOverlay').classList.remove('open');
+      if (typeof window.playSFX === 'function') window.playSFX('click');
+      
+      // Limpar transição de rotação no elemento para que possa rodar de novo suavemente
+      const wheel = document.getElementById('wheel');
+      wheel.style.transition = 'none';
+      wheel.style.transform = 'rotate(0deg)';
+    }
+
+    // Popular número exato
+    const numSelect = document.getElementById('exactNumber');
+    for (let i = 0; i <= 36; i++) {
+      const opt = document.createElement('option');
+      opt.value = i;
+      opt.textContent = `Número ${i}`;
+      numSelect.appendChild(opt);
+    }
+
+    // Sobrecarga de fetch com token
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const token = urlParams.get('token') || localStorage.getItem('token');
+      if (token) localStorage.setItem('token', token);
+
+      const originalFetch = window.fetch;
+      window.fetch = function (url, options = {}) {
+        const token = localStorage.getItem('token');
+        if (token) {
+          if (!options.headers) options.headers = {};
+          options.headers['Authorization'] = `Bearer ${token}`;
+        }
+        return originalFetch(url, options);
+      };
+    })();
+
+    buildBoard();
+    drawWheel();
+    loadData();
+
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>

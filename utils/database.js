@@ -343,7 +343,7 @@ const DEFAULT_GUILD_CONFIG = {
   workMin: 50, workMax: 300, workCooldownMs: 60 * 60 * 1000, bankInterestPercent: 1, bankInterestIntervalMs: 24 * 60 * 60 * 1000,
   robSuccessChance: 40, robMinPercent: 10, robMaxPercent: 30, robFailFinePercent: 15, robCooldownMs: 30 * 60 * 1000,
   loanMaxAmount: 10000, loanInterestPercent: 15, loanDurationMs: 3 * 24 * 60 * 60 * 1000, lotteryTicketPrice: 100,
-  lotteryDrawDay: 0, lotteryDrawHour: 20, logChannelId: null, bigWinThreshold: 10000, autoTournamentEnabled: false,
+  lotteryDrawDay: 0, lotteryDrawHour: 20, logChannelId: null, bigWinThreshold: 1000, autoTournamentEnabled: false,
   autoTournamentDurationHours: 24, autoTournamentDay: 0, autoTournamentHour: 20, lastAutoTournamentAt: 0, levelRoles: {}, balanceRoles: {}
 };
 
