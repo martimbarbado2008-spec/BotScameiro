@@ -361,6 +361,10 @@ function getGuildConfig(guildId) {
   for (const field of Object.keys(DEFAULT_GUILD_CONFIG)) {
     if (cfg[field] === undefined) { cfg[field] = DEFAULT_GUILD_CONFIG[field]; migrated = true; }
   }
+  if (cfg.bigWinThreshold === undefined || cfg.bigWinThreshold > 1000) {
+    cfg.bigWinThreshold = 1000;
+    migrated = true;
+  }
   if (migrated) persist();
   return cfg;
 }

@@ -653,14 +653,15 @@ app.post('/api/games/raspadinha/buy', async (req, res) => {
         channelId: null,
         user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
       };
-      const prog = await progression.applyProgressionFor(ctx, { game: 'Raspadinha', bet: cost, net, won });
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Raspadinha', bet: cost, net, won, isWeb: true });
       xpResult = prog.xpResult;
       newBadges = prog.newBadges;
     } catch (e) {
       console.error("Erro na progressão da Raspadinha:", e);
     }
 
-    if (won) {
+    const isJackpot = mult >= 15;
+    if (won && (winnings >= cfg.bigWinThreshold || isJackpot)) {
       const u = db.getUser(guildId, userId);
       const displayName = u.username || userId;
       
@@ -757,14 +758,15 @@ app.post('/api/games/roulette/spin', async (req, res) => {
         channelId: null,
         user: discordClient ? (discordClient.users.cache.get(userId) || await discordClient.users.fetch(userId).catch(() => null)) : null
       };
-      const prog = await progression.applyProgressionFor(ctx, { game: 'Roleta', bet, net, won });
+      const prog = await progression.applyProgressionFor(ctx, { game: 'Roleta', bet, net, won, isWeb: true });
       xpResult = prog.xpResult;
       newBadges = prog.newBadges;
     } catch (e) {
       console.error("Erro na progressão da Roleta:", e);
     }
 
-    if (won) {
+    const isJackpot = type === 'numero' && won;
+    if (won && (winnings >= cfg.bigWinThreshold || isJackpot)) {
       const u = db.getUser(guildId, userId);
       const displayName = u.username || userId;
       const colorEmoji = { vermelho: '🔴', preto: '⚫', verde: '🟢' }[color];
@@ -2712,15 +2714,16 @@ app.post('/api/games/slots', async (req, res) => {
         if (member) {
           displayName = member.displayName;
           const fakeInteraction = { guildId, client: discordClient, channelId: null };
-          await progression.afterGameForMember(fakeInteraction, member, { game: 'Slots Web', bet, net, won: net > 0 }).catch(console.error);
+          await progression.afterGameForMember(fakeInteraction, member, { game: 'Slots Web', bet, net, won: net > 0 }, true).catch(console.error);
         }
       }
     }
     
     const updatedUser = db.getUser(guildId, userId);
+    const cfg = db.getGuildConfig(guildId);
 
     // Announce wins via Discord + Web Chat + SSE lateral pop-up
-    if (win) {
+    if (win && (winnings >= cfg.bigWinThreshold || isJackpot)) {
       const reelStr = [a.emoji, b.emoji, c.emoji].join(' ');
       let title = isJackpot ? '🎰 JACKPOT na Slot Machine!' : '🎰 Vitória na Slot Machine!';
       let msg = `**${displayName}** ganhou **${winnings.toLocaleString('pt-PT')} 🪙** nas Slots! ${reelStr}`;
@@ -3093,7 +3096,24 @@ function resolvePayouts() {
     db.pushHistory(p.guildId, p.userId, { game: 'Blackjack Online Web', bet: p.bet, net });
     db.addTournamentScore(p.guildId, p.userId, net);
 
-    if (net > 0) {
+    // Progressão
+    try {
+      const progression = require('./progression');
+      const ctx = {
+        guildId: p.guildId,
+        userId: p.userId,
+        member: null,
+        client: discordClient,
+        channelId: null,
+        user: discordClient ? (discordClient.users.cache.get(p.userId) || await discordClient.users.fetch(p.userId).catch(() => null)) : null
+      };
+      await progression.applyProgressionFor(ctx, { game: 'Blackjack', bet: p.bet, net, won: net > 0, isWeb: true });
+    } catch (e) {
+      console.error("Erro na progressão do Blackjack:", e);
+    }
+
+    const cfg = db.getGuildConfig(p.guildId);
+    if (net > 0 && (p.payoutResult >= cfg.bigWinThreshold || pBJ)) {
       const username = p.username || 'Jogador';
       const title = pBJ ? '🃏 BLACKJACK no Casino!' : '🃏 Vitória no Blackjack!';
       const msg = `**${username}** ganhou **${p.payoutResult.toLocaleString('pt-PT')} 🪙** no Blackjack!`;
@@ -3441,10 +3461,11 @@ function tickRouletteTable() {
               channelId: null,
               user: discordClient ? (discordClient.users.cache.get(b.userId) || await discordClient.users.fetch(b.userId).catch(() => null)) : null
             };
-            await progression.applyProgressionFor(ctx, { game: 'Roleta Multijogador', bet: b.bet, net, won });
+            await progression.applyProgressionFor(ctx, { game: 'Roleta Multijogador', bet: b.bet, net, won, isWeb: true });
           } catch(e) {}
 
-          if (won) {
+          const cfg = db.getGuildConfig(b.guildId);
+          if (won && (winnings >= cfg.bigWinThreshold || b.type === 'numero')) {
             const colorEmoji = { vermelho: '🔴', preto: '⚫', verde: '🟢' }[color];
             const title = b.type === 'numero' ? '🎰 VITÓRIA RARA na Roleta Multi!' : '🎉 Ganho na Roleta Multi!';
             const msg = `🎉 **${b.username}** ganhou **${winnings} 🪙** na Roleta Multijogador (Bola caiu no ${spin} ${colorEmoji}, aposta: ${b.type})!`;

@@ -98,7 +98,7 @@ async function announceBigWin(ctx, net, game) {
 
 // núcleo reutilizável: aplica XP/conquistas/cargos/logs a um utilizador concreto.
 // ctx = { guildId, userId, member, client, channelId, user } — "user" só é usado nas mensagens de log/alerta.
-async function applyProgressionFor(ctx, { game, bet, net, won }) {
+async function applyProgressionFor(ctx, { game, bet, net, won, isWeb = false }) {
   const { guildId, userId } = ctx;
   const u = db.getUser(guildId, userId);
 
@@ -194,19 +194,34 @@ async function applyProgressionFor(ctx, { game, bet, net, won }) {
 
   const cfg = db.getGuildConfig(guildId);
   if (net > 0 && net >= cfg.bigWinThreshold) {
-    await announceBigWin(ctx, net, game).catch(() => {});
-    try {
-      const { announceWebEvent } = require('./webServer');
-      const username = ctx.member?.displayName || ctx.user?.username || 'Jogador';
-      await announceWebEvent(guildId, 'win', {
-        title: `🎉 GRANDE VITÓRIA no Discord!`,
-        message: `🎉 **${username}** ganhou **${fmt(net)}** em **${game}** no Discord! 🎉`,
-        username,
-        game,
-        amount: net,
-        bet
-      });
-    } catch (err) { /* Ignora erros de circular require */ }
+    if (!isWeb) {
+      await announceBigWin(ctx, net, game).catch(() => {});
+      try {
+        const { announceWebEvent } = require('./webServer');
+        const username = ctx.member?.displayName || ctx.user?.username || 'Jogador';
+        await announceWebEvent(guildId, 'win', {
+          title: `🎉 GRANDE VITÓRIA no Discord!`,
+          message: `🎉 **${username}** ganhou **${fmt(net)} 🪙** em **${game}** no Discord! 🎉`,
+          username,
+          game,
+          amount: net,
+          bet
+        });
+      } catch (err) { /* Ignora erros de circular require */ }
+    } else {
+      try {
+        const { announceWebEvent } = require('./webServer');
+        const username = ctx.user?.username || 'Jogador';
+        await announceWebEvent(guildId, 'win', {
+          title: `🎰 GRANDE VITÓRIA na Web!`,
+          message: `🎉 **${username}** teve uma **GRANDE VITÓRIA** de **${fmt(net)} 🪙** a jogar **${game}** no Site! 🚀`,
+          username,
+          game,
+          amount: net,
+          bet
+        });
+      } catch (err) { /* Ignora erros de circular require */ }
+    }
   }
   if (cfg.logChannelId) {
     await logPlay(ctx, { game, bet, net }).catch(() => {});
@@ -232,16 +247,16 @@ async function afterGame(interaction, { game, bet, net, won }) {
 }
 
 // ---- Ponto de entrada para aplicar a outro jogador (ex: perdedor/vencedor de /apostar ou /duelo) ----
-async function afterGameForMember(interaction, member, { game, bet, net, won }) {
+async function afterGameForMember(interaction, member, { game, bet, net, won }, isWeb = false) {
   const ctx = {
-    guildId: interaction.guildId,
+    guildId: interaction ? (interaction.guildId || (member && member.guild ? member.guild.id : null)) : (member && member.guild ? member.guild.id : null),
     userId: member.id,
     member,
-    client: interaction.client,
-    channelId: interaction.channelId,
+    client: interaction ? interaction.client : (member ? member.client : null),
+    channelId: interaction ? interaction.channelId : null,
     user: member.user || member
   };
-  return applyProgressionFor(ctx, { game, bet, net, won });
+  return applyProgressionFor(ctx, { game, bet, net, won, isWeb });
 }
 
 // chamado só pelo slots.js para acompanhar jackpots (combinação perfeita) seguidos
