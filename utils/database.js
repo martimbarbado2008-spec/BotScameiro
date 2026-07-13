@@ -16,6 +16,7 @@ let cryptoPrices = {};
 let footballMatches = {};
 let footballBets = {};
 let chatHistory = [];
+let webSessions = {};
 
 // Função para descarregar os dados da nuvem assim que o bot liga
 async function initDatabase() {
@@ -33,6 +34,7 @@ async function initDatabase() {
     footballMatches = (await redis.get("casino:football:matches")) || {};
     footballBets = (await redis.get("casino:football:bets")) || {};
     chatHistory = (await redis.get("casino:chat:history")) || [];
+    webSessions = (await redis.get("casino:websessions")) || {};
     console.log("Dados carregados com sucesso da Nuvem!");
   } catch (err) {
     console.error("Erro ao carregar dados do Redis:", err);
@@ -55,6 +57,7 @@ function persist() {
       await redis.set("casino:football:matches", footballMatches);
       await redis.set("casino:football:bets", footballBets);
       await redis.set("casino:chat:history", chatHistory);
+      await redis.set("casino:websessions", webSessions);
       console.log("Dados salvos na Nuvem com sucesso!");
     } catch (err) {
       console.error("Erro ao persistir dados no Redis Remoto:", err);
@@ -589,6 +592,20 @@ function addChatMessage(msg) {
   persist();
 }
 
+function getWebSession(token) {
+  return webSessions[token] || null;
+}
+
+function setWebSession(token, data) {
+  webSessions[token] = data;
+  persist();
+}
+
+function deleteWebSession(token) {
+  delete webSessions[token];
+  persist();
+}
+
 module.exports = {
   getUser, saveUser, addBalance, addBank, tickBankInterest, setCooldown, getCooldown,
   recordResult, pushHistory, getHistory, getLeaderboard, getGlobalLeaderboard, resetUser, resetAllUsers,
@@ -600,5 +617,6 @@ module.exports = {
   getCryptoPrices, setCryptoPrices, buyCrypto, sellCrypto, getAllUserIdsForGuild,
   getFootballMatches, saveFootballMatches, getFootballBets, saveFootballBets,
   getChatHistory, addChatMessage, broadcastBalanceUpdate,
+  getWebSession, setWebSession, deleteWebSession,
   getUsersData: () => users
 };

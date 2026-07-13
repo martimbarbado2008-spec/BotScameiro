@@ -270,28 +270,7 @@ function renderGamePage(token) {
  
 let discordClient = null;
 
-const fs = require('fs');
-const sessionsFile = path.join(__dirname, '../sessions.json');
-let sessions = new Map();
 const activeJobs = new Map();
-
-try {
-  if (fs.existsSync(sessionsFile)) {
-    const fileData = JSON.parse(fs.readFileSync(sessionsFile, 'utf8'));
-    sessions = new Map(Object.entries(fileData));
-  }
-} catch (e) {
-  console.error("Erro ao carregar sessões persistidas:", e);
-}
-
-function saveSessions() {
-  try {
-    const fileData = Object.fromEntries(sessions.entries());
-    fs.writeFileSync(sessionsFile, JSON.stringify(fileData), 'utf8');
-  } catch (e) {
-    console.error("Erro ao persistir sessões:", e);
-  }
-}
 
 function getSession(req) {
   let token = null;
@@ -315,14 +294,13 @@ function getSession(req) {
   }
   
   if (!token) return null;
-  return sessions.get(token) || null;
+  return db.getWebSession(token);
 }
 
 function createSession(guildId, userId) {
   const crypto = require('crypto');
   const sessionToken = crypto.randomBytes(32).toString('hex');
-  sessions.set(sessionToken, { guildId, userId });
-  saveSessions();
+  db.setWebSession(sessionToken, { guildId, userId });
   return sessionToken;
 }
 
