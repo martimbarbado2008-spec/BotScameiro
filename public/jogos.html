@@ -563,46 +563,41 @@
 
         <!-- Multijogador (Multiplayer) -->
         <div id="lobbyTabMulti" class="lobby-list" style="display: none;">
-          <div class="lobby-category">
-            <h2 class="category-title">👥 Jogos Multijogador</h2>
-            <div class="lobby-grid">
-              <!-- Blackjack Online -->
-              <a href="/blackjack.html" class="lobby-item">
-                <div class="lobby-info">
-                  <div class="lobby-icon">🃏</div>
-                  <div class="lobby-detail">
-                    <h3>Blackjack Online</h3>
-                    <p>Joga contra o Dealer na mesa multijogador em tempo real</p>
-                  </div>
-                </div>
-                <span class="lobby-action-btn">JOGAR</span>
-              </a>
-
-              <!-- Roleta Multiplayer -->
-              <a href="/roleta.html" class="lobby-item">
-                <div class="lobby-info">
-                  <div class="lobby-icon">🎡</div>
-                  <div class="lobby-detail">
-                    <h3>Roleta Multiplayer</h3>
-                    <p>Aposta na roleta online juntamente com outros jogadores</p>
-                  </div>
-                </div>
-                <span class="lobby-action-btn">JOGAR</span>
-              </a>
-
-              <!-- Duelo Coinflip / PvP -->
-              <a href="/duelos.html" class="lobby-item">
-                <div class="lobby-info">
-                  <div class="lobby-icon">🪙</div>
-                  <div class="lobby-detail">
-                    <h3>Duelo PvP (Coinflip)</h3>
-                    <p>Desafia outro jogador num cara ou coroa 50/50 em tempo real!</p>
-                  </div>
-                </div>
-                <span class="lobby-action-btn">DUELAR</span>
-              </a>
+          <!-- Blackjack Online -->
+          <a href="/blackjack.html" class="lobby-item">
+            <div class="lobby-info">
+              <div class="lobby-icon">🃏</div>
+              <div class="lobby-detail">
+                <h3>Blackjack Online</h3>
+                <p>Joga contra o Dealer na mesa multijogador em tempo real</p>
+              </div>
             </div>
-          </div>
+            <span class="lobby-action-btn">JOGAR</span>
+          </a>
+
+          <!-- Roleta Multiplayer -->
+          <a href="/roleta.html" class="lobby-item">
+            <div class="lobby-info">
+              <div class="lobby-icon">🎡</div>
+              <div class="lobby-detail">
+                <h3>Roleta Multiplayer</h3>
+                <p>Aposta na roleta online juntamente com outros jogadores</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn">JOGAR</span>
+          </a>
+
+          <!-- Duelo Coinflip / PvP -->
+          <a href="/duelos.html" class="lobby-item">
+            <div class="lobby-info">
+              <div class="lobby-icon">🪙</div>
+              <div class="lobby-detail">
+                <h3>Duelo PvP (Coinflip)</h3>
+                <p>Desafia outro jogador num cara ou coroa 50/50 em tempo real!</p>
+              </div>
+            </div>
+            <span class="lobby-action-btn">DUELAR</span>
+          </a>
         </div>
       </div>
     </div>
@@ -649,7 +644,7 @@
         tabBotBtn.style.color = 'var(--mint)';
         tabMultiBtn.style.background = 'transparent';
         tabMultiBtn.style.color = 'var(--text-muted)';
-        lobbyTabBot.style.display = 'flex';
+        lobbyTabBot.style.display = 'grid';
         lobbyTabMulti.style.display = 'none';
       } else {
         tabMultiBtn.style.background = 'rgba(87, 242, 135, 0.08)';
@@ -657,7 +652,7 @@
         tabBotBtn.style.background = 'transparent';
         tabBotBtn.style.color = 'var(--text-muted)';
         lobbyTabBot.style.display = 'none';
-        lobbyTabMulti.style.display = 'flex';
+        lobbyTabMulti.style.display = 'grid';
       }
       syncLinksWithToken();
     }
