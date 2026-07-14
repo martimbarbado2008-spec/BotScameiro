@@ -344,6 +344,10 @@
     let myCurrentBet = null; // { bet, autoCashout, cashedOut: false }
     let clientStatus = 'waiting'; // 'betting' | 'placed' | 'climbing' | 'cashed' | 'crashed'
 
+    let localAnimationId = null;
+    let lastServerState = null;
+    let serverOffset = 0;
+
     // Load Token
     (function() {
       const urlParams = new URLSearchParams(window.location.search);
@@ -380,7 +384,32 @@
       } catch (e) {}
     }
 
+    function runLocalClimb() {
+      if (!lastServerState || lastServerState.status !== 'climbing') return;
+
+      const multDisplay = document.getElementById('multiplierDisplay');
+      const btnAction = document.getElementById('btnBetAction');
+      
+      const correctedNow = Date.now() + serverOffset;
+      const elapsed = (correctedNow - lastServerState.startTime) / 1000;
+      const localMultiplier = Math.pow(Math.E, 0.075 * elapsed);
+
+      multDisplay.textContent = localMultiplier.toFixed(2) + 'x';
+
+      if (myCurrentBet && !myCurrentBet.cashedOut) {
+        const currentWin = Math.round(myCurrentBet.bet * localMultiplier);
+        btnAction.textContent = `RETIRAR: ${currentWin.toLocaleString('pt-PT')} 🪙`;
+      }
+
+      localAnimationId = requestAnimationFrame(runLocalClimb);
+    }
+
     function renderState(state) {
+      lastServerState = state;
+      if (state.serverTime) {
+        serverOffset = state.serverTime - Date.now();
+      }
+
       const multDisplay = document.getElementById('multiplierDisplay');
       const statusText = document.getElementById('statusText');
       const btnAction = document.getElementById('btnBetAction');
@@ -409,6 +438,12 @@
         myCurrentBet = null;
       }
 
+      // Stop any existing climbing loop
+      if (localAnimationId) {
+        cancelAnimationFrame(localAnimationId);
+        localAnimationId = null;
+      }
+
       // Render Multiplier display
       if (state.status === 'betting') {
         multDisplay.textContent = '1.00x';
@@ -427,7 +462,6 @@
         }
       } 
       else if (state.status === 'climbing') {
-        multDisplay.textContent = state.multiplier.toFixed(2) + 'x';
         multDisplay.className = 'live-multiplier climbing';
         statusText.textContent = 'A subir... RETIRA ANTES DO CRASH!';
 
@@ -437,16 +471,18 @@
             btnAction.textContent = `Retirado a x${myCurrentBet.cashedAt.toFixed(2)}`;
             btnAction.disabled = true;
           } else {
-            const currentWin = Math.round(myCurrentBet.bet * state.multiplier);
             btnAction.className = 'btn-bet cashout';
-            btnAction.textContent = `RETIRAR: ${currentWin.toLocaleString('pt-PT')} 🪙`;
             btnAction.disabled = false;
+            // The text content is updated dynamically inside the animation frame
           }
         } else {
           btnAction.className = 'btn-bet waiting';
           btnAction.textContent = 'Em jogo...';
           btnAction.disabled = true;
         }
+
+        // Start 60fps smooth local interpolation
+        runLocalClimb();
       } 
       else if (state.status === 'crashed') {
         multDisplay.textContent = state.multiplier.toFixed(2) + 'x';

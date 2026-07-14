@@ -5073,6 +5073,8 @@ app.get('/api/games/crash-multi/state', (req, res) => {
     timeLeft: crashState.timeLeft,
     multiplier: crashState.multiplier,
     history: crashState.history,
+    startTime: crashState.startTime,
+    serverTime: Date.now(),
     bets: crashState.bets.map(b => ({
       userId: b.userId,
       username: b.username,

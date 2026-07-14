@@ -415,8 +415,8 @@
     }
 
     // Helper for suit formatting
-    const SUIT_EMOJIS = { H: '♥️', D: '♦️', C: '♣️', S: '♠️' };
-    const SUIT_NAMES = { H: 'red', D: 'red', C: 'black', S: 'black' };
+    const SUIT_EMOJIS = { '♥': '♥️', '♦': '♦️', '♣': '♣️', '♠': '♠️', H: '♥️', D: '♦️', C: '♣️', S: '♠️' };
+    const SUIT_NAMES = { '♥': 'red', '♦': 'red', '♣': 'black', '♠': 'black', H: 'red', D: 'red', C: 'black', S: 'black' };
     
     function createCardElement(card, idx, interactive = false) {
       const el = document.createElement('div');
