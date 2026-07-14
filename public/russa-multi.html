@@ -300,9 +300,77 @@
       border-color: var(--mint);
       background: rgba(87, 242, 135, 0.03);
     }
+
+    /* Victory Overlay Modal */
+    .victory-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.85);
+      z-index: 100000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      backdrop-filter: blur(10px);
+    }
+    .victory-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .victory-box {
+      text-align: center;
+      background: linear-gradient(135deg, rgba(26,38,30,0.95), rgba(15,22,18,0.95));
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 50px rgba(241,196,15,0.4), inset 0 0 20px rgba(87,242,135,0.05);
+      border-radius: 24px;
+      padding: 40px 60px;
+      transform: scale(0.8);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .victory-overlay.active .victory-box {
+      transform: scale(1);
+    }
+    .victory-title {
+      font-size: 32px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+      font-family: 'Outfit', sans-serif;
+    }
+    .victory-amount {
+      font-size: 48px;
+      font-weight: 800;
+      color: var(--mint);
+      text-shadow: 0 0 20px rgba(87,242,135,0.3);
+      margin-bottom: 20px;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .victory-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+      font-family: 'Outfit', sans-serif;
+    }
   </style>
 </head>
 <body>
+  <!-- Victory Overlay -->
+  <div class="victory-overlay" id="victoryOverlay" onclick="closeVictoryOverlay()">
+    <div class="victory-box" onclick="event.stopPropagation()">
+      <div class="victory-title">👑 VITÓRIA MÁXIMA!</div>
+      <div class="victory-amount" id="victoryOverlayAmount">+0 🪙</div>
+      <div class="victory-subtitle">Limparste a mesa de Roleta Russa!</div>
+    </div>
+  </div>
+
   <header>
     <a href="/jogos.html" class="btn-back">⬅️ Voltar à Sala</a>
     <div class="balance-display" id="userBalance">0 🪙</div>
@@ -382,9 +450,15 @@
   </div>
 
   <script>
-    let currentRoomId = null;
+    let sseSource = null;
     let pollInterval = null;
     let currentUserId = null;
+    let currentUsername = '';
+    let victoryOverlayShown = false;
+    let myCurrentBet = null; // { bet, autoCashout, cashedOut: false }
+    let clientStatus = 'waiting'; // 'betting' | 'placed' | 'climbing' | 'cashed' | 'crashed'
+    let lastHistoryLength = 0;
+    let currentRoomId = null;
 
     // Load Token
     (function() {
@@ -402,9 +476,14 @@
         if (res.ok) {
           const data = await res.json();
           currentUserId = data.userId;
+          currentUsername = data.username;
           document.getElementById('userBalance').textContent = Math.round(data.balance).toLocaleString('pt-PT') + ' 🪙';
         }
       } catch (e) {}
+    }
+
+    function closeVictoryOverlay() {
+      document.getElementById('victoryOverlay').classList.remove('active');
     }
 
     async function loadRooms() {
@@ -488,6 +567,7 @@
     }
 
     function enterRoomUI() {
+      lastHistoryLength = 0;
       document.getElementById('lobbyView').style.display = 'none';
       document.getElementById('arenaView').style.display = 'block';
       document.getElementById('noActiveRoomAlert').style.display = 'none';
@@ -516,6 +596,7 @@
       } catch(e) {}
       stopPolling();
       currentRoomId = null;
+      lastHistoryLength = 0;
       exitRoomUI();
       loadRooms();
       loadBalance();
@@ -591,6 +672,24 @@
       const angle = room.currentChamber * 60;
       cylinder.style.transform = `rotate(${angle}deg)`;
 
+      // Play sound effects when new logs arrive
+      if (room.history.length > lastHistoryLength) {
+        // Inspect the latest log entries
+        for (let i = lastHistoryLength; i < room.history.length; i++) {
+          const log = room.history[i];
+          if (log.includes('BANG!') || log.includes('BANG') || log.includes('eliminar') || log.includes('morreu')) {
+            if (typeof window.playSFX === 'function') window.playSFX('russa_bang');
+          } else if (log.includes('click') || log.includes('sobreviveu')) {
+            if (typeof window.playSFX === 'function') window.playSFX('russa_click');
+          } else if (log.includes('recarregado') || log.includes('girado') || log.includes('começou')) {
+            if (typeof window.playSFX === 'function') window.playSFX('spin');
+          } else if (log.includes('entrou') || log.includes('saiu')) {
+            if (typeof window.playSFX === 'function') window.playSFX('join');
+          }
+        }
+        lastHistoryLength = room.history.length;
+      }
+
       // Render history
       const historyLog = document.getElementById('historyLog');
       historyLog.innerHTML = '';
@@ -619,9 +718,20 @@
           turnIndicator.textContent = `Turno de: ${activePlayerName} (${room.timer}s)...`;
           btnPull.disabled = true;
         }
+        victoryOverlayShown = false;
       } else if (room.status === 'finished') {
         turnIndicator.innerHTML = `🏆 <b>VENCEDOR DA MESA:</b> <span style="color:var(--gold);">${room.winner}</span>!`;
         btnPull.disabled = true;
+
+        if (room.winner === currentUsername && !victoryOverlayShown) {
+          victoryOverlayShown = true;
+          document.getElementById('victoryOverlayAmount').textContent = `+${room.pot.toLocaleString('pt-PT')} 🪙`;
+          document.getElementById('victoryOverlay').classList.add('active');
+          if (typeof window.playSFX === 'function') window.playSFX('win');
+          setTimeout(() => {
+            closeVictoryOverlay();
+          }, 5000);
+        }
       }
     }
 
