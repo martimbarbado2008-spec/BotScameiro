@@ -4346,9 +4346,6 @@ app.post('/api/blackjack/stand', async (req, res) => {
   }
 });
 
-app.use((req, res) => {
-  res.status(404).json({ error: 'Rota não encontrada.' });
-});
  
 let sseClients = [];
 
@@ -4570,11 +4567,6 @@ app.post('/api/games/roulette-multi/bet', async (req, res) => {
   }
 });
 
-app.use((err, req, res, next) => {
-  console.error('Erro não tratado no servidor web:', err);
-  if (res.headersSent) return next(err);
-  res.status(500).json({ error: 'Erro interno do servidor.' });
-});
  
 // ─── Global Event Announcer ────────────────────────────────────────────────────
 // Announces wins, level-ups, and purchases to:
@@ -5166,6 +5158,18 @@ app.post('/api/games/crash-multi/cashout', async (req, res) => {
 // Run multiplayer tickers
 setInterval(tickRussaRooms, 1000);
 setInterval(tickCrash, 100);
+
+// 404 Handler
+app.use((req, res) => {
+  res.status(404).json({ error: 'Rota não encontrada.' });
+});
+
+// Error Handler
+app.use((err, req, res, next) => {
+  console.error('Erro não tratado no servidor web:', err);
+  if (res.headersSent) return next(err);
+  res.status(500).json({ error: 'Erro interno do servidor.' });
+});
 
 function startServer(port, client) {
   discordClient = client;
