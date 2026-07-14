@@ -278,4 +278,4 @@ async function notify(interaction, xpResult, newBadges) {
   } catch {}
 }
 
-module.exports = { ACHIEVEMENTS, getAchievement, afterGame, afterGameForMember, recordJackpot, notify };
+module.exports = { ACHIEVEMENTS, getAchievement, afterGame, afterGameForMember, recordJackpot, notify, applyProgressionFor };
