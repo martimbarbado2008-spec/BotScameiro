@@ -2715,6 +2715,70 @@ app.post('/api/bank/loan/repay', async (req, res) => {
   }
 });
 
+app.post('/api/bank/deposit', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const user = db.getUser(guildId, userId);
+    let { amount } = req.body;
+    
+    if (amount === 'all') {
+      amount = user.balance;
+    }
+    
+    if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Quantidade de depósito inválida.' });
+    }
+    
+    if (user.balance < amount) {
+      return res.status(400).json({ error: 'Saldo de carteira insuficiente.' });
+    }
+    
+    user.balance -= amount;
+    user.bank = (user.bank || 0) + amount;
+    db.saveUser(guildId, userId, user);
+    
+    return res.json({ success: true, balance: user.balance, bank: user.bank });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
+app.post('/api/bank/withdraw', async (req, res) => {
+  try {
+    const session = getSession(req);
+    if (!session) return res.status(401).json({ error: 'Não autorizado.' });
+    
+    const { guildId, userId } = session;
+    const user = db.getUser(guildId, userId);
+    let { amount } = req.body;
+    
+    if (amount === 'all') {
+      amount = user.bank || 0;
+    }
+    
+    if (typeof amount !== 'number' || isNaN(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Quantidade de levantamento inválida.' });
+    }
+    
+    if ((user.bank || 0) < amount) {
+      return res.status(400).json({ error: 'Saldo de banco insuficiente.' });
+    }
+    
+    user.balance += amount;
+    user.bank = (user.bank || 0) - amount;
+    db.saveUser(guildId, userId, user);
+    
+    return res.json({ success: true, balance: user.balance, bank: user.bank });
+  } catch (err) {
+    console.error(err);
+    return res.status(500).json({ error: 'Erro no servidor.' });
+  }
+});
+
 app.get('/api/lottery/state', async (req, res) => {
   try {
     const session = getSession(req);

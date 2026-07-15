@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+  <link rel="icon" type="image/png" href="/favicon.png">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Banco Central | Casino</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #060d09;
+      --panel-bg: rgba(13, 27, 18, 0.95);
+      --border-glow: rgba(87, 242, 135, 0.15);
+      --border: rgba(255, 255, 255, 0.08);
+      --text: #ffffff;
+      --text-muted: #8e9297;
+      --mint: #57f287;
+      --mint-glow: rgba(87, 242, 135, 0.35);
+      --gold: #faca2b;
+      --ruby: #e74c3c;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      color: var(--text);
+      font-family: 'Outfit', sans-serif;
+      min-height: 100vh;
+      overflow-x: hidden;
+      display: flex;
+      flex-direction: column;
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(87, 242, 135, 0.04) 0%, transparent 40%),
+        radial-gradient(circle at 90% 80%, rgba(250, 202, 43, 0.03) 0%, transparent 40%);
+    }
+
+    header {
+      width: 100%;
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 30px 20px 20px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo-area {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+      background: linear-gradient(135deg, #fff, var(--mint));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .btn-back, .nav-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: #fff;
+      padding: 10px 20px;
+      border-radius: 12px;
+      font-size: 13px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn-back:hover, .nav-btn:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--mint);
+      box-shadow: 0 0 10px rgba(87, 242, 135, 0.15);
+    }
+
+    .hud-balances {
+      display: flex;
+      gap: 15px;
+    }
+
+    .hud-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 12px;
+      padding: 8px 15px;
+      text-align: right;
+      min-width: 130px;
+    }
+
+    .hud-card .lbl {
+      font-size: 9px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      color: var(--text-muted);
+      font-weight: 700;
+      margin-bottom: 2px;
+    }
+
+    .hud-card .val {
+      font-size: 14px;
+      font-weight: 800;
+      color: var(--gold);
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .main-container {
+      width: 100%;
+      max-width: 1200px;
+      margin: 30px auto;
+      padding: 0 20px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr;
+      gap: 25px;
+      flex: 1;
+    }
+
+    @media (max-width: 900px) {
+      .main-container {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .panel {
+      background: var(--panel-bg);
+      backdrop-filter: blur(12px);
+      border: 1px solid var(--border-glow);
+      border-radius: 20px;
+      padding: 24px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+      display: flex;
+      flex-direction: column;
+    }
+
+    .panel-title {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 20px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    /* Deposit / Withdraw Grid */
+    .bank-actions-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    @media (max-width: 600px) {
+      .bank-actions-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .action-box {
+      background: rgba(0, 0, 0, 0.2);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .action-box h3 {
+      font-size: 14px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--mint);
+    }
+
+    .action-box.withdraw h3 {
+      color: var(--gold);
+    }
+
+    .input-wrapper {
+      position: relative;
+    }
+
+    .input-wrapper input {
+      width: 100%;
+      background: rgba(0, 0, 0, 0.4);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 12px 40px 12px 12px;
+      color: #fff;
+      font-family: 'Share Tech Mono', monospace;
+      font-size: 16px;
+      font-weight: 700;
+      outline: none;
+    }
+
+    .input-wrapper input:focus {
+      border-color: var(--mint);
+    }
+
+    .action-box.withdraw .input-wrapper input:focus {
+      border-color: var(--gold);
+    }
+
+    .input-wrapper .currency-symbol {
+      position: absolute;
+      right: 15px;
+      top: 50%;
+      transform: translateY(-50%);
+      font-size: 14px;
+    }
+
+    .shortcuts-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .shortcut-btn {
+      background: rgba(255, 255, 255, 0.03);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 700;
+      cursor: pointer;
+      font-family: inherit;
+      transition: all 0.15s;
+    }
+
+    .shortcut-btn:hover {
+      background: rgba(255, 255, 255, 0.08);
+      color: #fff;
+      border-color: var(--text-muted);
+    }
+
+    .btn-submit {
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 10px;
+      font-size: 14px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-submit.deposit {
+      background: linear-gradient(135deg, var(--mint), #2ecc71);
+      box-shadow: 0 4px 15px rgba(46, 204, 113, 0.2);
+    }
+
+    .btn-submit.deposit:hover {
+      box-shadow: 0 4px 20px rgba(46, 204, 113, 0.4);
+      transform: translateY(-1px);
+    }
+
+    .btn-submit.withdraw {
+      background: linear-gradient(135deg, var(--gold), #f39c12);
+      box-shadow: 0 4px 15px rgba(241, 196, 15, 0.2);
+    }
+
+    .btn-submit.withdraw:hover {
+      box-shadow: 0 4px 20px rgba(241, 196, 15, 0.4);
+      transform: translateY(-1px);
+    }
+
+    /* Loan panel styles */
+    .loan-status-card {
+      background: rgba(0, 0, 0, 0.25);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 20px;
+      margin-bottom: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .loan-stat {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 13px;
+    }
+
+    .loan-stat .lbl {
+      color: var(--text-muted);
+      font-weight: 600;
+    }
+
+    .loan-stat .val {
+      font-weight: 800;
+      font-family: 'Share Tech Mono', monospace;
+    }
+
+    .loan-stat .val.active {
+      color: var(--ruby);
+    }
+
+    .loan-stat .val.limit {
+      color: var(--mint);
+    }
+
+    .loan-actions {
+      display: flex;
+      flex-direction: column;
+      gap: 15px;
+    }
+
+    .loan-input-box {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .loan-input-box label {
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--text-muted);
+      text-transform: uppercase;
+    }
+
+    .loan-btn {
+      width: 100%;
+      padding: 12px;
+      border: none;
+      border-radius: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      font-family: inherit;
+      cursor: pointer;
+      transition: all 0.2s;
+      color: #fff;
+    }
+
+    .loan-btn.request {
+      background: linear-gradient(135deg, rgba(87, 242, 135, 0.15), rgba(46, 204, 113, 0.25));
+      border: 1px solid var(--mint);
+      color: var(--mint);
+    }
+
+    .loan-btn.request:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(87, 242, 135, 0.25), rgba(46, 204, 113, 0.35));
+      box-shadow: 0 0 15px rgba(87, 242, 135, 0.2);
+    }
+
+    .loan-btn.repay {
+      background: linear-gradient(135deg, rgba(231, 76, 60, 0.15), rgba(192, 57, 43, 0.25));
+      border: 1px solid var(--ruby);
+      color: var(--ruby);
+    }
+
+    .loan-btn.repay:hover:not(:disabled) {
+      background: linear-gradient(135deg, rgba(231, 76, 60, 0.25), rgba(192, 57, 43, 0.35));
+      box-shadow: 0 0 15px rgba(231, 76, 60, 0.2);
+    }
+
+    .loan-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      border-color: var(--border) !important;
+      background: rgba(255, 255, 255, 0.02) !important;
+      color: var(--text-muted) !important;
+    }
+
+    /* Victory Overlay Modal */
+    .victory-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0,0,0,0.85);
+      z-index: 100000;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.5s ease;
+      backdrop-filter: blur(10px);
+    }
+    .victory-overlay.active {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .victory-box {
+      text-align: center;
+      background: linear-gradient(135deg, rgba(26,38,30,0.95), rgba(15,22,18,0.95));
+      border: 2px solid var(--gold);
+      box-shadow: 0 0 50px rgba(241,196,15,0.4), inset 0 0 20px rgba(87,242,135,0.05);
+      border-radius: 24px;
+      padding: 40px 60px;
+      transform: scale(0.8);
+      transition: transform 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .victory-overlay.active .victory-box {
+      transform: scale(1);
+    }
+    .victory-title {
+      font-size: 26px;
+      font-weight: 900;
+      background: linear-gradient(135deg, #fff, var(--gold));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+      letter-spacing: 1px;
+    }
+    .victory-amount {
+      font-size: 42px;
+      font-weight: 800;
+      color: var(--mint);
+      text-shadow: 0 0 20px rgba(87,242,135,0.3);
+      margin-bottom: 20px;
+      font-family: 'Share Tech Mono', monospace;
+    }
+    .victory-subtitle {
+      font-size: 14px;
+      color: var(--text-muted);
+    }
+  </style>
+</head>
+<body>
+  <!-- Victory Overlay -->
+  <div class="victory-overlay" id="victoryOverlay" onclick="closeVictoryOverlay()">
+    <div class="victory-box" onclick="event.stopPropagation()">
+      <div class="victory-title" id="victoryOverlayTitle">🏦 TRANSAÇÃO EFETUADA</div>
+      <div class="victory-amount" id="victoryOverlayAmount">+0 🪙</div>
+      <div class="victory-subtitle" id="victoryOverlaySubtitle">Saldo transferido com sucesso.</div>
+    </div>
+  </div>
+
+  <header>
+    <div class="logo-area">
+      <a href="/dashboard.html" class="nav-btn">📊 Dashboard</a>
+      <a href="/jogos.html" class="nav-btn">🎮 Jogos</a>
+      <h1>🏦 BANCO DO CASINO</h1>
+    </div>
+    
+    <div class="hud-balances">
+      <div class="hud-card">
+        <div class="lbl">Carteira</div>
+        <div class="val" id="userBalance">0 🪙</div>
+      </div>
+      <div class="hud-card">
+        <div class="lbl">Banco</div>
+        <div class="val" id="userBank">0 🪙</div>
+      </div>
+    </div>
+  </header>
+
+  <div class="main-container">
+    <!-- Left Column: Deposit and Withdraw -->
+    <div class="panel">
+      <h2 class="panel-title">💰 Gestão de Saldos</h2>
+      
+      <div class="bank-actions-grid">
+        <!-- Deposit Box -->
+        <div class="action-box">
+          <h3>📥 Depositar no Banco</h3>
+          <p style="font-size: 11px; color: var(--text-muted);">Transfere moedas da carteira para o teu cofre seguro no banco (protegido contra roubos).</p>
+          
+          <div class="input-wrapper">
+            <input type="number" id="depositAmount" placeholder="Quantia..." min="1">
+            <span class="currency-symbol">🪙</span>
+          </div>
+          
+          <div class="shortcuts-row">
+            <button class="shortcut-btn" onclick="setAmount('deposit', 100)">100</button>
+            <button class="shortcut-btn" onclick="setAmount('deposit', 1000)">1k</button>
+            <button class="shortcut-btn" onclick="setAmount('deposit', 5000)">5k</button>
+            <button class="shortcut-btn" onclick="setAmount('deposit', 'half')">50%</button>
+            <button class="shortcut-btn" onclick="setAmount('deposit', 'max')">MAX</button>
+          </div>
+          
+          <button class="btn-submit deposit" onclick="executeBankAction('deposit')">
+            Depositar 📥
+          </button>
+        </div>
+
+        <!-- Withdraw Box -->
+        <div class="action-box withdraw">
+          <h3>📤 Levantar Moedas</h3>
+          <p style="font-size: 11px; color: var(--text-muted);">Transfere moedas do teu cofre do banco de volta para a carteira para poderes apostar.</p>
+          
+          <div class="input-wrapper">
+            <input type="number" id="withdrawAmount" placeholder="Quantia..." min="1">
+            <span class="currency-symbol">🪙</span>
+          </div>
+          
+          <div class="shortcuts-row">
+            <button class="shortcut-btn" onclick="setAmount('withdraw', 100)">100</button>
+            <button class="shortcut-btn" onclick="setAmount('withdraw', 1000)">1k</button>
+            <button class="shortcut-btn" onclick="setAmount('withdraw', 5000)">5k</button>
+            <button class="shortcut-btn" onclick="setAmount('withdraw', 'half')">50%</button>
+            <button class="shortcut-btn" onclick="setAmount('withdraw', 'max')">MAX</button>
+          </div>
+          
+          <button class="btn-submit withdraw" onclick="executeBankAction('withdraw')">
+            Levantar 📤
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right Column: Loans -->
+    <div class="panel">
+      <h2 class="panel-title">🏦 Empréstimos Bancários</h2>
+      
+      <div class="loan-status-card">
+        <div class="loan-stat">
+          <span class="lbl">Dívida Ativa:</span>
+          <span class="val" id="activeLoanVal">0 🪙</span>
+        </div>
+        <div class="loan-stat">
+          <span class="lbl">Limite Máx. Empréstimo:</span>
+          <span class="val limit" id="maxLoanVal">0 🪙</span>
+        </div>
+        <div class="loan-stat">
+          <span class="lbl">Taxa de Juros:</span>
+          <span class="val" id="loanInterestVal">0%</span>
+        </div>
+      </div>
+
+      <div class="loan-actions">
+        <!-- Request Loan Box -->
+        <div class="loan-input-box">
+          <label>Valor do Novo Empréstimo (🪙)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="loanRequestAmount" placeholder="Valor..." min="1" style="flex:1; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color:#fff; font-family:'Share Tech Mono', monospace; font-size:14px; font-weight:700; outline:none;">
+            <button class="loan-btn request" id="btnRequestLoan" onclick="handleLoanAction('request')" style="width: auto; padding: 10px 20px;">Pedir 💸</button>
+          </div>
+        </div>
+
+        <hr style="border: 0; border-top: 1px solid rgba(255,255,255,0.05); margin: 5px 0;">
+
+        <!-- Repay Loan Box -->
+        <div class="loan-input-box">
+          <label>Pagar Dívida (🪙)</label>
+          <div style="display: flex; gap: 8px;">
+            <input type="number" id="loanRepayAmount" placeholder="Valor..." min="1" style="flex:1; background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border); border-radius: 8px; padding: 10px; color:#fff; font-family:'Share Tech Mono', monospace; font-size:14px; font-weight:700; outline:none;">
+            <button class="loan-btn repay" id="btnRepayLoan" onclick="handleLoanAction('repay')" style="width: auto; padding: 10px 20px;">Pagar 💰</button>
+          </div>
+          <div style="display:flex; justify-content:flex-end; gap:6px; margin-top:2px;">
+            <button class="shortcut-btn" onclick="setLoanRepayMax()" style="padding: 4px 8px; font-size: 10px;">Dívida Total</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let currentUserId = null;
+    let cachedBalance = 0;
+    let cachedBank = 0;
+    let cachedLoan = 0;
+    let cachedMaxLoan = 0;
+
+    // Load Token
+    (function() {
+      const urlParams = new URLSearchParams(window.location.search);
+      const tokenParam = urlParams.get('token');
+      if (tokenParam) localStorage.setItem('token', tokenParam);
+    })();
+
+    async function loadData() {
+      try {
+        const token = localStorage.getItem('token');
+        const headers = {};
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+        
+        // Load Profile details
+        const resProfile = await fetch('/api/dashboard/data', { headers });
+        if (resProfile.ok) {
+          const profile = await resProfile.json();
+          currentUserId = profile.userId;
+          cachedBalance = Math.round(profile.balance);
+          cachedBank = Math.round(profile.bank);
+          
+          document.getElementById('userBalance').textContent = cachedBalance.toLocaleString('pt-PT') + ' 🪙';
+          document.getElementById('userBank').textContent = cachedBank.toLocaleString('pt-PT') + ' 🪙';
+        }
+
+        // Load Loan details
+        const resLoan = await fetch('/api/bank/loan', { headers });
+        if (resLoan.ok) {
+          const loanData = await resLoan.json();
+          cachedLoan = Math.round(loanData.loan || 0);
+          cachedMaxLoan = Math.round(loanData.maxAmount);
+          
+          const loanValEl = document.getElementById('activeLoanVal');
+          loanValEl.textContent = cachedLoan.toLocaleString('pt-PT') + ' 🪙';
+          if (cachedLoan > 0) {
+            loanValEl.className = 'val active';
+          } else {
+            loanValEl.className = 'val';
+          }
+
+          document.getElementById('maxLoanVal').textContent = cachedMaxLoan.toLocaleString('pt-PT') + ' 🪙';
+          document.getElementById('loanInterestVal').textContent = loanData.interestPercent + '%';
+
+          // Disable inputs/buttons as needed
+          document.getElementById('btnRequestLoan').disabled = (cachedLoan > 0);
+          document.getElementById('btnRepayLoan').disabled = (cachedLoan <= 0);
+        }
+      } catch (e) {}
+    }
+
+    function setAmount(type, value) {
+      const input = document.getElementById(type + 'Amount');
+      const maxSource = (type === 'deposit') ? cachedBalance : cachedBank;
+
+      if (value === 'max') {
+        input.value = maxSource;
+      } else if (value === 'half') {
+        input.value = Math.floor(maxSource / 2);
+      } else {
+        input.value = Math.min(value, maxSource);
+      }
+    }
+
+    function setLoanRepayMax() {
+      const repayInput = document.getElementById('loanRepayAmount');
+      repayInput.value = Math.min(cachedLoan, cachedBalance);
+    }
+
+    async function executeBankAction(actionType) {
+      const input = document.getElementById(actionType + 'Amount');
+      const amount = parseInt(input.value, 10);
+      
+      if (isNaN(amount) || amount <= 0) {
+        alert('Digita um valor válido acima de zero.');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const url = `/api/bank/${actionType}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          input.value = '';
+          
+          // Victory overlay confirmation
+          document.getElementById('victoryOverlayTitle').textContent = 
+            actionType === 'deposit' ? '📥 DEPÓSITO SEGURO' : '📤 LEVANTAMENTO COMPLETO';
+          document.getElementById('victoryOverlayAmount').textContent = `${amount.toLocaleString('pt-PT')} 🪙`;
+          document.getElementById('victoryOverlaySubtitle').textContent = 
+            actionType === 'deposit' ? 'Moedas transferidas para a tua conta bancária.' : 'Moedas levantadas para a tua carteira.';
+          document.getElementById('victoryOverlay').classList.add('active');
+          
+          if (typeof window.playSFX === 'function') window.playSFX('win');
+          
+          setTimeout(closeVictoryOverlay, 3500);
+          loadData();
+        } else {
+          alert(data.error || 'Erro ao processar transação.');
+        }
+      } catch (err) {
+        alert('Erro ao conectar ao servidor.');
+      }
+    }
+
+    async function handleLoanAction(actionType) {
+      const input = document.getElementById(`loan${actionType === 'request' ? 'Request' : 'Repay'}Amount`);
+      const amount = parseInt(input.value, 10);
+      
+      if (isNaN(amount) || amount <= 0) {
+        alert('Digita um valor válido acima de zero.');
+        return;
+      }
+
+      try {
+        const token = localStorage.getItem('token');
+        const headers = { 'Content-Type': 'application/json' };
+        if (token) headers['Authorization'] = 'Bearer ' + token;
+
+        const url = `/api/bank/loan/${actionType}`;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ amount })
+        });
+        const data = await res.json();
+        
+        if (res.ok) {
+          input.value = '';
+          
+          // Victory overlay confirmation
+          document.getElementById('victoryOverlayTitle').textContent = 
+            actionType === 'request' ? '💸 EMPRÉSTIMO APROVADO' : '💰 DÍVIDA REEMBOLSADA';
+          document.getElementById('victoryOverlayAmount').textContent = `${amount.toLocaleString('pt-PT')} 🪙`;
+          document.getElementById('victoryOverlaySubtitle').textContent = 
+            actionType === 'request' ? 'Saldo creditado na tua carteira.' : 'Dívida amortizada com sucesso.';
+          document.getElementById('victoryOverlay').classList.add('active');
+          
+          if (typeof window.playSFX === 'function') window.playSFX('win');
+          
+          setTimeout(closeVictoryOverlay, 3500);
+          loadData();
+        } else {
+          alert(data.error || 'Erro ao processar empréstimo.');
+        }
+      } catch (err) {
+        alert('Erro ao ligar ao servidor.');
+      }
+    }
+
+    function closeVictoryOverlay() {
+      document.getElementById('victoryOverlay').classList.remove('active');
+    }
+
+    window.onload = () => {
+      loadData();
+    };
+  </script>
+  <script src="/music.js"></script>
+  <script src="/interactive-bg.js"></script>
+</body>
+</html>
