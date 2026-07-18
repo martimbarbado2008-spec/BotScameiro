@@ -125,6 +125,12 @@ function getUser(guildId, userId) {
     if (u.stats.wonCoins === undefined) { u.stats.wonCoins = 0; migrated = true; }
     if (u.stats.lostCoins === undefined) { u.stats.lostCoins = 0; migrated = true; }
   }
+  
+  // Anti-Hack self-healing validation for NaN / invalid numbers
+  if (isNaN(u.balance) || typeof u.balance !== 'number') { u.balance = DEFAULT_BALANCE; migrated = true; }
+  if (isNaN(u.bank) || typeof u.bank !== 'number') { u.bank = 0; migrated = true; }
+  if (u.loan && (isNaN(u.loan.principal) || isNaN(u.loan.owed))) { u.loan = null; migrated = true; }
+  
   if (migrated) persist("casino:users");
   return u;
 }

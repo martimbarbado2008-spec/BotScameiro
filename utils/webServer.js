@@ -2672,7 +2672,7 @@ app.post('/api/bank/loan/request', async (req, res) => {
     const { amount } = req.body;
     
     const cfg = db.getGuildConfig(guildId);
-    if (typeof amount !== 'number' || amount <= 0 || amount > cfg.loanMaxAmount) {
+    if (typeof amount !== 'number' || isNaN(amount) || !Number.isInteger(amount) || amount <= 0 || amount > cfg.loanMaxAmount) {
       return res.status(400).json({ error: `Valor inválido (máx: ${cfg.loanMaxAmount} 🪙).` });
     }
     
@@ -2700,7 +2700,9 @@ app.post('/api/bank/loan/repay', async (req, res) => {
     const loan = db.getLoan(guildId, userId);
     if (!loan) return res.status(400).json({ error: 'Não tens nenhum empréstimo ativo.' });
     
-    if (typeof amount !== 'number' || amount <= 0) return res.status(400).json({ error: 'Valor de pagamento inválido.' });
+    if (typeof amount !== 'number' || isNaN(amount) || !Number.isInteger(amount) || amount <= 0) {
+      return res.status(400).json({ error: 'Valor de pagamento inválido.' });
+    }
     
     const user = db.getUser(guildId, userId);
     if (user.balance < amount) return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
