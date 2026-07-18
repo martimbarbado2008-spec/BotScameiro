@@ -1,6 +1,10 @@
 const express = require('express');
 const db = require('./database');
 const webTokens = require('./webTokens');
+
+function isValidAmount(val) {
+  return typeof val === 'number' && !isNaN(val) && Number.isInteger(val) && val > 0 && Number.isFinite(val);
+}
  
 const chatClients = new Set();
 const activeDuels = new Map();
@@ -719,7 +723,7 @@ app.post('/api/games/roulette/spin', async (req, res) => {
     const cfg = db.getGuildConfig(guildId);
     const user = db.getUser(guildId, userId);
 
-    if (bet < cfg.minBet || bet > cfg.maxBet) {
+    if (!isValidAmount(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
       return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet} 🪙` });
     }
     if (user.balance < bet) {
@@ -827,10 +831,10 @@ app.post('/api/games/mines/start', async (req, res) => {
     const { bet, minesCount } = req.body;
     
     const cfg = db.getGuildConfig(guildId);
-    if (isNaN(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
+    if (!isValidAmount(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
       return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet}.` });
     }
-    if (isNaN(minesCount) || minesCount < 1 || minesCount > 15) {
+    if (!isValidAmount(minesCount) || minesCount < 1 || minesCount > 15) {
       return res.status(400).json({ error: 'Número de minas inválido (deve ser entre 1 e 15).' });
     }
     
@@ -1059,7 +1063,7 @@ app.post('/api/games/crash/start', async (req, res) => {
     const { bet } = req.body;
     
     const cfg = db.getGuildConfig(guildId);
-    if (isNaN(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
+    if (!isValidAmount(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
       return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet}.` });
     }
     
@@ -1734,7 +1738,7 @@ app.post('/api/crypto/contract/create', async (req, res) => {
   const { guildId, userId } = session;
   const { coin, amount, direction, entryPrice, duration } = req.body;
 
-  if (!['BTC', 'ETH', 'SOL', 'DOGE'].includes(coin) || typeof amount !== 'number' || amount < 10 || !['up', 'down'].includes(direction) || typeof entryPrice !== 'number') {
+  if (!['BTC', 'ETH', 'SOL', 'DOGE'].includes(coin) || !isValidAmount(amount) || amount < 10 || !['up', 'down'].includes(direction) || typeof entryPrice !== 'number') {
     return res.status(400).json({ error: 'Parâmetros de contrato inválidos.' });
   }
 
@@ -1861,7 +1865,7 @@ app.post('/api/games/coinflip', async (req, res) => {
     const { guildId, userId } = session;
     const { bet, side } = req.body;
     
-    if (typeof bet !== 'number' || bet < 10 || !['cara', 'coroa'].includes(side)) {
+    if (!isValidAmount(bet) || bet < 10 || !['cara', 'coroa'].includes(side)) {
       return res.status(400).json({ error: 'Parâmetros inválidos.' });
     }
     
@@ -1915,7 +1919,7 @@ app.post('/api/games/dice', async (req, res) => {
     const { guildId, userId } = session;
     const { bet, prediction, type } = req.body;
     
-    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    if (!isValidAmount(bet) || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
     
     const user = db.getUser(guildId, userId);
     const cfg = db.getGuildConfig(guildId);
@@ -1987,7 +1991,7 @@ app.post('/api/games/higherlower/start', async (req, res) => {
     const { guildId, userId } = session;
     const { bet } = req.body;
     
-    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    if (!isValidAmount(bet) || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
     
     const user = db.getUser(guildId, userId);
     const cfg = db.getGuildConfig(guildId);
@@ -2167,7 +2171,7 @@ app.post('/api/games/russa/start', async (req, res) => {
     const { guildId, userId } = session;
     const { bet } = req.body;
     
-    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    if (!isValidAmount(bet) || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
     
     const user = db.getUser(guildId, userId);
     const cfg = db.getGuildConfig(guildId);
@@ -2362,7 +2366,7 @@ app.post('/api/games/poker/start', async (req, res) => {
     const { guildId, userId } = session;
     const { bet } = req.body;
     
-    if (typeof bet !== 'number' || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
+    if (!isValidAmount(bet) || bet < 10) return res.status(400).json({ error: 'Aposta inválida.' });
     
     const user = db.getUser(guildId, userId);
     const cfg = db.getGuildConfig(guildId);
@@ -2516,7 +2520,7 @@ app.post('/api/duels/create', async (req, res) => {
     const { guildId, userId } = session;
     const { bet, choice } = req.body;
     
-    if (typeof bet !== 'number' || bet < 10 || !['cara', 'coroa'].includes(choice)) {
+    if (!isValidAmount(bet) || bet < 10 || !['cara', 'coroa'].includes(choice)) {
       return res.status(400).json({ error: 'Parâmetros inválidos.' });
     }
     
@@ -2812,7 +2816,7 @@ app.post('/api/lottery/buy', async (req, res) => {
     const { guildId, userId } = session;
     const { quantity } = req.body;
     
-    if (typeof quantity !== 'number' || quantity <= 0) return res.status(400).json({ error: 'Quantidade de bilhetes inválida.' });
+    if (!isValidAmount(quantity) || quantity <= 0) return res.status(400).json({ error: 'Quantidade de bilhetes inválida.' });
     
     const cfg = db.getGuildConfig(guildId);
     const cost = quantity * cfg.lotteryTicketPrice;
@@ -2845,7 +2849,7 @@ app.post('/api/transfer', async (req, res) => {
     const { guildId, userId } = session;
     const { targetUserId, amount } = req.body;
     
-    if (!targetUserId || typeof amount !== 'number' || amount <= 0) {
+    if (!targetUserId || !isValidAmount(amount) || amount <= 0) {
       return res.status(400).json({ error: 'Parâmetros de transferência inválidos.' });
     }
     
@@ -3736,7 +3740,7 @@ app.post('/api/games/slots', async (req, res) => {
     const { bet } = req.body;
     
     const cfg = db.getGuildConfig(guildId);
-    if (isNaN(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
+    if (!isValidAmount(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
       return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet}.` });
     }
     
@@ -4592,7 +4596,7 @@ app.post('/api/games/roulette-multi/bet', async (req, res) => {
     if (rMultiTable.status !== 'betting') {
       return res.status(400).json({ error: 'As apostas já fecharam para esta rodada.' });
     }
-    if (bet < cfg.minBet || bet > cfg.maxBet) {
+    if (!isValidAmount(bet) || bet < cfg.minBet || bet > cfg.maxBet) {
       return res.status(400).json({ error: `A aposta deve estar entre ${cfg.minBet} e ${cfg.maxBet} 🪙` });
     }
     if (user.balance < bet) {
@@ -4911,7 +4915,7 @@ app.post('/api/games/russa-multi/join', async (req, res) => {
       }
     } else {
       // Create room
-      if (isNaN(bet) || bet < 100) return res.status(400).json({ error: 'Aposta mínima de 100 moedas.' });
+      if (!isValidAmount(bet) || bet < 100) return res.status(400).json({ error: 'Aposta mínima de 100 moedas.' });
       if (user.balance < bet) return res.status(400).json({ error: 'Saldo insuficiente na carteira.' });
 
       user.balance -= bet;
@@ -5163,7 +5167,7 @@ app.post('/api/games/crash-multi/bet', async (req, res) => {
       return res.status(400).json({ error: 'Apostas fechadas para esta ronda.' });
     }
 
-    if (isNaN(bet) || bet < 10) {
+    if (!isValidAmount(bet) || bet < 10) {
       return res.status(400).json({ error: 'Aposta mínima de 10 moedas.' });
     }
 
